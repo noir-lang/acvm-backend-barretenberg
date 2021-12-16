@@ -8,7 +8,9 @@ edition = "2018"
 
 [dependencies]
 
-acvm = { git = "https://github.com/noir-lang/noir", features = ["bn254"] }
+acvm = { git = "https://github.com/noir-lang/noir", features = [
+    "bn254",
+], rev = "21ccedf08e74509a9c6532340dc2462bbfd227aa" }
 barretenberg_wrapper = { git = "https://github.com/AztecProtocol/barretenberg", branch = "gd/noir-dsl" }
 
 sha2 = "0.9.3"
