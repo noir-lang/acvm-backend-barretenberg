@@ -1,4 +1,4 @@
-use acvm::Backend;
+pub use acvm::{Backend, PartialWitnessGenerator, ProofSystemCompiler, SmartContract};
 
 pub mod proof_system;
 pub mod pwg;
