@@ -8,7 +8,8 @@ edition = "2018"
 
 [dependencies]
 
-acvm = { git = "https://github.com/noir-lang/noir" }
+acvm = { git = "https://github.com/noir-lang/noir", branch = "migrate_backends" }
+# acvm = { path = "../../noir/crates/acvm" }
 barretenberg_wrapper = { git = "https://github.com/AztecProtocol/barretenberg", rev = "657ba943be2c4858e61628b3dd7189b793453d8e" }
 
 sha2 = "0.9.3"
