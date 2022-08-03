@@ -2,6 +2,7 @@ use super::crs::CRS;
 use super::pippenger::Pippenger;
 use super::BARRETENBERG;
 use acvm::FieldElement as Scalar;
+use std::slice;
 
 pub struct StandardComposer {
     pippenger: Pippenger,
@@ -19,11 +20,7 @@ impl StandardComposer {
 
         let pippenger = Pippenger::new(&crs.g1_data);
 
-        StandardComposer {
-            pippenger,
-            crs,
-            constraint_system,
-        }
+        StandardComposer { pippenger, crs, constraint_system }
     }
 }
 
@@ -379,22 +376,10 @@ pub struct LogicConstraint {
 
 impl LogicConstraint {
     pub fn and(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
-        LogicConstraint {
-            a,
-            b,
-            result,
-            num_bits,
-            is_xor_gate: false,
-        }
+        LogicConstraint { a, b, result, num_bits, is_xor_gate: false }
     }
     pub fn xor(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
-        LogicConstraint {
-            a,
-            b,
-            result,
-            num_bits,
-            is_xor_gate: true,
-        }
+        LogicConstraint { a, b, result, num_bits, is_xor_gate: true }
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -547,8 +532,7 @@ impl StandardComposer {
                 p_contract_ptr,
             );
             assert!(contract_size > 0);
-            sc_as_bytes =
-                Vec::from_raw_parts(contract_ptr, contract_size as usize, contract_size as usize)
+            sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size as usize)
         }
         // TODO to check
         // XXX: We truncate the first 40 bytes, due to it being mangled
@@ -701,7 +685,7 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![(-1).into(), 2.into(), 1.into()]),
+            witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
             public_inputs: None,
             result: true,
         };
@@ -711,7 +695,7 @@ mod test {
             result: true,
         };
         let case_3 = WitnessResult {
-            witness: Assignments(vec![10.into(), (-3).into(), 7.into()]),
+            witness: Assignments(vec![10_i128.into(), (-3_i128).into(), 7_i128.into()]),
             public_inputs: None,
             result: true,
         };
@@ -721,19 +705,19 @@ mod test {
             result: false,
         };
         let case_5 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2.into(), 6.into()]),
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
             public_inputs: None,
             result: false,
         };
         // This should fail as we specified that we do not have any public inputs
         let case_6a = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2.into(), 6.into()]),
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
         // Even if the public input is zero
         let case_6b = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), Scalar::from(2), Scalar::from(6)]),
+            witness: Assignments(vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)]),
             public_inputs: Some(Assignments(vec![Scalar::zero()])),
             result: false,
         };
@@ -777,7 +761,7 @@ mod test {
         // but none are supplied in public_inputs. So the verifier will not
         // supply anything.
         let case_1 = WitnessResult {
-            witness: Assignments(vec![(-1).into(), 2.into(), 1.into()]),
+            witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
             public_inputs: None,
             result: false,
         };
@@ -788,34 +772,31 @@ mod test {
         };
 
         let case_3 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2.into(), 6.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 3.into()])),
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
+            public_inputs: Some(Assignments(vec![Scalar::one(), 3_i128.into()])),
             result: false,
         };
 
         // Not enough public inputs
         let case_4 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), Scalar::from(2), Scalar::from(6)]),
+            witness: Assignments(vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
 
         let case_5 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2.into(), 3.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 2.into()])),
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
+            public_inputs: Some(Assignments(vec![Scalar::one(), 2_i128.into()])),
             result: true,
         };
 
         let case_6 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2.into(), 3.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 3.into()])),
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
+            public_inputs: Some(Assignments(vec![Scalar::one(), 3_i128.into()])),
             result: false,
         };
 
-        test_circuit(
-            constraint_system,
-            vec![case_1, case_2, case_3, case_4, case_5, case_6],
-        );
+        test_circuit(constraint_system, vec![case_1, case_2, case_3, case_4, case_5, case_6]);
     }
 
     #[test]
@@ -859,12 +840,12 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![1.into(), 1.into(), 2.into(), 3.into()]),
+            witness: Assignments(vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: Assignments(vec![1.into(), 1.into(), 2.into(), 13.into()]),
+            witness: Assignments(vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
@@ -933,16 +914,16 @@ mod test {
             sig_as_scalars[i] = sig[i].into()
         }
         let message: Vec<Scalar> = vec![
-            0.into(),
-            1.into(),
-            2.into(),
-            3.into(),
-            4.into(),
-            5.into(),
-            6.into(),
-            7.into(),
-            8.into(),
-            9.into(),
+            0_i128.into(),
+            1_i128.into(),
+            2_i128.into(),
+            3_i128.into(),
+            4_i128.into(),
+            5_i128.into(),
+            6_i128.into(),
+            7_i128.into(),
+            8_i128.into(),
+            9_i128.into(),
         ];
         let mut witness_values = Vec::new();
         witness_values.extend(message);
@@ -961,11 +942,7 @@ mod test {
     }
     #[test]
     fn test_ped_constraints() {
-        let constraint = PedersenConstraint {
-            inputs: vec![1, 2],
-            result_x: 3,
-            result_y: 4,
-        };
+        let constraint = PedersenConstraint { inputs: vec![1, 2], result_x: 3, result_y: 4 };
 
         let x_constraint = Constraint {
             a: 3,
