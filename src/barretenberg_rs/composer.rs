@@ -20,7 +20,11 @@ impl StandardComposer {
 
         let pippenger = Pippenger::new(&crs.g1_data);
 
-        StandardComposer { pippenger, crs, constraint_system }
+        StandardComposer {
+            pippenger,
+            crs,
+            constraint_system,
+        }
     }
 }
 
@@ -376,10 +380,22 @@ pub struct LogicConstraint {
 
 impl LogicConstraint {
     pub fn and(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
-        LogicConstraint { a, b, result, num_bits, is_xor_gate: false }
+        LogicConstraint {
+            a,
+            b,
+            result,
+            num_bits,
+            is_xor_gate: false,
+        }
     }
     pub fn xor(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
-        LogicConstraint { a, b, result, num_bits, is_xor_gate: true }
+        LogicConstraint {
+            a,
+            b,
+            result,
+            num_bits,
+            is_xor_gate: true,
+        }
     }
 
     fn to_bytes(&self) -> Vec<u8> {
@@ -717,7 +733,11 @@ mod test {
         };
         // Even if the public input is zero
         let case_6b = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)]),
+            witness: Assignments(vec![
+                Scalar::one(),
+                Scalar::from(2_i128),
+                Scalar::from(6_i128),
+            ]),
             public_inputs: Some(Assignments(vec![Scalar::zero()])),
             result: false,
         };
@@ -779,7 +799,11 @@ mod test {
 
         // Not enough public inputs
         let case_4 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)]),
+            witness: Assignments(vec![
+                Scalar::one(),
+                Scalar::from(2_i128),
+                Scalar::from(6_i128),
+            ]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
@@ -796,7 +820,10 @@ mod test {
             result: false,
         };
 
-        test_circuit(constraint_system, vec![case_1, case_2, case_3, case_4, case_5, case_6]);
+        test_circuit(
+            constraint_system,
+            vec![case_1, case_2, case_3, case_4, case_5, case_6],
+        );
     }
 
     #[test]
@@ -840,12 +867,22 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()]),
+            witness: Assignments(vec![
+                1_i128.into(),
+                1_i128.into(),
+                2_i128.into(),
+                3_i128.into(),
+            ]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: Assignments(vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()]),
+            witness: Assignments(vec![
+                1_i128.into(),
+                1_i128.into(),
+                2_i128.into(),
+                13_i128.into(),
+            ]),
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
@@ -942,7 +979,11 @@ mod test {
     }
     #[test]
     fn test_ped_constraints() {
-        let constraint = PedersenConstraint { inputs: vec![1, 2], result_x: 3, result_y: 4 };
+        let constraint = PedersenConstraint {
+            inputs: vec![1, 2],
+            result_x: 3,
+            result_y: 4,
+        };
 
         let x_constraint = Constraint {
             a: 3,
