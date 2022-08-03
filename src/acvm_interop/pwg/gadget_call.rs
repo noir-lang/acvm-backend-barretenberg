@@ -48,8 +48,9 @@ impl GadgetCaller {
                 let merkle_data =
                     process_merkle_gadget(initial_witness, gadget_call, SHOULD_INSERT);
 
-                let new_root =
-                    merkle_data.new_root.expect("new root should be computed for insertions");
+                let new_root = merkle_data
+                    .new_root
+                    .expect("new root should be computed for insertions");
 
                 initial_witness.insert(gadget_call.outputs[0], new_root);
             }
@@ -60,14 +61,21 @@ impl GadgetCaller {
 
                 let mut inputs_iter = gadget_call.inputs.iter();
 
-                let _pub_key_x = inputs_iter.next().expect("expected `x` component for public key");
+                let _pub_key_x = inputs_iter
+                    .next()
+                    .expect("expected `x` component for public key");
                 let pub_key_x = input_to_value(initial_witness, _pub_key_x).to_bytes();
 
-                let _pub_key_y = inputs_iter.next().expect("expected `y` component for public key");
+                let _pub_key_y = inputs_iter
+                    .next()
+                    .expect("expected `y` component for public key");
                 let pub_key_y = input_to_value(initial_witness, _pub_key_y).to_bytes();
 
-                let pub_key_bytes: Vec<u8> =
-                    pub_key_x.iter().copied().chain(pub_key_y.to_vec()).collect();
+                let pub_key_bytes: Vec<u8> = pub_key_x
+                    .iter()
+                    .copied()
+                    .chain(pub_key_y.to_vec())
+                    .collect();
                 let pub_key: [u8; 64] = pub_key_bytes.try_into().unwrap();
 
                 let mut signature = [0u8; 64];
@@ -98,8 +106,9 @@ impl GadgetCaller {
             OPCODE::Pedersen => {
                 let inputs_iter = gadget_call.inputs.iter();
 
-                let scalars: Vec<_> =
-                    inputs_iter.map(|input| *input_to_value(initial_witness, input)).collect();
+                let scalars: Vec<_> = inputs_iter
+                    .map(|input| *input_to_value(initial_witness, input))
+                    .collect();
 
                 let mut barretenberg = Barretenberg::new();
 
@@ -208,7 +217,10 @@ fn process_merkle_gadget(
         (_index, Some(new_root))
     } else {
         let _index = merkle_tree.find_index_from_leaf(&leaf).unwrap_or_else(|| {
-            panic!("could not find leaf in the merkle tree. {} not found", leaf.to_hex())
+            panic!(
+                "could not find leaf in the merkle tree. {} not found",
+                leaf.to_hex()
+            )
         });
         (_index, None)
     };
@@ -229,5 +241,11 @@ fn process_merkle_gadget(
         initial_witness.insert(right, right_hash);
     }
 
-    MerkleData { hashpath: path, old_root: root, new_root, leaf, index: index_fr }
+    MerkleData {
+        hashpath: path,
+        old_root: root,
+        new_root,
+        leaf,
+        index: index_fr,
+    }
 }
