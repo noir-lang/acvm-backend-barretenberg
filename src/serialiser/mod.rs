@@ -6,7 +6,7 @@ use crate::barretenberg_rs::composer::{
     PedersenConstraint, RangeConstraint, SchnorrConstraint, Sha256Constraint,
 };
 use acvm::acir::circuit::{Circuit, Gate};
-use acvm::acir::native_types::Arithmetic;
+use acvm::acir::native_types::Expression;
 use acvm::acir::OPCODE;
 use acvm::FieldElement;
 
@@ -28,8 +28,8 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
     for gate in circuit.gates.iter() {
         match gate {
-            Gate::Arithmetic(arithmetic) => {
-                let constraint = serialise_arithmetic_gates(arithmetic);
+            Gate::Arithmetic(expression) => {
+                let constraint = serialise_arithmetic_gates(expression);
                 constraints.push(constraint);
             }
             Gate::Range(witness, num_bits) => {
@@ -372,6 +372,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
+                    OPCODE::ToBits => unreachable!("to_bits is not supported in Barretenberg"),
                 };
             }
             Gate::Directive(_) => {
@@ -400,14 +401,14 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 }
 
 #[allow(non_snake_case)]
-fn serialise_arithmetic_gates(gate: &Arithmetic) -> Constraint {
+fn serialise_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut a: i32 = 0;
     let mut b: i32 = 0;
     let mut c: i32 = 0;
-    let mut qm: FieldElement = 0.into();
-    let mut ql: FieldElement = 0.into();
-    let mut qr: FieldElement = 0.into();
-    let mut qo: FieldElement = 0.into();
+    let mut qm: FieldElement = FieldElement::zero();
+    let mut ql: FieldElement = FieldElement::zero();
+    let mut qr: FieldElement = FieldElement::zero();
+    let mut qo: FieldElement = FieldElement::zero();
 
     // check mul gate
     if !gate.mul_terms.is_empty() {

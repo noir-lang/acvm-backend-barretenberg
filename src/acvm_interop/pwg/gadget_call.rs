@@ -72,8 +72,8 @@ impl GadgetCaller {
                 let pub_key_y = input_to_value(initial_witness, _pub_key_y).to_bytes();
 
                 let pub_key_bytes: Vec<u8> = pub_key_x
-                    .to_vec()
-                    .into_iter()
+                    .iter()
+                    .copied()
                     .chain(pub_key_y.to_vec())
                     .collect();
                 let pub_key: [u8; 64] = pub_key_bytes.try_into().unwrap();
@@ -155,6 +155,7 @@ impl GadgetCaller {
                 initial_witness.insert(gadget_call.outputs[0], pub_x);
                 initial_witness.insert(gadget_call.outputs[1], pub_y);
             }
+            OPCODE::ToBits => unreachable!(),
         }
         Ok(())
     }
