@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/vezenovm/acvm#f5a6f63509741e163b96f3eee6fe897ffc40a2a8"
+source = "git+https://github.com/noir-lang/noir#9a68f4206c0f20f56c9029d4484c97d4a68fa0bd"
 dependencies = [
  "acir",
  "blake2",

@@ -33,7 +33,7 @@ fn fetch_root(db: &sled::Db) -> FieldElement {
         .get("ROOT".as_bytes())
         .unwrap()
         .expect("merkle root should always be present");
-    FieldElement::from_be_bytes_reduce(&value.to_vec())
+    FieldElement::from_be_bytes_reduce(&value)
 }
 fn insert_depth(db: &mut sled::Db, value: u32) {
     db.insert("DEPTH".as_bytes(), &value.to_be_bytes()).unwrap();
@@ -86,7 +86,7 @@ fn fetch_hash(db: &sled::Db, index: usize) -> FieldElement {
 
     tree.get(&index.to_be_bytes())
         .unwrap()
-        .map(|i_vec| FieldElement::from_be_bytes_reduce(&i_vec.to_vec()))
+        .map(|i_vec| FieldElement::from_be_bytes_reduce(&i_vec))
         .unwrap()
 }
 
