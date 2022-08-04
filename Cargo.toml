@@ -8,8 +8,8 @@ edition = "2018"
 
 [dependencies]
 
-acvm = { git = "https://github.com/noir-lang/noir" }
-# acvm = { git = "https://github.com/vezenovm/acvm" }
+# acvm = { git = "https://github.com/noir-lang/noir" }
+acvm = { git = "https://github.com/vezenovm/acvm" }
 # Nargo compiles when accessing the same crate locally, otherwise there is a mismatch when the acvm attempts to access the git acvm inside aztec backend
 # but then the dependencies specified inside noir access the local acvm crate 
 # acvm = { path = "../../noir/crates/acvm" }
