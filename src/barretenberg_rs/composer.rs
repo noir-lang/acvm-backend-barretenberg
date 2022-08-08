@@ -190,7 +190,7 @@ impl SchnorrConstraint {
 }
 #[derive(Clone, Hash, Debug)]
 pub struct MerkleMembershipConstraint {
-    pub hash_path: Vec<(i32, i32)>,
+    pub hash_path: Vec<i32>,
     pub root: i32,
     pub leaf: i32,
     pub index: i32,
@@ -201,47 +201,11 @@ impl MerkleMembershipConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
-        // On the C++ side, it is being deserialized as a single vector
-        // So the given length is doubled
-        let hash_path_len = (self.hash_path.len() * 2) as u32;
+        let hash_path_len = self.hash_path.len() as u32;
 
         buffer.extend_from_slice(&hash_path_len.to_be_bytes());
         for constraint in self.hash_path.iter() {
-            buffer.extend_from_slice(&constraint.0.to_be_bytes());
-            buffer.extend_from_slice(&constraint.1.to_be_bytes());
-        }
-
-        buffer.extend_from_slice(&self.root.to_be_bytes());
-        buffer.extend_from_slice(&self.leaf.to_be_bytes());
-        buffer.extend_from_slice(&self.result.to_be_bytes());
-        buffer.extend_from_slice(&self.index.to_be_bytes());
-
-        buffer
-    }
-}
-// This is the same as MerkleCheckMembership
-#[derive(Clone, Hash, Debug)]
-pub struct InsertMerkleConstraint {
-    pub hash_path: Vec<(i32, i32)>,
-    pub root: i32,
-    pub leaf: i32,
-    pub index: i32,
-    pub result: i32,
-}
-
-impl InsertMerkleConstraint {
-    #[allow(dead_code)]
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-
-        // On the C++ side, it is being deserialized as a single vector
-        // So the given length is doubled
-        let hash_path_len = (self.hash_path.len() * 2) as u32;
-
-        buffer.extend_from_slice(&hash_path_len.to_be_bytes());
-        for constraint in self.hash_path.iter() {
-            buffer.extend_from_slice(&constraint.0.to_be_bytes());
-            buffer.extend_from_slice(&constraint.1.to_be_bytes());
+            buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
         buffer.extend_from_slice(&self.root.to_be_bytes());
@@ -420,7 +384,6 @@ pub struct ConstraintSystem {
     pub range_constraints: Vec<RangeConstraint>,
     pub sha256_constraints: Vec<Sha256Constraint>,
     pub merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
-    pub insert_merkle_constraints: Vec<InsertMerkleConstraint>,
     pub schnorr_constraints: Vec<SchnorrConstraint>,
     pub ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     pub blake2s_constraints: Vec<Blake2sConstraint>,
@@ -468,13 +431,6 @@ impl ConstraintSystem {
         let merkle_membership_constraints_len = self.merkle_membership_constraints.len() as u32;
         buffer.extend_from_slice(&merkle_membership_constraints_len.to_be_bytes());
         for constraint in self.merkle_membership_constraints.iter() {
-            buffer.extend(&constraint.to_bytes());
-        }
-
-        // Serialise each Insert Merkle constraint
-        let insert_merkle_constraints_len = self.insert_merkle_constraints.len() as u32;
-        buffer.extend_from_slice(&insert_merkle_constraints_len.to_be_bytes());
-        for constraint in self.insert_merkle_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -697,7 +653,6 @@ mod test {
             constraints: vec![constraint],
             ecdsa_secp256k1_constraints: vec![],
             fixed_base_scalar_mul_constraints: vec![],
-            insert_merkle_constraints: vec![],
         };
 
         let case_1 = WitnessResult {
@@ -774,7 +729,6 @@ mod test {
             constraints: vec![constraint],
             ecdsa_secp256k1_constraints: vec![],
             fixed_base_scalar_mul_constraints: vec![],
-            insert_merkle_constraints: vec![],
         };
 
         // This fails because the constraint system requires public inputs,
@@ -863,7 +817,6 @@ mod test {
             constraints: vec![constraint, constraint2],
             ecdsa_secp256k1_constraints: vec![],
             fixed_base_scalar_mul_constraints: vec![],
-            insert_merkle_constraints: vec![],
         };
 
         let case_1 = WitnessResult {
@@ -930,7 +883,6 @@ mod test {
             constraints: vec![arith_constraint],
             ecdsa_secp256k1_constraints: vec![],
             fixed_base_scalar_mul_constraints: vec![],
-            insert_merkle_constraints: vec![],
         };
 
         let pub_x =
@@ -1026,7 +978,6 @@ mod test {
             constraints: vec![x_constraint, y_constraint],
             ecdsa_secp256k1_constraints: vec![],
             fixed_base_scalar_mul_constraints: vec![],
-            insert_merkle_constraints: vec![],
         };
 
         let scalar_0 = Scalar::from_hex("0x00").unwrap();
