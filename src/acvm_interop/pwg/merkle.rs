@@ -402,6 +402,7 @@ fn basic_interop_update() {
     }
 }
 
+
 #[test]
 fn check_membership() {
     struct Test<'a> {
@@ -463,6 +464,8 @@ fn check_membership() {
     for test_vector in tests {
         let index = FieldElement::try_from_str(test_vector.index).unwrap();
         let index_as_usize: usize = test_vector.index.parse().unwrap();
+        let mut index_bits = index.bits();
+        index_bits.reverse();
 
         let leaf = hash(&test_vector.message);
 
@@ -471,15 +474,18 @@ fn check_membership() {
             root = tree.update_message(index_as_usize, &test_vector.message);
         }
 
-        let hash_path = flatten_path(tree.get_hash_path(index_as_usize));
-        let hash_path_ref = hash_path.iter().collect();
+        let hash_path = tree.get_hash_path(index_as_usize);
+        let mut hash_path_ref = Vec::new();
+        for (i, path_pair) in hash_path.into_iter().enumerate() {
+            let path_bit = index_bits[i];
+            let hash =
+                if !path_bit { path_pair.1 } else { path_pair.0 };
+            hash_path_ref.push(hash);
+        }
+        let hash_path_ref = hash_path_ref.iter().collect();
         let result = MerkleTree::check_membership(hash_path_ref, &root, &index, &leaf);
         let is_leaf_in_true = result == FieldElement::one();
 
-        assert!(
-            is_leaf_in_true == test_vector.result,
-            "{}",
-            test_vector.error_msg
-        );
+        assert!(is_leaf_in_true == test_vector.result, "{}", test_vector.error_msg);
     }
 }
