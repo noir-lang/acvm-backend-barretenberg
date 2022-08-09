@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#9a68f4206c0f20f56c9029d4484c97d4a68fa0bd"
+source = "git+https://github.com/noir-lang/noir#06df5f89e92325de5fd01a6c5ad13d3967f6f26b"
 dependencies = [
  "indexmap",
  "noir_field",
@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#9a68f4206c0f20f56c9029d4484c97d4a68fa0bd"
+source = "git+https://github.com/noir-lang/noir#06df5f89e92325de5fd01a6c5ad13d3967f6f26b"
 dependencies = [
  "acir",
  "blake2",
@@ -927,7 +927,7 @@ dependencies = [
 [[package]]
 name = "noir_field"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#9a68f4206c0f20f56c9029d4484c97d4a68fa0bd"
+source = "git+https://github.com/noir-lang/noir#06df5f89e92325de5fd01a6c5ad13d3967f6f26b"
 dependencies = [
  "ark-bn254",
  "ark-ff",
