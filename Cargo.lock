@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?branch=refactor-pwg#e61f9203c91df608e15942cda32e626d12a01c94"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
  "indexmap",
  "noir_field",
@@ -15,7 +15,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?branch=refactor-pwg#e61f9203c91df608e15942cda32e626d12a01c94"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
  "acir",
  "blake2",
@@ -927,7 +927,7 @@ dependencies = [
 [[package]]
 name = "noir_field"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?branch=refactor-pwg#e61f9203c91df608e15942cda32e626d12a01c94"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
  "ark-bn254",
  "ark-ff",
