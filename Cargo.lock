@@ -134,10 +134,13 @@ name = "aztec_backend"
 version = "0.1.0"
 dependencies = [
  "acvm",
+ "ark-ec",
  "barretenberg_wrapper",
  "blake2",
  "dirs",
  "downloader",
+ "grumpkin",
+ "hex",
  "indicatif",
  "num-bigint",
  "num-traits",
@@ -638,6 +641,17 @@ dependencies = [
  "ff",
  "rand_core 0.5.1",
  "subtle",
+]
+
+[[package]]
+name = "grumpkin"
+version = "0.1.0"
+source = "git+https://github.com/noir-lang/grumpkin#3d0da9708c5d83f28ff106020bc8e17fece776de"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-std",
 ]
 
 [[package]]

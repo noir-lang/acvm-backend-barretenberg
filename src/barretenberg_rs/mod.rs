@@ -5,6 +5,7 @@ pub mod pedersen;
 mod pippenger;
 pub mod scalar_mul;
 pub mod schnorr;
+mod grumpkin;
 
 use acvm::FieldElement;
 use std::convert::TryInto;
