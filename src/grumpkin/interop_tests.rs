@@ -2,6 +2,7 @@ use ark_ec::{AffineCurve, ProjectiveCurve};
 use ark_ff::{BigInteger256, PrimeField, Zero};
 use ark_serialize::CanonicalSerialize;
 use grumpkin::{Fq, SWAffine, SWProjective};
+// use std::convert::TryFrom;
 
 #[test]
 fn c_plus_plus_interop_generator() {
@@ -28,7 +29,42 @@ fn c_plus_plus_interop_generator() {
 
 #[test]
 fn c_interop_derive_generators() {
-    let generators = "{ 0x01d1774edd499b0f18a8f4c641577596ab54a7ef5c26a6e4f2576c434af2a09f, 0x0756cf7a70bcc863e9995227f9cd576a3ddf9bcd239f154da3e2dd1a3c63e762 }
+    let generators = get_generators_string();
+
+    let new_generators = generators.replace(&['{', '}', ',', '\n'], "");
+    let g_list: Vec<&str> = new_generators.split_whitespace().collect();
+
+    for affine_elem in g_list.chunks(2) {
+        let x_bytes = hex::decode(&affine_elem[0][2..]).unwrap();
+        let y_bytes = hex::decode(&affine_elem[1][2..]).unwrap();
+        let point = deserialise_point(&x_bytes, &y_bytes).unwrap();
+        assert!(point.is_on_curve());
+        assert!(point.is_in_correct_subgroup_assuming_on_curve());
+    }
+}
+
+fn deserialise_fq(bytes: &[u8]) -> Option<Fq> {
+    assert_eq!(bytes.len(), 32);
+
+    let mut tmp = BigInteger256([0, 0, 0, 0]);
+
+    tmp.0[3] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
+    tmp.0[2] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
+    tmp.0[1] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
+    tmp.0[0] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
+
+    Fq::from_repr(tmp)
+}
+
+fn deserialise_point(x_bytes: &[u8], y_bytes: &[u8]) -> Option<SWAffine> {
+    let x = deserialise_fq(x_bytes)?;
+    let y = deserialise_fq(y_bytes)?;
+    let is_infinity = false; // none of the generators should be points at infinity
+    Some(SWAffine::new(x, y, is_infinity))
+}
+
+fn get_generators_string() -> &'static str {
+    let generators: &str = "{ 0x01d1774edd499b0f18a8f4c641577596ab54a7ef5c26a6e4f2576c434af2a09f, 0x0756cf7a70bcc863e9995227f9cd576a3ddf9bcd239f154da3e2dd1a3c63e762 }
     { 0x0a32482e544b1275f7c2c794f6aec98f3877aa5df828912ed932902a2563ab19, 0x0aa5cb6f338a6352f1390630e755d0173cfed3a24b01dd93c06069a45473afd7 }
     { 0x25a4dcfe59faa92c324d838e901df2e735d4e80e494cbcf2e3c0273fe46c2710, 0x20942493c3cadfc3c2058a2e5ac55fe63fdac11ab3d0b747a8ca16f115cccdbf }
     { 0x19b194c8ebf8c0f7a8c4811e48b709a16610dd72aa5f843871956364c267ab0f, 0x0ca4ac85dd1fed3798bab409b18ad19ca5fe6abeef5f67ae96f4e641d122c92b }
@@ -156,61 +192,6 @@ fn c_interop_derive_generators() {
     { 0x1a45962642e3c4c8f63d44e7f45afd7870d0b3d1334653a2f9592ac449ce45d9, 0x2ffbeed634149d1f5b01515d98a1fa49ecbb6e05e98b5f7a5e8335bd49898632 }
     { 0x06f6e090d01f4aef541298ca0461411625aef41a7985587c5bd1ffeeb4163976, 0x005415071767e0865905344be1f8b0647423ec07c3e3c41da10e7d22c6f7ef80 }
     { 0x2c6893ed4ff8ea32588a7fc732aadbdbe1ee02d916a0f4b48389b29a3962b187, 0x2a67997262cce709f5b627f4b7aa7dc2dc950fe03cfcc82e97ce8a12996ec03b }";
-    // println!("here: {}", generators);
 
-    let new_generators = generators.replace(&['{', '}', ',', '\n'], "");
-    // println!("{}", new_generators);
-    let g_list: Vec<&str> = new_generators.split_whitespace().collect();
-
-    for affine_elem in g_list.chunks(2) {
-
-        println!("{:?}", affine_elem);
-        // let x_field = FieldElement::from_hex(affine_elem[0]).unwrap();
-        // let y_field = FieldElement::from_hex(affine_elem[1]).unwrap();
-        // let x_bytes = x_field.to_bytes();
-        // let y_bytes = y_field.to_bytes();
-
-        // let affine_elem_bytes = [x_bytes, y_bytes, [0].to_vec()].concat();
-        // println!("{:?}", affine_elem_bytes);
-        // let x = match SWAffine::deserialize(&affine_elem_bytes[..]) {
-        //     Ok(g) => {
-        //         println!("is on curve: {}", g.is_on_curve());
-        //         Some(g)
-        //     }
-        //     Err(err) =>  {
-        //         println!("serialization err: {}", err);
-        //         None
-        //     }
-        // };
-        // let x_fq = Fq::deserialize(&x_bytes[..]).unwrap();
-        // let y_fq = Fq::deserialize(&y_bytes[..]).unwrap();
-        let x_bytes = hex::decode(affine_elem[0]).unwrap();
-        let y_bytes = hex::decode(affine_elem[1]).unwrap();
-        let point = deserialise_point(&x_bytes, &y_bytes).unwrap();
-        println!("is on curve: {}", point.is_on_curve());
-    }
-        // let x = SWAffine::deserialize(&affine_elem_bytes[..]).unwrap();
-
-        // let q = Fq::deserialize_with_flags(&x_field[..]);
-        // let gen = SWAffine::new(x_field, y_field, true);
-}
-
-fn deserialise_fq(bytes: &[u8]) -> Option<Fq> {
-    assert_eq!(bytes.len(), 32);
-
-    let mut tmp = BigInteger256([0, 0, 0, 0]);
-
-    tmp.0[3] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
-    tmp.0[2] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
-    tmp.0[1] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
-    tmp.0[0] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
-
-    Fq::from_repr(tmp)
-}
-
-fn deserialise_point(x_bytes: &[u8], y_bytes: &[u8]) -> Option<SWAffine> {
-    let x = deserialise_fq(x_bytes)?;
-    let y = deserialise_fq(y_bytes)?;
-    let is_infinity = false; // none of the generators should be points at infinity
-    Some(SWAffine::new(x, y, is_infinity))
+    generators
 }
