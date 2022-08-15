@@ -35,18 +35,6 @@ impl Barretenberg {
     }
 }
 
-// #[test]
-// fn interop_generators() {
-//     let generators = interop_tests::grumpkin_generators_manual();
-//     // let x = hex::decode("20").unwrap();
-//     let scalars = vec![field_new!(Fr, "0"), field_new!(Fr, "1")];
-//     // let mut scalars: Vec<Fr> = Vec::new();
-//     // scalars.push(q);
-//     let hash = commit(scalars, generators);
-//     println!("{}", hash);
-//     assert_eq!(true, true);
-// }
-
 #[test]
 fn basic_interop() {
     // Expected values were taken from Barretenberg by running `crypto::pedersen::compress_native`

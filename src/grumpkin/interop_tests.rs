@@ -7,25 +7,8 @@ use acvm::FieldElement;
 use crate::barretenberg_rs::Barretenberg;
 use rand::Rng;
 
-fn naive_var_base_msm<G: AffineCurve>(
-    bases: &[G],
-    scalars: &[<G::ScalarField as PrimeField>::BigInt],
-) -> G::Projective {
-    let mut acc = G::Projective::zero();
-
-    for (base, scalar) in bases.iter().zip(scalars.iter()) {
-        acc += &base.mul(*scalar);
-    }
-    acc
-}
-
 fn commit(scalars: Vec<Fr>, points: Vec<SWAffine>) -> SWProjective {
-    let mut q: Vec<BigInteger256> = Vec::new();
-    for s in scalars {
-        let scalar_bigint = s.into_repr();
-        q.push(scalar_bigint);
-    }
-    // naive_var_base_msm(points.as_slice(), scalars.as_slice())
+    let q: Vec<_> = scalars.into_iter().map(|val| val.into_repr()).collect();
     VariableBaseMSM::multi_scalar_mul(points.as_slice(), q.as_slice())
 }
 
@@ -127,7 +110,7 @@ fn single_pedersen_commit() {
     // let expected_x = "108800E84E0F1DAFB9FDF2E4B5B311FD59B8B08EAF899634C59CC985B490234B".to_lowercase();
     // let expected_x = "00f1c7ea35a4cf7ea5e678fcc2a5fac5351a563a3ff021f0c4a4126462aa081f";
     let expected_x = "2619a3512420b4d3c72e43fdadff5f5a3ec1b0e7d75cd1482159a7e21f6c6d6a";
-    let scalars = vec![field_new!(Fr, "1"), field_new!(Fr, "0")];
+    let scalars = vec![field_new!(Fr, "1"), field_new!(Fr, "1")];
 
     let hash = compress_many(scalars);
 
@@ -145,8 +128,8 @@ fn single_pedersen_commit() {
 
 #[test]
 fn c_interop_compress_many() {
-    let grumpkin_fields: Vec<Fr> = vec![field_new!(Fr, "1"); 10];
-    let aztec_fields: Vec<FieldElement> = vec![FieldElement::one(); 10];
+    let grumpkin_fields: Vec<Fr> = vec![field_new!(Fr, "1"); 2];
+    let aztec_fields: Vec<FieldElement> = vec![FieldElement::one(); 2];
 
     let mut barretenberg = Barretenberg::new();
 
@@ -154,7 +137,9 @@ fn c_interop_compress_many() {
     // println!("{:?}", aztec_res);
     let grumpkin_res = compress_many(grumpkin_fields);
     // println!("{:?}", grumpkin_res);
-
+    let grumpkin_res_affine = SWAffine::from(grumpkin_res);
+    assert!(grumpkin_res_affine.is_on_curve());
+    assert!(grumpkin_res_affine.is_in_correct_subgroup_assuming_on_curve());
     let mut bytes_x = Vec::new();
     let mut bytes_y = Vec::new();
     grumpkin_res.x.serialize(&mut bytes_x).unwrap();
