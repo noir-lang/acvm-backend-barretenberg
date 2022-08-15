@@ -88,15 +88,3 @@ fn pedersen_hash_to_point() {
     assert_eq!(expected_x, x);
     assert_eq!(expected_y, y);
 }
-
-#[test]
-fn derive_generators() {
-    let mut barretenberg = Barretenberg::new();
-    let mut scalars = vec![FieldElement::zero(); 128];
-    for i in 0..128 {
-        let mut tmp = scalars.clone();
-        tmp[i] = FieldElement::one();
-        let (x, y) = barretenberg.encrypt(tmp);
-        println!("[\"{}\", \"{}\"],", x.to_hex(), y.to_hex());
-    }
-}
