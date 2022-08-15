@@ -147,7 +147,6 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "once_cell",
- "rand",
  "regex",
  "sha2",
  "sled",

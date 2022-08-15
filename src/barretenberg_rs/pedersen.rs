@@ -1,6 +1,5 @@
 use acvm::FieldElement;
 use std::convert::TryInto;
-use crate::grumpkin::interop_tests;
 use super::field_to_array;
 use super::Barretenberg;
 
