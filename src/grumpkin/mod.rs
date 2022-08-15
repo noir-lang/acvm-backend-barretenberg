@@ -4,4 +4,4 @@
 // The most notable difference is the serialisation strategy that the C++
 // code uses, which is non-standard.
 
-mod interop_tests;
+pub mod interop_tests;

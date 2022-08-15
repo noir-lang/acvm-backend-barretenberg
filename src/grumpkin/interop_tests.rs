@@ -1,8 +1,92 @@
-use ark_ec::{AffineCurve, ProjectiveCurve};
-use ark_ff::{BigInteger256, PrimeField, Zero};
+use ark_ec::{AffineCurve, ProjectiveCurve, msm, msm::VariableBaseMSM};
+use ark_ff::{field_new, BigInteger256, PrimeField, Zero, BigInteger};
 use ark_serialize::CanonicalSerialize;
-use grumpkin::{Fq, SWAffine, SWProjective};
-// use std::convert::TryFrom;
+use grumpkin::{Fq, Fr, SWAffine, SWProjective};
+use hex;
+use acvm::FieldElement;
+use crate::barretenberg_rs::Barretenberg;
+use rand::Rng;
+
+fn naive_var_base_msm<G: AffineCurve>(
+    bases: &[G],
+    scalars: &[<G::ScalarField as PrimeField>::BigInt],
+) -> G::Projective {
+    let mut acc = G::Projective::zero();
+
+    for (base, scalar) in bases.iter().zip(scalars.iter()) {
+        acc += &base.mul(*scalar);
+    }
+    acc
+}
+
+fn commit(scalars: Vec<Fr>, points: Vec<SWAffine>) -> SWProjective {
+    let mut q: Vec<BigInteger256> = Vec::new();
+    for s in scalars {
+        let scalar_bigint = s.into_repr();
+        q.push(scalar_bigint);
+    }
+    // naive_var_base_msm(points.as_slice(), scalars.as_slice())
+    VariableBaseMSM::multi_scalar_mul(points.as_slice(), q.as_slice())
+}
+
+pub fn compress_many(scalars: Vec<Fr>) -> SWProjective {
+    let gens = grumpkin_generators_manual();
+    let hash = commit(scalars, gens);
+    hash
+}
+
+pub fn grumpkin_generators() -> Vec<SWAffine> {
+    let generators = get_generators_string();
+
+    let new_generators = generators.replace(&['{', '}', ',', '\n'], "");
+    let g_list: Vec<&str> = new_generators.split_whitespace().collect();
+
+    let mut points = Vec::new();
+    for affine_elem in g_list.chunks(2) {
+        let x_bytes = hex::decode(&affine_elem[0][2..]).unwrap();
+        let y_bytes = hex::decode(&affine_elem[1][2..]).unwrap();
+        points.push(deserialise_point(&x_bytes, &y_bytes).unwrap())
+    }
+    points
+}
+
+pub fn grumpkin_generators_manual() -> Vec<SWAffine> {
+    let mut barretenberg = Barretenberg::new();
+
+    let scalars = vec![FieldElement::zero(); 128];
+
+    let mut points = Vec::new();
+    for i in 0..128 {
+        let mut tmp = scalars.clone();
+        tmp[i] = FieldElement::one();
+        let (x_g, y_g) = barretenberg.encrypt(tmp);
+
+        let x_bytes = x_g.to_bytes();
+        let y_bytes = y_g.to_bytes();
+        points.push(deserialise_point(&x_bytes, &y_bytes).unwrap())
+    } 
+    points
+}
+
+fn deserialise_fq(bytes: &[u8]) -> Option<Fq> {
+    assert_eq!(bytes.len(), 32);
+
+    let mut tmp = BigInteger256([0, 0, 0, 0]);
+
+    tmp.0[3] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
+    tmp.0[2] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
+    tmp.0[1] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
+    tmp.0[0] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
+
+    Fq::from_repr(tmp)
+}
+
+fn deserialise_point(x_bytes: &[u8], y_bytes: &[u8]) -> Option<SWAffine> {
+    let x = deserialise_fq(x_bytes)?;
+    let y = deserialise_fq(y_bytes)?;
+    let is_infinity = false; // none of the generators should be points at infinity
+    Some(SWAffine::new(x, y, is_infinity))
+}
 
 #[test]
 fn c_plus_plus_interop_generator() {
@@ -29,41 +113,64 @@ fn c_plus_plus_interop_generator() {
 
 #[test]
 fn c_interop_derive_generators() {
-    let generators = get_generators_string();
-
-    let new_generators = generators.replace(&['{', '}', ',', '\n'], "");
-    let g_list: Vec<&str> = new_generators.split_whitespace().collect();
-
-    for affine_elem in g_list.chunks(2) {
-        let x_bytes = hex::decode(&affine_elem[0][2..]).unwrap();
-        let y_bytes = hex::decode(&affine_elem[1][2..]).unwrap();
-        let point = deserialise_point(&x_bytes, &y_bytes).unwrap();
-        assert!(point.is_on_curve());
-        assert!(point.is_in_correct_subgroup_assuming_on_curve());
+    let generators = grumpkin_generators_manual();
+    // let generators = grumpkin_generators();
+    for g in generators {
+        assert!(g.is_on_curve());
+        assert!(g.is_in_correct_subgroup_assuming_on_curve());
     }
 }
 
-fn deserialise_fq(bytes: &[u8]) -> Option<Fq> {
-    assert_eq!(bytes.len(), 32);
+#[test]
+fn single_pedersen_commit() {
+    // let generators = grumpkin_generators_manual();
+    // let expected_x = "108800E84E0F1DAFB9FDF2E4B5B311FD59B8B08EAF899634C59CC985B490234B".to_lowercase();
+    // let expected_x = "00f1c7ea35a4cf7ea5e678fcc2a5fac5351a563a3ff021f0c4a4126462aa081f";
+    let expected_x = "2619a3512420b4d3c72e43fdadff5f5a3ec1b0e7d75cd1482159a7e21f6c6d6a";
+    let scalars = vec![field_new!(Fr, "1"), field_new!(Fr, "0")];
 
-    let mut tmp = BigInteger256([0, 0, 0, 0]);
+    let hash = compress_many(scalars);
 
-    tmp.0[3] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[0..8]).unwrap());
-    tmp.0[2] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[8..16]).unwrap());
-    tmp.0[1] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[16..24]).unwrap());
-    tmp.0[0] = u64::from_be_bytes(<[u8; 8]>::try_from(&bytes[24..32]).unwrap());
+    let mut bytes_x = Vec::new();
+    let mut bytes_y = Vec::new();
 
-    Fq::from_repr(tmp)
+    hash.x.serialize(&mut bytes_x).unwrap();
+    bytes_x.reverse();
+    hash.y.serialize(&mut bytes_y).unwrap();
+    bytes_y.reverse();
+    println!("{}", hex::encode(bytes_y));
+
+    assert_eq!(hex::encode(bytes_x), expected_x);
 }
 
-fn deserialise_point(x_bytes: &[u8], y_bytes: &[u8]) -> Option<SWAffine> {
-    let x = deserialise_fq(x_bytes)?;
-    let y = deserialise_fq(y_bytes)?;
-    let is_infinity = false; // none of the generators should be points at infinity
-    Some(SWAffine::new(x, y, is_infinity))
+#[test]
+fn c_interop_compress_many() {
+    let grumpkin_fields: Vec<Fr> = vec![field_new!(Fr, "1"); 10];
+    let aztec_fields: Vec<FieldElement> = vec![FieldElement::one(); 10];
+
+    let mut barretenberg = Barretenberg::new();
+
+    let aztec_res = barretenberg.compress_many(aztec_fields);
+    // println!("{:?}", aztec_res);
+    let grumpkin_res = compress_many(grumpkin_fields);
+    // println!("{:?}", grumpkin_res);
+
+    let mut bytes_x = Vec::new();
+    let mut bytes_y = Vec::new();
+    grumpkin_res.x.serialize(&mut bytes_x).unwrap();
+    grumpkin_res.y.serialize(&mut bytes_y).unwrap();
+
+    bytes_x.reverse();
+    bytes_y.reverse();
+
+    assert_eq!(hex::encode(bytes_x), aztec_res.to_hex());
+    assert_eq!(hex::encode(bytes_y), aztec_res.to_hex());
 }
 
-fn get_generators_string() -> &'static str {
+// pub fn get_generators_string() -> &'static str {}
+
+//XXX: string from C++ derive_generators method. Gives different generators than we want though so do not use
+pub fn get_generators_string() -> &'static str {
     let generators: &str = "{ 0x01d1774edd499b0f18a8f4c641577596ab54a7ef5c26a6e4f2576c434af2a09f, 0x0756cf7a70bcc863e9995227f9cd576a3ddf9bcd239f154da3e2dd1a3c63e762 }
     { 0x0a32482e544b1275f7c2c794f6aec98f3877aa5df828912ed932902a2563ab19, 0x0aa5cb6f338a6352f1390630e755d0173cfed3a24b01dd93c06069a45473afd7 }
     { 0x25a4dcfe59faa92c324d838e901df2e735d4e80e494cbcf2e3c0273fe46c2710, 0x20942493c3cadfc3c2058a2e5ac55fe63fdac11ab3d0b747a8ca16f115cccdbf }

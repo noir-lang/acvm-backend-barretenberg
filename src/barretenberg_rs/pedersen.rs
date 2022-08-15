@@ -1,6 +1,6 @@
 use acvm::FieldElement;
 use std::convert::TryInto;
-
+use crate::grumpkin::interop_tests;
 use super::field_to_array;
 use super::Barretenberg;
 
@@ -34,6 +34,18 @@ impl Barretenberg {
         (point_x, point_y)
     }
 }
+
+// #[test]
+// fn interop_generators() {
+//     let generators = interop_tests::grumpkin_generators_manual();
+//     // let x = hex::decode("20").unwrap();
+//     let scalars = vec![field_new!(Fr, "0"), field_new!(Fr, "1")];
+//     // let mut scalars: Vec<Fr> = Vec::new();
+//     // scalars.push(q);
+//     let hash = commit(scalars, generators);
+//     println!("{}", hash);
+//     assert_eq!(true, true);
+// }
 
 #[test]
 fn basic_interop() {
