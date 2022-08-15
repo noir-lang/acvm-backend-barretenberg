@@ -108,11 +108,11 @@ fn c_interop_derive_generators() {
 fn single_pedersen_commit() {
     // let generators = grumpkin_generators_manual();
     // let expected_x = "108800E84E0F1DAFB9FDF2E4B5B311FD59B8B08EAF899634C59CC985B490234B".to_lowercase();
-    // let expected_x = "00f1c7ea35a4cf7ea5e678fcc2a5fac5351a563a3ff021f0c4a4126462aa081f";
-    let expected_x = "2619a3512420b4d3c72e43fdadff5f5a3ec1b0e7d75cd1482159a7e21f6c6d6a";
+    let expected_x = "00f1c7ea35a4cf7ea5e678fcc2a5fac5351a563a3ff021f0c4a4126462aa081f";
+    // let expected_x = "2619a3512420b4d3c72e43fdadff5f5a3ec1b0e7d75cd1482159a7e21f6c6d6a";
     let scalars = vec![field_new!(Fr, "1"), field_new!(Fr, "1")];
 
-    let hash = compress_many(scalars);
+    let hash = compress_many(scalars).into_affine();
 
     let mut bytes_x = Vec::new();
     let mut bytes_y = Vec::new();
