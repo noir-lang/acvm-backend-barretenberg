@@ -137,6 +137,7 @@ dependencies = [
  "ark-ec",
  "ark-ff",
  "ark-serialize",
+ "ark-std",
  "barretenberg_wrapper",
  "blake2",
  "dirs",

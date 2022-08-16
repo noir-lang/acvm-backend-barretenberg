@@ -4,9 +4,12 @@
 // The most notable difference is the serialisation strategy that the C++
 // code uses, which is non-standard.
 
-use ark_ec::{AffineCurve, msm::VariableBaseMSM};
-use ark_ff::{BigInteger256, PrimeField, Zero};
+use ark_ec::{AffineCurve, ProjectiveCurve, msm::VariableBaseMSM};
+use ark_ff::{BigInteger256, PrimeField, Zero, One, FromBytes};
+use ark_serialize::CanonicalSerialize;
+use ark_std::ops::{Mul, MulAssign};
 use grumpkin::{Fq, Fr, SWAffine, SWProjective};
+use acvm::FieldElement;
 
 mod interop_tests;
 
@@ -50,6 +53,35 @@ pub fn pedersen(values: &[Fr]) -> SWProjective {
 pub fn pedersen_naive(values: &[Fr]) -> SWProjective {
     let values_repr: Vec<_> = values.into_iter().map(|val| val.into_repr()).collect();
     naive_var_base_msm(&generators(), &values_repr)
+}
+
+pub fn fixed_base(input: &[u8]) -> (FieldElement, FieldElement) {
+    let gen = SWAffine::prime_subgroup_generator();
+    // let priv_key = Fr::read(input).unwrap(); this is broken
+    let priv_key = deserialise_fq(input).unwrap();
+    let k_fr = Fr::from(priv_key.into_repr());
+
+    let pub_key = gen.mul(k_fr);
+    let pub_key_affine = pub_key.into_affine();
+
+    let x_hex_affine = aztec_fr_to_hex(pub_key_affine.x);
+    let y_hex_affine = aztec_fr_to_hex(pub_key_affine.y);
+    println!("pub_key affine x: {:?}", x_hex_affine);
+    println!("pub_key affine y: {:?}", y_hex_affine);
+
+    let noir_x = FieldElement::from_hex(&x_hex_affine).unwrap();
+    let noir_y = FieldElement::from_hex(&y_hex_affine).unwrap();
+
+    (noir_x, noir_y)
+}
+
+pub fn aztec_fr_to_hex(field: Fq) -> String {
+    let mut bytes = Vec::new();
+
+    field.serialize(&mut bytes).unwrap();
+    bytes.reverse();
+
+    hex::encode(bytes)
 }
 
 // TODO: make this a lazy static or check if we can make a from_hex const variant. The latter is harder

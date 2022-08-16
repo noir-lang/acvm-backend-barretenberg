@@ -36,6 +36,8 @@ mod tests {
 
     #[test]
     fn matches_with_barretenberg() {
+        let q = FieldElement::try_from_str("17631683881184975370165255887551781615748388533673675138860").unwrap();
+        println!("q: {:?}", q.to_hex());
         let mut barretenberg = Barretenberg::new();
         let (x, y) = barretenberg.encrypt(vec![FieldElement::one(), FieldElement::one()]);
 
@@ -69,12 +71,24 @@ mod tests {
         assert_eq!(y.to_hex(), aztec_fr_to_hex(pedersen_hash.y))
     } 
 
-    fn aztec_fr_to_hex(field: Fq) -> String {
-        let mut bytes = Vec::new();
+    #[test]
+    fn fixed_based_matches() {
+        // NOTE: test cases were found by performing the same functions in the barretenberg tests and printing the results
+        let test_one = FieldElement::from(1 as u128);
+        let expected_one_x = FieldElement::from_hex("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap();
+        let expected_one_y = FieldElement::from_hex("0x0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c").unwrap();
 
-        field.serialize(&mut bytes).unwrap();
-        bytes.reverse();
+        let (x_one, y_one) = fixed_base(test_one.to_bytes().as_slice());
+        assert_eq!(x_one, expected_one_x);
+        assert_eq!(y_one, expected_one_y);
 
-        hex::encode(bytes)
+        let test_five = FieldElement::from(5 as u128);
+        let expected_five_x = FieldElement::from_hex("0x1b0986d603033be6321c1804f6f8b4b14aef014e65a64d9544a6430582694387").unwrap();
+        let expected_five_y = FieldElement::from_hex("0x1abea81d71f73426f65a8c459264a01ac86750c6d8f6f4eae608fe0c8e2d982d").unwrap();
+        let (x_five, y_five) = fixed_base(test_five.to_bytes().as_slice());
+        assert_eq!(x_five, expected_five_x);
+        assert_eq!(y_five, expected_five_y);
     }
+
+
 }
