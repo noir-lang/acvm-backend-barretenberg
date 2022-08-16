@@ -36,6 +36,8 @@ mod tests {
 
     #[test]
     fn matches_with_barretenberg() {
+        let q = FieldElement::try_from_str("17631683881184975370165255887551781615748388533673675138860").unwrap();
+        println!("q: {:?}", q.to_hex());
         let mut barretenberg = Barretenberg::new();
         let (x, y) = barretenberg.encrypt(vec![FieldElement::one(), FieldElement::one()]);
 
@@ -69,12 +71,14 @@ mod tests {
         assert_eq!(y.to_hex(), aztec_fr_to_hex(pedersen_hash.y))
     } 
 
-    fn aztec_fr_to_hex(field: Fq) -> String {
-        let mut bytes = Vec::new();
-
-        field.serialize(&mut bytes).unwrap();
-        bytes.reverse();
-
-        hex::encode(bytes)
+    #[test]
+    fn fixed_based_matches() {
+        let x = FieldElement::from(5 as u128);
+        // let x = FieldElement::from_hex("0x0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c").unwrap();
+        println!("x: {:?}", x);
+        println!("x bytes: {:?}", x.to_bytes());
+        fixed_base(x.to_bytes().as_slice())
     }
+
+
 }
