@@ -73,11 +73,21 @@ mod tests {
 
     #[test]
     fn fixed_based_matches() {
-        let x = FieldElement::from(5 as u128);
-        // let x = FieldElement::from_hex("0x0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c").unwrap();
-        println!("x: {:?}", x);
-        println!("x bytes: {:?}", x.to_bytes());
-        fixed_base(x.to_bytes().as_slice())
+        // NOTE: test cases were found by performing the same functions in the barretenberg tests and printing the results
+        let test_one = FieldElement::from(1 as u128);
+        let expected_one_x = FieldElement::from_hex("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap();
+        let expected_one_y = FieldElement::from_hex("0x0000000000000002cf135e7506a45d632d270d45f1181294833fc48d823f272c").unwrap();
+
+        let (x_one, y_one) = fixed_base(test_one.to_bytes().as_slice());
+        assert_eq!(x_one, expected_one_x);
+        assert_eq!(y_one, expected_one_y);
+
+        let test_five = FieldElement::from(5 as u128);
+        let expected_five_x = FieldElement::from_hex("0x1b0986d603033be6321c1804f6f8b4b14aef014e65a64d9544a6430582694387").unwrap();
+        let expected_five_y = FieldElement::from_hex("0x1abea81d71f73426f65a8c459264a01ac86750c6d8f6f4eae608fe0c8e2d982d").unwrap();
+        let (x_five, y_five) = fixed_base(test_five.to_bytes().as_slice());
+        assert_eq!(x_five, expected_five_x);
+        assert_eq!(y_five, expected_five_y);
     }
 
 

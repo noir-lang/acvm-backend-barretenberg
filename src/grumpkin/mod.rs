@@ -57,28 +57,20 @@ pub fn pedersen_naive(values: &[Fr]) -> SWProjective {
 
 pub fn fixed_base(input: &[u8]) -> (FieldElement, FieldElement) {
     let gen = SWAffine::prime_subgroup_generator();
-    // let priv_key = Fr::read(input).unwrap();
+    // let priv_key = Fr::read(input).unwrap(); this is broken
     let priv_key = deserialise_fq(input).unwrap();
     let k_fr = Fr::from(priv_key.into_repr());
 
     let pub_key = gen.mul(k_fr);
-    
     let pub_key_affine = pub_key.into_affine();
-    println!("pub_key: {:?}", pub_key);
-    println!("pub_key affine: {:?}", pub_key_affine);
-
-    let x_hex = aztec_fr_to_hex(pub_key.x);
-    let y_hex = aztec_fr_to_hex(pub_key.y);
-    println!("pub_key x: {:?}", x_hex);
-    println!("pub_key y: {:?}", y_hex);
 
     let x_hex_affine = aztec_fr_to_hex(pub_key_affine.x);
     let y_hex_affine = aztec_fr_to_hex(pub_key_affine.y);
     println!("pub_key affine x: {:?}", x_hex_affine);
     println!("pub_key affine y: {:?}", y_hex_affine);
 
-    let noir_x = FieldElement::from_hex(&x_hex).unwrap();
-    let noir_y = FieldElement::from_hex(&y_hex).unwrap();
+    let noir_x = FieldElement::from_hex(&x_hex_affine).unwrap();
+    let noir_y = FieldElement::from_hex(&y_hex_affine).unwrap();
 
     (noir_x, noir_y)
 }
