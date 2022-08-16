@@ -6,7 +6,8 @@ mod tests {
     use ark_ff::{BigInteger256, One, PrimeField, Zero};
     use ark_serialize::CanonicalSerialize;
     use grumpkin::{Fq, SWAffine};
-
+    use rand::Rng;
+    
     #[test]
     fn c_plus_plus_interop_generator() {
         // Copied from the C++ codebase
@@ -43,6 +44,30 @@ mod tests {
         assert_eq!(x.to_hex(), aztec_fr_to_hex(pedersen_hash.x));
         assert_eq!(y.to_hex(), aztec_fr_to_hex(pedersen_hash.y))
     }
+
+    #[test]
+    fn random_matches() {
+        let mut barretenberg = Barretenberg::new();
+        let mut aztec_inputs: Vec<FieldElement> = Vec::new();
+        let mut grumpkin_inputs: Vec<Fr> = Vec::new();
+        
+        for _ in 0..5 {
+            let num: u128 = rand::thread_rng().gen_range(0..100 as u128);
+
+            aztec_inputs.push(FieldElement::from(num));
+            grumpkin_inputs.push(Fr::from(num));
+        }
+
+        let (x, y) = barretenberg.encrypt(aztec_inputs);
+
+        let pedersen_hash = pedersen(&grumpkin_inputs).into_affine();
+
+        let ped_naive_hash = pedersen_naive(&grumpkin_inputs.clone()).into_affine();
+        assert_eq!(aztec_fr_to_hex(pedersen_hash.x), aztec_fr_to_hex(ped_naive_hash.x));
+
+        assert_eq!(x.to_hex(), aztec_fr_to_hex(pedersen_hash.x));
+        assert_eq!(y.to_hex(), aztec_fr_to_hex(pedersen_hash.y))
+    } 
 
     fn aztec_fr_to_hex(field: Fq) -> String {
         let mut bytes = Vec::new();

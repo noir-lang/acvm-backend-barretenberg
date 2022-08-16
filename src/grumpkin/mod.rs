@@ -4,8 +4,8 @@
 // The most notable difference is the serialisation strategy that the C++
 // code uses, which is non-standard.
 
-use ark_ec::msm::VariableBaseMSM;
-use ark_ff::{BigInteger256, PrimeField};
+use ark_ec::{AffineCurve, msm::VariableBaseMSM};
+use ark_ff::{BigInteger256, PrimeField, Zero};
 use grumpkin::{Fq, Fr, SWAffine, SWProjective};
 
 mod interop_tests;
@@ -30,9 +30,26 @@ fn deserialise_point(x_bytes: &[u8], y_bytes: &[u8]) -> Option<SWAffine> {
     Some(SWAffine::new(x, y, is_infinity))
 }
 
+fn naive_var_base_msm<G: AffineCurve>(
+    bases: &[G],
+    scalars: &[<G::ScalarField as PrimeField>::BigInt],
+) -> G::Projective {
+    let mut acc = G::Projective::zero();
+
+    for (base, scalar) in bases.iter().zip(scalars.iter()) {
+        acc += &base.mul(*scalar);
+    }
+    acc
+}
+
 pub fn pedersen(values: &[Fr]) -> SWProjective {
     let values_repr: Vec<_> = values.into_iter().map(|val| val.into_repr()).collect();
     VariableBaseMSM::multi_scalar_mul(&generators(), &values_repr)
+}
+
+pub fn pedersen_naive(values: &[Fr]) -> SWProjective {
+    let values_repr: Vec<_> = values.into_iter().map(|val| val.into_repr()).collect();
+    naive_var_base_msm(&generators(), &values_repr)
 }
 
 // TODO: make this a lazy static or check if we can make a from_hex const variant. The latter is harder
