@@ -1,4 +1,9 @@
+#[cfg(not(wasm))]
 pub mod barretenberg_rs;
+
+#[cfg(wasm)]
+pub mod barretenberg_wasm;
+
 mod contract;
 pub mod serialiser;
 pub use serialiser::serialise_circuit;
