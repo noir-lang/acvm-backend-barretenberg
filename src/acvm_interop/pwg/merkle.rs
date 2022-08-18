@@ -1,6 +1,6 @@
 // TODO: remove once this module is used
 #![allow(dead_code)]
-use crate::barretenberg_rs::Barretenberg;
+use crate::Barretenberg;
 use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
 
