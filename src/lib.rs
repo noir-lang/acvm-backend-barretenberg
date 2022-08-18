@@ -1,7 +1,6 @@
-#[cfg(not(wasm))]
+#[cfg(sys)]
 pub mod barretenberg_rs;
-
-#[cfg(wasm)]
+#[cfg(any(wasm, sys))]
 pub mod barretenberg_wasm;
 
 mod contract;

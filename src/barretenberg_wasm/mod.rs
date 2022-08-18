@@ -99,8 +99,18 @@ impl Default for Barretenberg {
     }
 }
 
+#[cfg(all(not(wasm), sys))]
 fn load_module() -> (Module, Store) {
     let store = Store::default();
+
+    let module = Module::new(&store, &WASM).unwrap();
+    (module, store)
+}
+
+#[cfg(wasm)]
+fn load_module() -> (Module, Store) {
+    let store = Store::new();
+
     let module = Module::new(&store, &WASM).unwrap();
     (module, store)
 }
