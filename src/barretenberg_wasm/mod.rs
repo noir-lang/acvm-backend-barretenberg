@@ -104,40 +104,6 @@ fn load_module() -> (Module, Store) {
     let module = Module::new(&store, &WASM).unwrap();
     (module, store)
 }
-// fn load_module() -> (Module, Store) {
-// use wasmer_cache::{Cache, FileSystemCache, Hash};
-//     let store = Store::default();
-
-//     let cache_key = Hash::generate(WASM);
-
-//     // Load directory into cache
-//     let mut fs_cache = FileSystemCache::new(mod_cache_location()).unwrap();
-
-//     // Load module; check if it is in the cache
-//     // If it is not then compile
-//     // If it is return it
-//     let module = match unsafe { fs_cache.load(&store, cache_key) } {
-//         Ok(module) => module,
-//         Err(_) => {
-//             println!("Compiling WASM... This will take ~3 minutes for the first time, and cached on subsequent runs.");
-
-//             let module = Module::new(&store, &WASM).unwrap();
-
-//             // Store a module into the cache given a key
-//             fs_cache.store(cache_key, &module).unwrap();
-//             module
-//         }
-//     };
-
-//     (module, store)
-// }
-
-fn mod_cache_location() -> std::path::PathBuf {
-    let mut mod_cache_dir = dirs::home_dir().unwrap();
-    mod_cache_dir.push(std::path::Path::new("noir_cache"));
-    mod_cache_dir.push(std::path::Path::new("barretenberg_module_cache"));
-    mod_cache_dir
-}
 
 fn instance_load() -> Instance {
     let (module, store) = load_module();
