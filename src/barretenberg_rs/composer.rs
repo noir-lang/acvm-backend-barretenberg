@@ -1,6 +1,5 @@
 use super::crs::CRS;
 use super::pippenger::Pippenger;
-use super::BARRETENBERG;
 use acvm::FieldElement as Scalar;
 use std::slice;
 
@@ -12,8 +11,6 @@ pub struct StandardComposer {
 
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-        let _m = BARRETENBERG.lock().unwrap();
-
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
 
         let crs = CRS::new(circuit_size as usize + 1);
@@ -533,8 +530,6 @@ impl StandardComposer {
     }
 
     pub fn create_proof(&mut self, witness: WitnessAssignments) -> Vec<u8> {
-        let _m = BARRETENBERG.lock().unwrap();
-
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
@@ -574,7 +569,6 @@ impl StandardComposer {
         proof: &[u8],
         public_inputs: Option<Assignments>,
     ) -> bool {
-        let _m = BARRETENBERG.lock().unwrap();
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
         // This is non-standard however, so this Rust wrapper will strip the public inputs
