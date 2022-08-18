@@ -142,10 +142,6 @@ fn mod_cache_location() -> std::path::PathBuf {
 fn instance_load() -> Instance {
     let (module, store) = load_module();
 
-    // use wasmer_wasi::WasiState;
-    // let mut wasi_env = WasiState::new("barretenberg").finalize().unwrap();
-    // let import_object = wasi_env.import_object(&module).unwrap();
-
     let log_env = Function::new_native_with_env(
         &store,
         Env {
