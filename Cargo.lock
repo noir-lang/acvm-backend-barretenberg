@@ -170,7 +170,6 @@ dependencies = [
  "js-sys",
  "num-bigint",
  "num-traits",
- "once_cell",
  "regex",
  "sha2",
  "sled",

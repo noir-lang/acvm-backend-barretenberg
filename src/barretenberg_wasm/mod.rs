@@ -1,13 +1,10 @@
 ///  Import the Barretenberg WASM file
 pub static WASM: &[u8] = include_bytes!("barretenberg.wasm");
 
-pub mod instance;
 pub mod pedersen;
 pub mod scalar_mul;
 pub mod schnorr;
 
-use once_cell::sync::Lazy;
-use std::sync::Mutex;
 use wasmer::{imports, Function, FunctionType, Instance, Module, Store, Type, Value};
 
 /// Barretenberg is the low level struct which calls the WASM file
