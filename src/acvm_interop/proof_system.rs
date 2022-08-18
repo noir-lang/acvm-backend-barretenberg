@@ -1,5 +1,6 @@
 use super::Plonk;
-use crate::barretenberg_rs::composer::{Assignments, StandardComposer};
+use crate::barretenberg_rs::composer::StandardComposer;
+use crate::barretenberg_structures::Assignments;
 use acvm::acir::{circuit::Circuit, native_types::Witness};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
