@@ -36,4 +36,11 @@ tempfile = "3.2.0"
 [features]
 default = ["barretenberg_wrapper", "sys"]
 wasm = ["acvm/bn254", "wasmer/js-default"]
-sys = ["acvm/bn254", "wasmer/sys"]
+sys = [
+    "acvm/bn254",
+    "wasmer/sys",
+    "wasmer/cranelift",
+    "wasmer/default-compiler",
+    "wasmer/default-cranelift",
+    "wasmer/default-universal",
+]
