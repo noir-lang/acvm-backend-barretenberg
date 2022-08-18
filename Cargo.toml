@@ -6,6 +6,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 
 acvm = { git = "https://github.com/noir-lang/noir", rev = "cc5ee63072e09779bebd7e7dd054ae16be307d7f" }
@@ -16,7 +19,7 @@ blake2 = "0.9.1"
 sled = "0.34.6"
 
 dirs = "3.0"
-downloader = "0.2.6"
+downloader = { version = "0.2.6", optional = true }
 
 indicatif = "0.15.0"
 regex = "1.4.0"
@@ -29,14 +32,26 @@ hex = "*"
 
 wasmer = { version = "*", default-features = false }
 
-[dev-dependencies]
 
+wasm-bindgen = { version = "*", optional = true }
+js-sys = { version = "0.3.55", optional = true }
+getrandom = { version = "0.2.4", features = ["js"], optional = true }
+
+[dev-dependencies]
 tempfile = "3.2.0"
 
 [features]
-default = ["barretenberg_wrapper", "sys"]
-wasm = ["acvm/bn254", "wasmer/js-default"]
+default = ["wasm"]
+wasm = [
+    "acvm/bn254",
+    "wasmer/js-default",
+    "wasm-bindgen",
+    "js-sys",
+    "getrandom",
+]
 sys = [
+    "downloader",
+    "barretenberg_wrapper",
     "acvm/bn254",
     "wasmer/sys",
     "wasmer/cranelift",
