@@ -1,4 +1,4 @@
-use acvm::FieldElement as Scalar;
+pub use acvm::FieldElement as Scalar;
 
 #[derive(Debug, Clone)]
 pub struct Assignments(pub(crate) Vec<Scalar>);

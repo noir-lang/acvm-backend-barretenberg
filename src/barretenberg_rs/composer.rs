@@ -2,7 +2,6 @@ use super::crs::CRS;
 use super::pippenger::Pippenger;
 use crate::barretenberg_structures::*;
 use std::slice;
-
 pub struct StandardComposer {
     pippenger: Pippenger,
     crs: CRS,
@@ -160,6 +159,7 @@ fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {
 mod test {
 
     use super::*;
+    use crate::barretenberg_structures::Scalar;
 
     #[test]
     fn test_a_single_constraint_no_pub_inputs() {
