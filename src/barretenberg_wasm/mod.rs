@@ -32,8 +32,6 @@ impl WASMValue {
     }
 }
 
-pub static BARRETENBERG: Lazy<Mutex<Barretenberg>> = Lazy::new(|| Mutex::new(Barretenberg::new()));
-
 impl Barretenberg {
     /// Transfer bytes to WASM heap
     pub fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
