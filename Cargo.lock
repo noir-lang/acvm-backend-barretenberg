@@ -164,8 +164,10 @@ dependencies = [
  "blake2",
  "dirs",
  "downloader",
+ "getrandom",
  "hex",
  "indicatif",
+ "js-sys",
  "num-bigint",
  "num-traits",
  "once_cell",
@@ -173,6 +175,7 @@ dependencies = [
  "sha2",
  "sled",
  "tempfile",
+ "wasm-bindgen",
  "wasmer",
 ]
 
@@ -869,8 +872,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4eb1a864a501629691edf6c15a593b7a51eebaa1e8468e9ddc623de7c9b58ec6"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
