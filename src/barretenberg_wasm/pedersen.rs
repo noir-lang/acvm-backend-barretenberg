@@ -1,7 +1,7 @@
 use acvm::FieldElement;
 use wasmer::Value;
 
-use crate::barretenberg_rs::composer::Assignments;
+use crate::barretenberg_structures::Assignments;
 
 use super::Barretenberg;
 
