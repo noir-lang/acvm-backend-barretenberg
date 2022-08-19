@@ -44,7 +44,7 @@ default = ["sys"]
 wasm = [
     "acvm/bn254",
     "wasmer/js-default",
-    "wasm-bindgen",
+    "wasm-bindgen/serde-serialize",
     "js-sys",
     "getrandom",
 ]
