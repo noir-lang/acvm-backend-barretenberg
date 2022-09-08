@@ -41,13 +41,18 @@ tempfile = "3.2.0"
 
 [features]
 default = ["sys"]
+# This feature is enabled if we are using wasm
+# and compiling the program to wasm32
 wasm = [
-    "acvm/bn254",
+    "wasm-base",
     "wasmer/js-default",
     "wasm-bindgen/serde-serialize",
     "js-sys",
     "getrandom",
 ]
+# This feature is enabled if we are using wasm
+# and compiling the program to a cpu target
+wasm-base = ["acvm/bn254", "wasmer/sys-default"]
 sys = [
     "downloader",
     "barretenberg_wrapper",

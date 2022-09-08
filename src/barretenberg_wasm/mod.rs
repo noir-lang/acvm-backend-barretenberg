@@ -95,10 +95,7 @@ impl Default for Barretenberg {
 }
 
 fn load_module() -> (Module, Store) {
-    #[cfg(all(not(feature = "wasm"), feature = "sys"))]
     let store = Store::default();
-    #[cfg(feature = "wasm")]
-    let store = Store::new();
 
     let module = Module::new(&store, &WASM).unwrap();
     (module, store)

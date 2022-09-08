@@ -4,7 +4,7 @@ pub mod barretenberg_rs;
 pub use barretenberg_rs::Barretenberg;
 
 pub mod barretenberg_wasm;
-#[cfg(all(feature = "wasm", not(feature = "sys")))]
+#[cfg(all(feature = "wasm-base", not(feature = "sys")))]
 pub use barretenberg_wasm::Barretenberg;
 
 mod contract;
@@ -67,4 +67,11 @@ pub fn compute_witnesses(circuit: JsValue, initial_witness: Vec<u32>) -> Compute
     );
 
     assignments.to_bytes()
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
+    let circuit: Circuit = acir.into_serde().unwrap();
+    serialise_circuit(&circuit).to_bytes()
 }
