@@ -97,7 +97,7 @@ impl Default for Barretenberg {
 fn load_module() -> (Module, Store) {
     let store = Store::default();
 
-    let module = Module::new(&store, &WASM).unwrap();
+    let module = Module::new(&store, WASM).unwrap();
     (module, store)
 }
 

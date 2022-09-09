@@ -33,7 +33,7 @@ fn fetch_root(db: &sled::Db) -> FieldElement {
         .get("ROOT".as_bytes())
         .unwrap()
         .expect("merkle root should always be present");
-    FieldElement::from_be_bytes_reduce(&value.to_vec())
+    FieldElement::from_be_bytes_reduce(&value)
 }
 fn insert_depth(db: &mut sled::Db, value: u32) {
     db.insert("DEPTH".as_bytes(), &value.to_be_bytes()).unwrap();
@@ -68,14 +68,14 @@ fn insert_preimage(db: &mut sled::Db, index: u32, value: Vec<u8>) {
     let tree = db.open_tree("preimages").unwrap();
 
     let index = index as u128;
-    tree.insert(&index.to_be_bytes(), value).unwrap();
+    tree.insert(index.to_be_bytes(), value).unwrap();
 }
 
 fn fetch_preimage(db: &sled::Db, index: usize) -> Vec<u8> {
     let tree = db.open_tree("preimages").unwrap();
 
     let index = index as u128;
-    tree.get(&index.to_be_bytes())
+    tree.get(index.to_be_bytes())
         .unwrap()
         .map(|i_vec| i_vec.to_vec())
         .unwrap()
@@ -84,9 +84,9 @@ fn fetch_hash(db: &sled::Db, index: usize) -> FieldElement {
     let tree = db.open_tree("hashes").unwrap();
     let index = index as u128;
 
-    tree.get(&index.to_be_bytes())
+    tree.get(index.to_be_bytes())
         .unwrap()
-        .map(|i_vec| FieldElement::from_be_bytes_reduce(&i_vec.to_vec()))
+        .map(|i_vec| FieldElement::from_be_bytes_reduce(&i_vec))
         .unwrap()
 }
 
@@ -94,7 +94,7 @@ fn insert_hash(db: &mut sled::Db, index: u32, hash: FieldElement) {
     let tree = db.open_tree("hashes").unwrap();
     let index = index as u128;
 
-    tree.insert(&index.to_be_bytes(), hash.to_bytes()).unwrap();
+    tree.insert(index.to_be_bytes(), hash.to_bytes()).unwrap();
 }
 
 fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128> {

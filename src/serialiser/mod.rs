@@ -158,7 +158,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         merkle_membership_constraints.push(constraint);
                     }
                     OPCODE::SchnorrVerify => {
-                        let mut inputs_iter = gadget_call.inputs.iter().peekable();
+                        let mut inputs_iter = gadget_call.inputs.iter();
 
                         // pub_key_x
                         let public_key_x = {
@@ -246,7 +246,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         hash_to_field_constraints.push(hash_to_field_constraint);
                     }
                     OPCODE::EcdsaSecp256k1 => {
-                        let mut inputs_iter = gadget_call.inputs.iter().peekable();
+                        let mut inputs_iter = gadget_call.inputs.iter();
 
                         // public key x
                         let mut public_key_x = [0i32; 32];

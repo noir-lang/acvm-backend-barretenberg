@@ -36,11 +36,10 @@ wasm-bindgen = { version = "*", optional = true }
 js-sys = { version = "0.3.55", optional = true }
 getrandom = { version = "0.2.4", features = ["js"], optional = true }
 
-[dev-dependencies]
 tempfile = "3.2.0"
 
 [features]
-default = ["wasm"]
+default = ["sys"]
 wasm = [
     "acvm/bn254",
     "wasmer/js-default",
