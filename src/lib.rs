@@ -26,21 +26,27 @@ use std::collections::BTreeMap;
 
 // Flattened
 pub type ComputedWitness = Vec<u8>;
-// TODO: currently we only use u32 as witness values, this should be changed to
-// TODO: bytes as field elements are generally 32 bytes or more
+
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
-pub fn compute_witnesses(circuit: JsValue, initial_witness: Vec<u32>) -> ComputedWitness {
+pub fn compute_witnesses(
+    circuit: JsValue,
+    initial_js_witness: Vec<js_sys::JsString>,
+) -> ComputedWitness {
     let circuit: Circuit = circuit.into_serde().unwrap();
+
+    let mut initial_witness = Vec::new();
+    for js_val in initial_js_witness {
+        initial_witness.push(String::from(js_val))
+    }
 
     // Convert initial witness vector to a BTreeMap and add the zero witness as the first one
     let mut witness_map: BTreeMap<Witness, FieldElement> = BTreeMap::new();
-    // witness_map.insert(Witness(0), FieldElement::zero());
     let num_wits = circuit.current_witness_index;
     for (index, element) in initial_witness.into_iter().enumerate() {
         witness_map.insert(
             Witness((index + 1) as u32),
-            FieldElement::from(element as u128),
+            FieldElement::from_hex(&element).expect("expected hex strings"),
         );
     }
     debug_assert_eq!((num_wits + 1) as usize, witness_map.len());
