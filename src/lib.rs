@@ -4,7 +4,7 @@ pub mod barretenberg_rs;
 pub use barretenberg_rs::Barretenberg;
 
 pub mod barretenberg_wasm;
-#[cfg(all(feature = "wasm-base", not(feature = "sys")))]
+#[cfg(all(any(feature = "wasm-base", feature = "wasm"), not(feature = "sys")))]
 pub use barretenberg_wasm::Barretenberg;
 
 mod contract;
