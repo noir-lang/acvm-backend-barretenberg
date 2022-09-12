@@ -98,8 +98,11 @@ impl ProofSystemCompiler for Plonk {
         let mut circuit_file = NamedTempFile::new().unwrap();
         circuit_file.write_all(serialized.as_slice());
 
-        let pub_inputs = Assignments::from_vec(public_inputs);
-        let mut proof_with_pub_inputs = pub_inputs.to_bytes();
+        // Prepend the public inputs to the proof
+        let mut proof_with_pub_inputs = Vec::new();
+        for pi in public_inputs {
+            proof_with_pub_inputs.extend(pi.to_bytes())
+        }
         proof_with_pub_inputs.extend(proof);
 
         let mut proof_with_pub_inputs_file = NamedTempFile::new().unwrap();
