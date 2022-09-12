@@ -162,8 +162,8 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
 fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
     use std::io::Read;
 
-    let proof_file = NamedTempFile::new().unwrap();
-    let path_to_save_proof = tempfile_to_path(&proof_file);
+    let output_file = NamedTempFile::new().unwrap();
+    let path_to_output = tempfile_to_path(&output_file);
 
     let path_to_cli = get_path_to_cli();
     let output = std::process::Command::new("node")
@@ -171,10 +171,19 @@ fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
         .arg("verifyProof")
         .arg(path_to_acir)
         .arg(&path_to_proof)
+        .arg(&path_to_output)
         .status()
         .expect("Failed to execute command to run noir-cli");
 
-    true
+    let f = std::fs::File::open(path_to_output).unwrap();
+    let mut reader = std::io::BufReader::new(f);
+    let mut buffer = Vec::new();
+
+    reader.read_to_end(&mut buffer).unwrap();
+
+    assert_eq!(buffer.len(), 1);
+
+    buffer[0] == 1
 }
 
 fn tempfile_to_path(file: &NamedTempFile) -> String {
