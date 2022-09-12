@@ -107,7 +107,6 @@ fn get_path_to_cli() -> String {
 
 fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<u8> {
     use std::io::Read;
-    use tempfile::NamedTempFile;
 
     let proof_file = NamedTempFile::new().unwrap();
     let path_to_save_proof = tempfile_to_path(&proof_file);
@@ -115,6 +114,7 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     let path_to_cli = get_path_to_cli();
     let output = std::process::Command::new("node")
         .arg(path_to_cli)
+        .arg("createProofWithSerialised")
         .arg(path_to_acir)
         .arg(&path_to_save_proof)
         .arg(path_to_witness)
