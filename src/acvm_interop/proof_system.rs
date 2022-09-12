@@ -50,20 +50,7 @@ impl ProofSystemCompiler for Plonk {
         let mut circuit_file = NamedTempFile::new().unwrap();
         circuit_file.write_all(serialized.as_slice());
 
-        // let serialized = Witness::to_bytes(&witness_values);
-        let mut sorted_witness = Assignments::new();
-        let num_witnesses = circuit.num_vars();
-        for i in 1..num_witnesses {
-            // Get the value if it exists. If i does not, then we fill it with the zero value
-            let value = match witness_values.get(&Witness(i)) {
-                Some(value) => *value,
-                None => FieldElement::zero(),
-            };
-
-            sorted_witness.push(value);
-        }
-        let serialized = sorted_witness.to_bytes();
-
+        let serialized = Witness::to_bytes(&witness_values);
         let mut witness_file = NamedTempFile::new().unwrap();
         witness_file.write_all(serialized.as_slice());
 
