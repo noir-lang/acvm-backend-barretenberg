@@ -8,6 +8,7 @@ use acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
 #[cfg(feature = "wasm-base")]
 use std::io::Write;
+use tempfile::NamedTempFile;
 #[cfg(feature = "wasm-base")]
 use tempfile::NamedTempFile;
 
@@ -55,25 +56,10 @@ impl ProofSystemCompiler for Plonk {
         let mut witness_file = NamedTempFile::new().unwrap();
         witness_file.write_all(serialized.as_slice());
 
-        //Call noirjs-cli...TODO
-        // Command::new("git")
-        // .arg("-c")
-        // .arg("advice.detachedHead=false")
-        // .arg("clone")
-        // .arg("--depth")
-        // .arg("1")
-        // .arg("--branch")
-        // .arg(&tag)
-        // .arg(base.as_str())
-        // .arg(&loc)
-        // .status()
-        // .expect("git clone command failed to start");
+        let circuit_file_path = tempfile_to_path(&circuit_file);
+        let witness_file_path = tempfile_to_path(&witness_file);
 
-        circuit_file.close();
-        witness_file.close();
-
-        //dummy prover:
-        vec![72, 69, 76, 76, 79]
+        create_proof_using_cli(circuit_file_path, witness_file_path)
     }
 
     #[cfg(feature = "sys")]
@@ -104,4 +90,51 @@ impl ProofSystemCompiler for Plonk {
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
+}
+
+fn get_path_to_cli() -> String {
+    let output = std::process::Command::new("npm")
+        .arg("root")
+        .arg("-g")
+        .stdout(std::process::Stdio::piped())
+        .output()
+        .expect("Failed to execute command to fetch root directory");
+
+    let path_to_root_dir = String::from_utf8(output.stdout).unwrap();
+    let mut path_to_root_dir = path_to_root_dir.trim().to_owned();
+    let mut path_to_indexjs = path_to_root_dir.clone();
+    path_to_indexjs.push_str("/@noir-lang/noir-cli/dest/index.js");
+    path_to_indexjs
+}
+
+fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<u8> {
+    use std::io::Read;
+    use tempfile::NamedTempFile;
+
+    let mut proof_file = NamedTempFile::new().unwrap();
+    let path_to_save_proof = tempfile_to_path(&proof_file);
+
+    let path_to_cli = get_path_to_cli();
+    let output = std::process::Command::new("node")
+        .arg(path_to_cli)
+        .arg(path_to_acir)
+        .arg(&path_to_save_proof)
+        .arg(path_to_witness)
+        .status()
+        .expect("Failed to execute command to run noir-cli");
+    dbg!(output);
+
+    proof_file.into_file();
+
+    let f = std::fs::File::open(path_to_save_proof).unwrap();
+    let mut reader = std::io::BufReader::new(f);
+    let mut buffer = Vec::new();
+
+    reader.read_to_end(&mut buffer).unwrap();
+
+    buffer
+}
+
+fn tempfile_to_path(&file: &NamedTempFile) -> String {
+    file.path().as_os_str().to_str().unwrap().to_owned()
 }
