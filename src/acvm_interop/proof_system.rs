@@ -109,7 +109,7 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     use std::io::Read;
     use tempfile::NamedTempFile;
 
-    let mut proof_file = NamedTempFile::new().unwrap();
+    let proof_file = NamedTempFile::new().unwrap();
     let path_to_save_proof = tempfile_to_path(&proof_file);
 
     let path_to_cli = get_path_to_cli();
@@ -133,6 +133,6 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     buffer
 }
 
-fn tempfile_to_path(&file: &NamedTempFile) -> String {
+fn tempfile_to_path(file: &NamedTempFile) -> String {
     file.path().as_os_str().to_str().unwrap().to_owned()
 }
