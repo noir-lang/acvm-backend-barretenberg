@@ -6,10 +6,8 @@ use acvm::acir::{circuit::Circuit, native_types::Witness};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
-#[cfg(feature = "wasm-base")]
+
 use std::io::Write;
-use tempfile::NamedTempFile;
-#[cfg(feature = "wasm-base")]
 use tempfile::NamedTempFile;
 
 impl ProofSystemCompiler for Plonk {
