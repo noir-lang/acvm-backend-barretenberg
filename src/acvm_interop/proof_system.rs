@@ -120,9 +120,6 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
         .arg(path_to_witness)
         .status()
         .expect("Failed to execute command to run noir-cli");
-    dbg!(output);
-
-    proof_file.into_file();
 
     let f = std::fs::File::open(path_to_save_proof).unwrap();
     let mut reader = std::io::BufReader::new(f);
