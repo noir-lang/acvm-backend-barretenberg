@@ -94,8 +94,21 @@ impl ProofSystemCompiler for Plonk {
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool {
-        //dummy verifier
-        true
+        let serialized = circuit.to_bytes();
+        let mut circuit_file = NamedTempFile::new().unwrap();
+        circuit_file.write_all(serialized.as_slice());
+
+        let pub_inputs = Assignments::from_vec(public_inputs);
+        let mut proof_with_pub_inputs = pub_inputs.to_bytes();
+        proof_with_pub_inputs.extend(proof);
+
+        let mut proof_with_pub_inputs_file = NamedTempFile::new().unwrap();
+        proof_with_pub_inputs_file.write_all(&proof_with_pub_inputs);
+
+        let circuit_file_path = tempfile_to_path(&circuit_file);
+        let proof_file_path = tempfile_to_path(&proof_with_pub_inputs_file);
+
+        verify_proof_using_cli(circuit_file_path, proof_file_path)
     }
 
     fn np_language(&self) -> Language {
@@ -141,6 +154,24 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     reader.read_to_end(&mut buffer).unwrap();
 
     buffer
+}
+
+fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
+    use std::io::Read;
+
+    let proof_file = NamedTempFile::new().unwrap();
+    let path_to_save_proof = tempfile_to_path(&proof_file);
+
+    let path_to_cli = get_path_to_cli();
+    let output = std::process::Command::new("node")
+        .arg(path_to_cli)
+        .arg("verifyProof")
+        .arg(path_to_acir)
+        .arg(&path_to_proof)
+        .status()
+        .expect("Failed to execute command to run noir-cli");
+
+    true
 }
 
 fn tempfile_to_path(file: &NamedTempFile) -> String {
