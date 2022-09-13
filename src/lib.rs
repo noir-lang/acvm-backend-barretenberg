@@ -60,10 +60,6 @@ pub fn compute_witnesses(
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
 
-    // let field_values_as_bytes: Vec<_> =
-    //     witness_map.into_iter().map(|(_, field_val)| field_val.to_bytes()).flatten().collect();
-    // field_values_as_bytes
-
     // Serialise the witness in a way that the C++ codebase can deserialise
     let assignments = crate::barretenberg_structures::Assignments::from_vec(
         witness_map
@@ -80,4 +76,47 @@ pub fn compute_witnesses(
 pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
     let circuit: Circuit = acir.into_serde().unwrap();
     serialise_circuit(&circuit).to_bytes()
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8> {
+    use crate::barretenberg_structures::Assignments;
+    let circuit: Circuit = acir.into_serde().unwrap();
+    let witness_values = Witness::from_bytes(&witness_arr);
+    let mut sorted_witness = Assignments::new();
+    let num_witnesses = circuit.num_vars();
+    for i in 1..num_witnesses {
+        // Get the value if it exists. If i does not, then we fill it with the zero value
+        let value = match witness_values.get(&Witness(i)) {
+            Some(value) => *value,
+            None => FieldElement::zero(),
+        };
+
+        sorted_witness.push(value);
+    }
+    sorted_witness.to_bytes()
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn serialise_public_inputs(pub_inputs_js_string: Vec<js_sys::JsString>) -> Vec<u8> {
+    use acvm::FieldElement;
+
+    let mut pub_inputs_string = Vec::new();
+    for val in pub_inputs_js_string {
+        pub_inputs_string.push(String::from(val))
+    }
+
+    let mut pub_inputs = Vec::new();
+    for string in pub_inputs_string {
+        let field = FieldElement::from_hex(&string).expect("unexpected hex string");
+        pub_inputs.push(field)
+    }
+
+    pub_inputs
+        .into_iter()
+        .map(|field| field.to_bytes())
+        .flatten()
+        .collect()
 }
