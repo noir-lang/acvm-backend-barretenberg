@@ -325,7 +325,7 @@ fn basic_interop_initial_root() {
     // Test that the initial root is computed correctly
     let tree = MerkleTree::new(3, &temp_dir);
     // Copied from barretenberg by copying the stdout from MemoryTree
-    let expected_hex = "0620374242254671503abf57d13969d41bbae97e59fa97cd7777cd683beb9eb8";
+    let expected_hex = "15371ccc70f5b567da373f8698b5b5ea382cddc1b6940e9141e5db93f67182f7";
     assert_eq!(tree.root().to_hex(), expected_hex)
 }
 #[test]
@@ -343,12 +343,12 @@ fn basic_interop_hashpath() {
             "1cdcf02431ba623767fe389337d011df1048dcc24b98ed81cec97627bab454a0",
         ),
         (
-            "262e1ae3710241581182198b69a10601148ee1dd20ae638f99cde7b3ede59754",
-            "262e1ae3710241581182198b69a10601148ee1dd20ae638f99cde7b3ede59754",
+            "0833de91a69b13953edec6be92977bad49f0dbac520ec8f63d723f7692a446b8",
+            "0833de91a69b13953edec6be92977bad49f0dbac520ec8f63d723f7692a446b8",
         ),
         (
-            "0f88aa985f23258a12a78b35eab5d3d8d41d091a71113f2d4b2731d96ab78cfd",
-            "0f88aa985f23258a12a78b35eab5d3d8d41d091a71113f2d4b2731d96ab78cfd",
+            "0bf4c916dd193a7ac4748d91063d7244214d70cb2e338eb2cfff1fa4b5f1633d",
+            "0bf4c916dd193a7ac4748d91063d7244214d70cb2e338eb2cfff1fa4b5f1633d",
         ),
     ];
 
@@ -375,7 +375,7 @@ fn basic_interop_update() {
     let root = tree.update_message(7, &vec![7; 64]);
 
     assert_eq!(
-        "241fc8d893854e78dd2d427e534357fe02279f209193f0f82e13a3fd4e15375e",
+        "2ef749aee0274b151c91428ace22da4f661a7a6dd0b698a8e2b80e24fabc8432",
         root.to_hex()
     );
 
@@ -387,12 +387,12 @@ fn basic_interop_update() {
             "12dc36b01cbd8a6248b04e08f0ec91aa6d11a91f030b4a7b1460281859942185",
         ),
         (
-            "2a57882283ba48c2e523fbf8142c0867e82cfaba2410793d3331a9c685f40790",
-            "145beb7dcd00d8eee922af3fee2b002c6e56b716630752b787acfbe685769040",
+            "21d48844c83a28acd68c4d0bca69dba8cffd44be2e5556f9463fd23ae8071e83",
+            "2118e107a5638f06644237aad2ffe4486b3a91e4fdf85ea49259245e80488503",
         ),
         (
-            "20a7f69fa7eada3e900b803301074386ef2ea8be29f3aa943eefc3654c0a94e6",
-            "073b84f35922842dcf4c10596c3fe3eab7e61939120d2aca0a531e4e6fdce22b",
+            "05c41ef199bde4a704a819fd53c16b6c28fbd76e617d6f7b93c1b1a8aab77040",
+            "24c3f41728cbf0a7ab449d6701f0c45e888e02535128189d7a3b9ac5f715c439",
         ),
     ];
 
