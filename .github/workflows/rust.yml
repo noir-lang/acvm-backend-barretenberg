@@ -44,7 +44,8 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           toolchain: ${{ matrix.toolchain }}
-          command: test -- --test-threads=1
+          command: test
+          args: -- --test-threads=1
           
 
   clippy:
