@@ -53,7 +53,13 @@ impl Barretenberg {
     pub fn slice_memory(&self, start: usize, end: usize) -> Vec<u8> {
         let memory = self.instance.exports.get_memory("memory").unwrap();
 
+        #[cfg(feature = "wasm")]
         return memory.uint8view().to_vec()[start as usize..end].to_vec();
+        #[cfg(feature = "wasm-base")]
+        return memory.view()[start as usize..end]
+            .into_iter()
+            .map(|cell| cell.get())
+            .collect();
     }
 
     pub fn call(&self, name: &str, param: &Value) -> WASMValue {
@@ -187,29 +193,30 @@ impl Barretenberg {
 }
 
 fn logstr(my_env: &Env, ptr: i32) {
-    let memory = my_env.memory.get_ref().unwrap();
+    println!("[No logs]")
+    // let memory = my_env.memory.get_ref().unwrap();
 
-    let mut ptr_end = 0;
-    let byte_view: Vec<u8> = memory.uint8view().to_vec();
+    // let mut ptr_end = 0;
+    // let byte_view = memory.uint8view();
 
-    for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-        if *cell != 0 {
-            ptr_end = i;
-        } else {
-            break;
-        }
-    }
+    // for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+    //     if cell != 0 {
+    //         ptr_end = i;
+    //     } else {
+    //         break;
+    //     }
+    // }
 
-    let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
-        .into_iter()
-        .cloned()
-        .collect();
+    // let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
+    //     .into_iter()
+    //     .cloned()
+    //     .collect();
 
-    // Convert the subslice to a `&str`.
-    let string = std::str::from_utf8(&str_vec).unwrap();
+    // // Convert the subslice to a `&str`.
+    // let string = std::str::from_utf8(&str_vec).unwrap();
 
-    // Print it!
-    println!("[WASM LOG] {}", string);
+    // // Print it!
+    // println!("[WASM LOG] {}", string);
 }
 
 #[derive(Clone)]
