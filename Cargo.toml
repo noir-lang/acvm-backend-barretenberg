@@ -1,6 +1,6 @@
 [package]
 name = "aztec_backend"
-version = "0.5.0"
+version = "0.7.0"
 authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
 edition = "2021"
 
@@ -39,7 +39,7 @@ getrandom = { version = "0.2.4", features = ["js"], optional = true }
 tempfile = "3.2.0"
 
 [features]
-default = ["wasm-base"]
+default = ["wasm"]
 
 # This feature is enabled if we are using wasm
 # and compiling the program to wasm32
