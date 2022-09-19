@@ -5,11 +5,14 @@ pub mod pedersen;
 pub mod scalar_mul;
 pub mod schnorr;
 
-use wasmer::{imports, Function, FunctionType, Instance, Module, Store, Type, Value};
+use wasmer::{
+    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
+};
 
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
 pub struct Barretenberg {
+    memory: Memory,
     instance: Instance,
 }
 
@@ -32,7 +35,7 @@ impl WASMValue {
 impl Barretenberg {
     /// Transfer bytes to WASM heap
     pub fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
-        let memory = self.instance.exports.get_memory("memory").unwrap();
+        let memory = &self.memory;
 
         #[cfg(feature = "wasm")]
         let view: js_sys::Uint8Array = memory.uint8view();
@@ -51,7 +54,7 @@ impl Barretenberg {
     }
     // XXX: change to read_mem
     pub fn slice_memory(&self, start: usize, end: usize) -> Vec<u8> {
-        let memory = self.instance.exports.get_memory("memory").unwrap();
+        let memory = &self.memory;
 
         #[cfg(feature = "wasm")]
         return memory.uint8view().to_vec()[start as usize..end].to_vec();
@@ -110,16 +113,10 @@ fn load_module() -> (Module, Store) {
     (module, store)
 }
 
-fn instance_load() -> Instance {
+fn instance_load() -> (Instance, Memory) {
     let (module, store) = load_module();
 
-    let log_env = Function::new_native_with_env(
-        &store,
-        Env {
-            memory: wasmer::LazyInit::new(),
-        },
-        logstr,
-    );
+    let log_env = Function::new_native(&store, logstr);
     // Add all of the wasi host functions.
     // We don't use any of them, so they have dummy implementations.
     let signature = FunctionType::new(vec![Type::I32, Type::I64, Type::I32], vec![Type::I32]);
@@ -161,9 +158,38 @@ fn instance_load() -> Instance {
     let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
     let environ_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
 
+    let signature = FunctionType::new(
+        vec![
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I64,
+            Type::I64,
+            Type::I32,
+            Type::I32,
+        ],
+        vec![Type::I32],
+    );
+    let path_open = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let signature = FunctionType::new(
+        vec![Type::I32, Type::I32, Type::I32, Type::I32, Type::I32],
+        vec![Type::I32],
+    );
+    let path_filestat_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
+    let fd_fdstat_set_flags = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let mem_type = MemoryType::new(130, None, false);
+    let memory = Memory::new(&store, mem_type).unwrap();
+
     let custom_imports = imports! {
         "env" => {
-            "logstr" => log_env,
+            "logstr" => log_env.clone(),
+            "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
             "clock_time_get" => clock_time_get,
@@ -171,28 +197,30 @@ fn instance_load() -> Instance {
             "fd_close" => fd_close,
             "proc_exit" => proc_exit,
             "fd_fdstat_get" => fd_fdstat_get,
+            "path_filestat_get" => path_filestat_get,
+            "fd_fdstat_set_flags" => fd_fdstat_set_flags,
             "random_get" => random_get,
             "fd_seek" => fd_seek,
+            "path_open" => path_open,
             "fd_write" => fd_write,
             "environ_sizes_get" => environ_sizes_get,
             "environ_get" => environ_get,
-        }
+        },
     };
 
     // let res_import = import_object.chain_back(custom_imports);
     let res_import = custom_imports;
-    Instance::new(&module, &res_import).unwrap()
+    (Instance::new(&module, &res_import).unwrap(), memory)
 }
 
 impl Barretenberg {
     pub fn new() -> Barretenberg {
-        Barretenberg {
-            instance: instance_load(),
-        }
+        let (instance, memory) = instance_load();
+        Barretenberg { memory, instance }
     }
 }
 
-fn logstr(my_env: &Env, ptr: i32) {
+fn logstr(ptr: i32) {
     println!("[No logs]")
     // let memory = my_env.memory.get_ref().unwrap();
 
@@ -217,19 +245,6 @@ fn logstr(my_env: &Env, ptr: i32) {
 
     // // Print it!
     // println!("[WASM LOG] {}", string);
-}
-
-#[derive(Clone)]
-pub struct Env {
-    memory: wasmer::LazyInit<wasmer::Memory>,
-}
-
-impl wasmer::WasmerEnv for Env {
-    fn init_with_instance(&mut self, instance: &Instance) -> Result<(), wasmer::HostEnvInitError> {
-        let memory = instance.exports.get_memory("memory").unwrap();
-        self.memory.initialize(memory.clone());
-        Ok(())
-    }
 }
 
 #[test]
