@@ -170,11 +170,12 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "aztec_backend"
-version = "0.1.0"
+version = "0.5.0"
 dependencies = [
  "acvm",
  "barretenberg_wrapper",
  "blake2",
+ "console_error_panic_hook",
  "dirs",
  "downloader",
  "getrandom",
@@ -399,6 +400,16 @@ dependencies = [
  "terminal_size",
  "unicode-width",
  "winapi",
+]
+
+[[package]]
+name = "console_error_panic_hook"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen",
 ]
 
 [[package]]
