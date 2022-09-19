@@ -33,7 +33,16 @@ impl Barretenberg {
     /// Transfer bytes to WASM heap
     pub fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
         let memory = self.instance.exports.get_memory("memory").unwrap();
-        for (byte_id, cell) in memory.view::<u8>()[offset..(offset + arr.len())]
+
+        #[cfg(feature = "wasm")]
+        let view: js_sys::Uint8Array = memory.uint8view();
+        #[cfg(feature = "wasm")]
+        for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
+            view.set_index(cell_id as u32, arr[byte_id])
+        }
+
+        #[cfg(feature = "wasm-base")]
+        for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
             .iter()
             .enumerate()
         {
@@ -44,13 +53,7 @@ impl Barretenberg {
     pub fn slice_memory(&self, start: usize, end: usize) -> Vec<u8> {
         let memory = self.instance.exports.get_memory("memory").unwrap();
 
-        let mut result = Vec::new();
-
-        for cell in memory.view()[start as usize..end].iter() {
-            result.push(cell.get());
-        }
-
-        result
+        return memory.uint8view().to_vec()[start as usize..end].to_vec();
     }
 
     pub fn call(&self, name: &str, param: &Value) -> WASMValue {
@@ -184,21 +187,22 @@ impl Barretenberg {
 }
 
 fn logstr(my_env: &Env, ptr: i32) {
-    use std::cell::Cell;
     let memory = my_env.memory.get_ref().unwrap();
 
     let mut ptr_end = 0;
-    for (i, cell) in memory.view::<u8>()[ptr as usize..].iter().enumerate() {
-        if cell.get() != 0 {
+    let byte_view: Vec<u8> = memory.uint8view().to_vec();
+
+    for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+        if *cell != 0 {
             ptr_end = i;
         } else {
             break;
         }
     }
 
-    let str_vec: Vec<_> = memory.view()[ptr as usize..=(ptr + ptr_end as i32) as usize]
-        .iter()
-        .map(|cell: &Cell<u8>| cell.get())
+    let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
+        .into_iter()
+        .cloned()
         .collect();
 
     // Convert the subslice to a `&str`.
