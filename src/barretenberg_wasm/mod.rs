@@ -38,18 +38,22 @@ impl Barretenberg {
         let memory = &self.memory;
 
         #[cfg(feature = "wasm")]
-        let view: js_sys::Uint8Array = memory.uint8view();
-        #[cfg(feature = "wasm")]
-        for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
-            view.set_index(cell_id as u32, arr[byte_id])
+        {
+            let view: js_sys::Uint8Array = memory.uint8view();
+            for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
+                view.set_index(cell_id as u32, arr[byte_id])
+            }
+            return;
         }
 
-        #[cfg(feature = "wasm-base")]
-        for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
-            .iter()
-            .enumerate()
+        #[cfg(any(feature = "wasm-base", feature = "sys"))]
         {
-            cell.set(arr[byte_id]);
+            for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
+                .iter()
+                .enumerate()
+            {
+                cell.set(arr[byte_id]);
+            }
         }
     }
     // XXX: change to read_mem
@@ -58,9 +62,9 @@ impl Barretenberg {
 
         #[cfg(feature = "wasm")]
         return memory.uint8view().to_vec()[start as usize..end].to_vec();
-        #[cfg(feature = "wasm-base")]
+
         return memory.view()[start as usize..end]
-            .into_iter()
+            .iter()
             .map(|cell| cell.get())
             .collect();
     }
@@ -188,7 +192,7 @@ fn instance_load() -> (Instance, Memory) {
 
     let custom_imports = imports! {
         "env" => {
-            "logstr" => log_env.clone(),
+            "logstr" => log_env,
             "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
@@ -220,8 +224,8 @@ impl Barretenberg {
     }
 }
 
-fn logstr(ptr: i32) {
-    println!("[No logs]")
+fn logstr() {
+    // println!("[No logs]")
     // let memory = my_env.memory.get_ref().unwrap();
 
     // let mut ptr_end = 0;
