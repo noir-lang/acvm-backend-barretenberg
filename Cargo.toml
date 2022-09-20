@@ -1,6 +1,6 @@
 [package]
 name = "aztec_backend"
-version = "0.1.0"
+version = "0.7.0"
 authors = ["Kevaundray Wedderburn <kevtheappdev@gmail.com>"]
 edition = "2021"
 
@@ -20,7 +20,7 @@ sled = "0.34.6"
 
 dirs = "3.0"
 downloader = { version = "0.2.6", optional = true }
-
+console_error_panic_hook = { version = "*", optional = true }
 indicatif = "0.15.0"
 regex = "1.4.0"
 
@@ -40,14 +40,18 @@ tempfile = "3.2.0"
 
 [features]
 default = ["sys"]
+
+# This feature is enabled if we are using wasm
+# and compiling the program to wasm32
+
 wasm = [
     "acvm/bn254",
     "wasmer/js-default",
     "wasm-bindgen/serde-serialize",
     "js-sys",
+    "console_error_panic_hook",
     "getrandom",
-] # This feature is enabled if we are using wasm
-# and compiling the program to wasm32
+]
 # This feature is enabled if we are using wasm
 # and compiling the program to a cpu target
 wasm-base = ["acvm/bn254", "wasmer/sys-default"]

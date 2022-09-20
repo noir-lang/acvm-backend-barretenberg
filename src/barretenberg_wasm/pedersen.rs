@@ -11,7 +11,7 @@ impl Barretenberg {
         let rhs_ptr = self.allocate(&right.to_bytes()); // 32..64
         let result_ptr = Value::I32(64); // 64..96
         self.call_multiple(
-            "pedersen_compress_fields",
+            "pedersen__compress_fields",
             vec![&lhs_ptr, &rhs_ptr, &result_ptr],
         );
 
@@ -22,7 +22,7 @@ impl Barretenberg {
         let input_buf = Assignments(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
 
-        self.call_multiple("pedersen_compress", vec![&input_ptr, &Value::I32(0)]);
+        self.call_multiple("pedersen__compress", vec![&input_ptr, &Value::I32(0)]);
 
         let result_bytes = self.slice_memory(0, 32);
         FieldElement::from_be_bytes_reduce(&result_bytes)
@@ -33,7 +33,7 @@ impl Barretenberg {
         let input_ptr = self.allocate(&input_buf);
 
         let result_ptr = Value::I32(32);
-        self.call_multiple("pedersen_encrypt", vec![&input_ptr, &result_ptr]);
+        self.call_multiple("pedersen__commit", vec![&input_ptr, &result_ptr]);
 
         let result_bytes = self.slice_memory(32, 96);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(32);

@@ -33,6 +33,8 @@ pub fn compute_witnesses(
     circuit: JsValue,
     initial_js_witness: Vec<js_sys::JsString>,
 ) -> ComputedWitness {
+    console_error_panic_hook::set_once();
+
     let circuit: Circuit = circuit.into_serde().unwrap();
 
     let mut initial_witness = Vec::new();
@@ -74,6 +76,8 @@ pub fn compute_witnesses(
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
 pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
+    console_error_panic_hook::set_once();
+
     let circuit: Circuit = acir.into_serde().unwrap();
     serialise_circuit(&circuit).to_bytes()
 }
@@ -81,6 +85,8 @@ pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
 pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8> {
+    console_error_panic_hook::set_once();
+
     use crate::barretenberg_structures::Assignments;
     let circuit: Circuit = acir.into_serde().unwrap();
     let witness_values = Witness::from_bytes(&witness_arr);
@@ -101,6 +107,8 @@ pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8>
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
 pub fn serialise_public_inputs(pub_inputs_js_string: Vec<js_sys::JsString>) -> Vec<u8> {
+    console_error_panic_hook::set_once();
+
     use acvm::FieldElement;
 
     let mut pub_inputs_string = Vec::new();
