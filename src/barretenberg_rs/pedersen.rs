@@ -73,6 +73,7 @@ fn basic_interop() {
         assert_eq!(got, got_many);
     }
 }
+
 #[test]
 fn pedersen_hash_to_point() {
     let mut barretenberg = Barretenberg::new();
@@ -82,10 +83,10 @@ fn pedersen_hash_to_point() {
     )
     .unwrap();
     let expected_y = FieldElement::from_hex(
-        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x296b4b4605e586a91caa3202baad557628a8c56d0a1d6dff1a7ca35aed3029d5",
     )
     .unwrap();
 
-    assert_eq!(expected_x, x);
-    assert_eq!(expected_y, y);
+    assert_eq!(expected_x.to_hex(), x.to_hex());
+    assert_eq!(expected_y.to_hex(), y.to_hex());
 }
