@@ -1,0 +1,15 @@
+{
+  "name": "@noir-lang/aztec_backend",
+  "collaborators": [
+    "Kevaundray Wedderburn <kevtheappdev@gmail.com>"
+  ],
+  "version": "0.7.0",
+  "files": [
+    "aztec_backend_bg.wasm",
+    "aztec_backend_bg.wasm.d.ts",
+    "aztec_backend.js",
+    "aztec_backend.d.ts"
+  ],
+  "main": "aztec_backend.js",
+  "types": "aztec_backend.d.ts"
+}

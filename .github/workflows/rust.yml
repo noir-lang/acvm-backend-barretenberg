@@ -4,7 +4,6 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -45,6 +44,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           command: test
+          args: -- --test-threads=1
           
 
   clippy:

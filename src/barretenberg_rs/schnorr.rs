@@ -2,7 +2,6 @@ use acvm::FieldElement;
 use std::convert::TryInto;
 
 use super::Barretenberg;
-use super::BARRETENBERG;
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
@@ -21,7 +20,6 @@ impl Barretenberg {
         sig: [u8; 64],
         message: &[u8],
     ) -> FieldElement {
-        let _m = BARRETENBERG.lock().unwrap();
         let r: bool = barretenberg_wrapper::schnorr::verify_signature(
             pub_key,
             sig[0..32].try_into().unwrap(),

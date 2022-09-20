@@ -1,6 +1,6 @@
 // Aztec uses a `TurboFormat` object in order to bridge the gap between Rust and C++.
 // This serialiser converts the IR into the `TurboFormat` which can then be fed into the WASM file
-use crate::barretenberg_rs::composer::{
+use crate::barretenberg_structures::{
     Blake2sConstraint, Constraint, ConstraintSystem, EcdsaConstraint, FixedBaseScalarMulConstraint,
     HashToFieldConstraint, LogicConstraint, MerkleMembershipConstraint, PedersenConstraint,
     RangeConstraint, SchnorrConstraint, Sha256Constraint,
@@ -158,7 +158,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         merkle_membership_constraints.push(constraint);
                     }
                     OPCODE::SchnorrVerify => {
-                        let mut inputs_iter = gadget_call.inputs.iter().peekable();
+                        let mut inputs_iter = gadget_call.inputs.iter();
 
                         // pub_key_x
                         let public_key_x = {
@@ -246,7 +246,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         hash_to_field_constraints.push(hash_to_field_constraint);
                     }
                     OPCODE::EcdsaSecp256k1 => {
-                        let mut inputs_iter = gadget_call.inputs.iter().peekable();
+                        let mut inputs_iter = gadget_call.inputs.iter();
 
                         // public key x
                         let mut public_key_x = [0i32; 32];

@@ -1,5 +1,5 @@
 use super::merkle::MerkleTree;
-use crate::barretenberg_rs::Barretenberg;
+use crate::Barretenberg;
 use acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
 use acvm::pwg::{self, input_to_value};
 use acvm::FieldElement;
@@ -46,7 +46,6 @@ impl GadgetCaller {
             OPCODE::SchnorrVerify => {
                 // In barretenberg, if the signature fails, then the whole thing fails.
                 //
-                use std::convert::TryInto;
 
                 let mut inputs_iter = gadget_call.inputs.iter();
 
