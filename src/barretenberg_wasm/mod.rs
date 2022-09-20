@@ -223,8 +223,8 @@ impl Barretenberg {
         Barretenberg { memory, instance }
     }
 }
-
-fn logstr() {
+#[allow(unused_variables)]
+fn logstr(ptr: i32) {
     // println!("[No logs]")
     // let memory = my_env.memory.get_ref().unwrap();
 
