@@ -6,8 +6,9 @@ use acvm::acir::{circuit::Circuit, native_types::Witness};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
-
+#[cfg(feature = "wasm-base")]
 use std::io::Write;
+#[cfg(feature = "wasm-base")]
 use tempfile::NamedTempFile;
 
 #[cfg(windows)]
@@ -60,20 +61,7 @@ impl ProofSystemCompiler for Plonk {
         let mut circuit_file = NamedTempFile::new().unwrap();
         circuit_file.write_all(serialized.as_slice());
 
-        // let serialized = Witness::to_bytes(&witness_values);
-        let mut sorted_witness = Assignments::new();
-        let num_witnesses = circuit.num_vars();
-        for i in 1..num_witnesses {
-            // Get the value if it exists. If i does not, then we fill it with the zero value
-            let value = match witness_values.get(&Witness(i)) {
-                Some(value) => *value,
-                None => FieldElement::zero(),
-            };
-
-            sorted_witness.push(value);
-        }
-        let serialized = sorted_witness.to_bytes();
-
+        let serialized = Witness::to_bytes(&witness_values);
         let mut witness_file = NamedTempFile::new().unwrap();
         witness_file.write_all(serialized.as_slice());
 
@@ -131,6 +119,7 @@ impl ProofSystemCompiler for Plonk {
     }
 }
 
+#[cfg(feature = "wasm-base")]
 fn get_path_to_cli() -> String {
     let output = std::process::Command::new(NPM)
         .arg("root")
@@ -140,12 +129,13 @@ fn get_path_to_cli() -> String {
         .expect("Failed to execute command to fetch root directory");
 
     let path_to_root_dir = String::from_utf8(output.stdout).unwrap();
-    let mut path_to_root_dir = path_to_root_dir.trim().to_owned();
-    let mut path_to_indexjs = path_to_root_dir.clone();
+    let path_to_root_dir = path_to_root_dir.trim().to_owned();
+    let mut path_to_indexjs = path_to_root_dir;
     path_to_indexjs.push_str("/@noir-lang/noir-cli/dest/index.js");
     path_to_indexjs
 }
 
+#[cfg(feature = "wasm-base")]
 fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<u8> {
     use std::io::Read;
 
@@ -171,6 +161,7 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     buffer
 }
 
+#[cfg(feature = "wasm-base")]
 fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
     use std::io::Read;
 
@@ -198,6 +189,7 @@ fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
     buffer[0] == 1
 }
 
+#[cfg(feature = "wasm-base")]
 fn tempfile_to_path(file: &NamedTempFile) -> String {
     file.path().as_os_str().to_str().unwrap().to_owned()
 }

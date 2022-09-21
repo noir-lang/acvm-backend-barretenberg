@@ -5,11 +5,14 @@ pub mod pedersen;
 pub mod scalar_mul;
 pub mod schnorr;
 
-use wasmer::{imports, Function, FunctionType, Instance, Module, Store, Type, Value};
+use wasmer::{
+    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
+};
 
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
 pub struct Barretenberg {
+    memory: Memory,
     instance: Instance,
 }
 
@@ -32,25 +35,38 @@ impl WASMValue {
 impl Barretenberg {
     /// Transfer bytes to WASM heap
     pub fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
-        let memory = self.instance.exports.get_memory("memory").unwrap();
-        for (byte_id, cell) in memory.view::<u8>()[offset..(offset + arr.len())]
-            .iter()
-            .enumerate()
+        let memory = &self.memory;
+
+        #[cfg(feature = "wasm")]
         {
-            cell.set(arr[byte_id]);
+            let view: js_sys::Uint8Array = memory.uint8view();
+            for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
+                view.set_index(cell_id as u32, arr[byte_id])
+            }
+            return;
+        }
+
+        #[cfg(any(feature = "wasm-base", feature = "sys"))]
+        {
+            for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
+                .iter()
+                .enumerate()
+            {
+                cell.set(arr[byte_id]);
+            }
         }
     }
     // XXX: change to read_mem
     pub fn slice_memory(&self, start: usize, end: usize) -> Vec<u8> {
-        let memory = self.instance.exports.get_memory("memory").unwrap();
+        let memory = &self.memory;
 
-        let mut result = Vec::new();
+        #[cfg(feature = "wasm")]
+        return memory.uint8view().to_vec()[start as usize..end].to_vec();
 
-        for cell in memory.view()[start as usize..end].iter() {
-            result.push(cell.get());
-        }
-
-        result
+        return memory.view()[start as usize..end]
+            .iter()
+            .map(|cell| cell.get())
+            .collect();
     }
 
     pub fn call(&self, name: &str, param: &Value) -> WASMValue {
@@ -101,16 +117,10 @@ fn load_module() -> (Module, Store) {
     (module, store)
 }
 
-fn instance_load() -> Instance {
+fn instance_load() -> (Instance, Memory) {
     let (module, store) = load_module();
 
-    let log_env = Function::new_native_with_env(
-        &store,
-        Env {
-            memory: wasmer::LazyInit::new(),
-        },
-        logstr,
-    );
+    let log_env = Function::new_native(&store, logstr);
     // Add all of the wasi host functions.
     // We don't use any of them, so they have dummy implementations.
     let signature = FunctionType::new(vec![Type::I32, Type::I64, Type::I32], vec![Type::I32]);
@@ -152,9 +162,38 @@ fn instance_load() -> Instance {
     let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
     let environ_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
 
+    let signature = FunctionType::new(
+        vec![
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I32,
+            Type::I64,
+            Type::I64,
+            Type::I32,
+            Type::I32,
+        ],
+        vec![Type::I32],
+    );
+    let path_open = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let signature = FunctionType::new(
+        vec![Type::I32, Type::I32, Type::I32, Type::I32, Type::I32],
+        vec![Type::I32],
+    );
+    let path_filestat_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
+    let fd_fdstat_set_flags = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
+
+    let mem_type = MemoryType::new(130, None, false);
+    let memory = Memory::new(&store, mem_type).unwrap();
+
     let custom_imports = imports! {
         "env" => {
             "logstr" => log_env,
+            "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
             "clock_time_get" => clock_time_get,
@@ -162,63 +201,54 @@ fn instance_load() -> Instance {
             "fd_close" => fd_close,
             "proc_exit" => proc_exit,
             "fd_fdstat_get" => fd_fdstat_get,
+            "path_filestat_get" => path_filestat_get,
+            "fd_fdstat_set_flags" => fd_fdstat_set_flags,
             "random_get" => random_get,
             "fd_seek" => fd_seek,
+            "path_open" => path_open,
             "fd_write" => fd_write,
             "environ_sizes_get" => environ_sizes_get,
             "environ_get" => environ_get,
-        }
+        },
     };
 
     // let res_import = import_object.chain_back(custom_imports);
     let res_import = custom_imports;
-    Instance::new(&module, &res_import).unwrap()
+    (Instance::new(&module, &res_import).unwrap(), memory)
 }
 
 impl Barretenberg {
     pub fn new() -> Barretenberg {
-        Barretenberg {
-            instance: instance_load(),
-        }
+        let (instance, memory) = instance_load();
+        Barretenberg { memory, instance }
     }
 }
+#[allow(unused_variables)]
+fn logstr(ptr: i32) {
+    // println!("[No logs]")
+    // let memory = my_env.memory.get_ref().unwrap();
 
-fn logstr(my_env: &Env, ptr: i32) {
-    use std::cell::Cell;
-    let memory = my_env.memory.get_ref().unwrap();
+    // let mut ptr_end = 0;
+    // let byte_view = memory.uint8view();
 
-    let mut ptr_end = 0;
-    for (i, cell) in memory.view::<u8>()[ptr as usize..].iter().enumerate() {
-        if cell.get() != 0 {
-            ptr_end = i;
-        } else {
-            break;
-        }
-    }
+    // for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+    //     if cell != 0 {
+    //         ptr_end = i;
+    //     } else {
+    //         break;
+    //     }
+    // }
 
-    let str_vec: Vec<_> = memory.view()[ptr as usize..=(ptr + ptr_end as i32) as usize]
-        .iter()
-        .map(|cell: &Cell<u8>| cell.get())
-        .collect();
+    // let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
+    //     .into_iter()
+    //     .cloned()
+    //     .collect();
 
-    // Convert the subslice to a `&str`.
-    let string = std::str::from_utf8(&str_vec).unwrap();
+    // // Convert the subslice to a `&str`.
+    // let string = std::str::from_utf8(&str_vec).unwrap();
 
-    // Print it!
-    println!("[WASM LOG] {}", string);
-}
-
-#[derive(Clone)]
-pub struct Env {
-    memory: wasmer::LazyInit<wasmer::Memory>,
-}
-
-impl wasmer::WasmerEnv for Env {
-    fn init_with_instance(&mut self, instance: &Instance) -> Result<(), wasmer::HostEnvInitError> {
-        let memory = instance.exports.get_memory("memory").unwrap();
-        self.memory.initialize(memory.clone());
-        Ok(())
-    }
+    // // Print it!
+    // println!("[WASM LOG] {}", string);
 }
 
 #[test]
