@@ -69,7 +69,7 @@ impl ProofSystemCompiler for Plonk {
         let witness_file_path = tempfile_to_path(&witness_file);
 
         let result = create_proof_using_cli(circuit_file_path, witness_file_path);
-        witness_file.close();   //ensure the witness file is deleted, or error else.
+        witness_file.close().unwrap();   //ensure the witness file is deleted, or error else.
 
         result
     }
