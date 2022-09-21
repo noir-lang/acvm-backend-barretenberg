@@ -10,6 +10,16 @@ use std::collections::BTreeMap;
 use std::io::Write;
 use tempfile::NamedTempFile;
 
+#[cfg(windows)]
+pub const NODE: &'static str = "node.exe";
+#[cfg(windows)]
+pub const NPM: &'static str = "npm.cmd";
+
+#[cfg(not(windows))]
+pub const NODE: &'static str = "node";
+#[cfg(not(windows))]
+pub const NPM: &'static str = "npm";
+
 impl ProofSystemCompiler for Plonk {
     #[cfg(feature = "sys")]
     fn prove_with_meta(
@@ -71,6 +81,8 @@ impl ProofSystemCompiler for Plonk {
         let witness_file_path = tempfile_to_path(&witness_file);
 
         create_proof_using_cli(circuit_file_path, witness_file_path)
+
+        witness_file.close();   //ensure the witness file is deleted, or error else.
     }
 
     #[cfg(feature = "sys")]
@@ -120,7 +132,7 @@ impl ProofSystemCompiler for Plonk {
 }
 
 fn get_path_to_cli() -> String {
-    let output = std::process::Command::new("npm")
+    let output = std::process::Command::new(NPM)
         .arg("root")
         .arg("-g")
         .stdout(std::process::Stdio::piped())
@@ -141,7 +153,7 @@ fn create_proof_using_cli(path_to_acir: String, path_to_witness: String) -> Vec<
     let path_to_save_proof = tempfile_to_path(&proof_file);
 
     let path_to_cli = get_path_to_cli();
-    let output = std::process::Command::new("node")
+    let output = std::process::Command::new(NODE)
         .arg(path_to_cli)
         .arg("createProofWithSerialised")
         .arg(path_to_acir)
@@ -166,7 +178,7 @@ fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
     let path_to_output = tempfile_to_path(&output_file);
 
     let path_to_cli = get_path_to_cli();
-    let output = std::process::Command::new("node")
+    let output = std::process::Command::new(NODE)
         .arg(path_to_cli)
         .arg("verifyProof")
         .arg(path_to_acir)

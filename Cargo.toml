@@ -39,7 +39,7 @@ getrandom = { version = "0.2.4", features = ["js"], optional = true }
 tempfile = "3.2.0"
 
 [features]
-default = ["sys"]
+default = ["wasm-base"]
 wasm = [
     "acvm/bn254",
     "wasmer/js-default",

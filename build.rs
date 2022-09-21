@@ -1,7 +1,13 @@
 use std::process::Command;
 
+#[cfg(windows)]
+pub const NPM: &'static str = "npm.cmd";
+
+#[cfg(not(windows))]
+pub const NPM: &'static str = "npm";
+
 fn main() {
-    Command::new("npm")
+    Command::new(NPM)
         .arg("install")
         .arg("-g")
         .arg("@noir-lang/noir-cli")
