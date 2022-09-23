@@ -18,6 +18,11 @@ export function serialise_acir_to_barrtenberg_circuit(acir: any): Uint8Array;
 */
 export function packed_witness_to_witness(acir: any, witness_arr: Uint8Array): Uint8Array;
 /**
+* @param {string} vk_method
+* @returns {string}
+*/
+export function eth_contract_from_cs(vk_method: string): string;
+/**
 * @param {(string)[]} pub_inputs_js_string
 * @returns {Uint8Array}
 */

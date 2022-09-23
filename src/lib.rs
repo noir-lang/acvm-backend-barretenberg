@@ -106,6 +106,12 @@ pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8>
 
 #[cfg(feature = "wasm")]
 #[wasm_bindgen]
+pub fn eth_contract_from_cs(vk_method: String) -> String {
+    crate::contract::turbo_verifier::create(&vk_method)
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
 pub fn serialise_public_inputs(pub_inputs_js_string: Vec<js_sys::JsString>) -> Vec<u8> {
     console_error_panic_hook::set_once();
 

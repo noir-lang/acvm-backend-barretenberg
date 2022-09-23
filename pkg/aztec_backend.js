@@ -226,7 +226,7 @@ function addBorrowedObject(obj) {
 function __wbg_adapter_26(arg0, arg1, arg2) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h8d9baaadcba10004(retptr, arg0, arg1, addBorrowedObject(arg2));
+        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hbbd04d0dfdb750a6(retptr, arg0, arg1, addBorrowedObject(arg2));
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var r2 = getInt32Memory0()[retptr / 4 + 2];
@@ -240,10 +240,10 @@ function __wbg_adapter_26(arg0, arg1, arg2) {
     }
 }
 
-function __wbg_adapter_31(arg0, arg1, arg2) {
+function __wbg_adapter_29(arg0, arg1, arg2) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h0803f713095b8f84(retptr, arg0, arg1, addBorrowedObject(arg2));
+        wasm._dyn_core__ops__function__FnMut___A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h330f0e1d9e02de4e(retptr, arg0, arg1, addBorrowedObject(arg2));
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         if (r1) {
@@ -344,6 +344,25 @@ module.exports.packed_witness_to_witness = function(acir, witness_arr) {
 };
 
 /**
+* @param {string} vk_method
+* @returns {string}
+*/
+module.exports.eth_contract_from_cs = function(vk_method) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(vk_method, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.eth_contract_from_cs(retptr, ptr0, len0);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        return getStringFromWasm0(r0, r1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(r0, r1);
+    }
+};
+
+/**
 * @param {(string)[]} pub_inputs_js_string
 * @returns {Uint8Array}
 */
@@ -406,6 +425,11 @@ module.exports.__wbindgen_number_get = function(arg0, arg1) {
     getInt32Memory0()[arg0 / 4 + 0] = !isLikeNone(ret);
 };
 
+module.exports.__wbindgen_number_new = function(arg0) {
+    const ret = arg0;
+    return addHeapObject(ret);
+};
+
 module.exports.__wbindgen_json_serialize = function(arg0, arg1) {
     const obj = getObject(arg1);
     const ret = JSON.stringify(obj === undefined ? null : obj);
@@ -413,11 +437,6 @@ module.exports.__wbindgen_json_serialize = function(arg0, arg1) {
     const len0 = WASM_VECTOR_LEN;
     getInt32Memory0()[arg0 / 4 + 1] = len0;
     getInt32Memory0()[arg0 / 4 + 0] = ptr0;
-};
-
-module.exports.__wbindgen_number_new = function(arg0) {
-    const ret = arg0;
-    return addHeapObject(ret);
 };
 
 module.exports.__wbg_new_693216e109162396 = function() {
@@ -639,18 +658,18 @@ module.exports.__wbindgen_function_table = function() {
     return addHeapObject(ret);
 };
 
-module.exports.__wbindgen_closure_wrapper173 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 48, __wbg_adapter_26);
-    return addHeapObject(ret);
-};
-
 module.exports.__wbindgen_closure_wrapper175 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 48, __wbg_adapter_26);
+    const ret = makeMutClosure(arg0, arg1, 33, __wbg_adapter_26);
     return addHeapObject(ret);
 };
 
 module.exports.__wbindgen_closure_wrapper177 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 48, __wbg_adapter_31);
+    const ret = makeMutClosure(arg0, arg1, 33, __wbg_adapter_29);
+    return addHeapObject(ret);
+};
+
+module.exports.__wbindgen_closure_wrapper179 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 33, __wbg_adapter_26);
     return addHeapObject(ret);
 };
 
