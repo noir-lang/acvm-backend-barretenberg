@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 
 acvm = { git = "https://github.com/noir-lang/noir" }
-barretenberg_wrapper = { optional = true, git = "https://github.com/noir-lang/aztec-connect", rev = "558243b7bf4f9a128b8345c5a757f42b49d70c43" }
+barretenberg_wrapper = { optional = true, git = "https://github.com/noir-lang/aztec-connect", rev = "7be4d4850e855bd7f6615e3e9a5560e7b894132a" }
 
 sha2 = "0.9.3"
 blake2 = "0.9.1"
