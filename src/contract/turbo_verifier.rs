@@ -27,10 +27,11 @@ fn index(captures: &Captures) -> usize {
 }
 
 const TURBOVERIFIER: &str = r#"
+
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright 2020 Spilsbury Holdings Ltd
 
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity >=0.6.0;
 pragma experimental ABIEncoderV2;
 
 /**
@@ -53,36 +54,49 @@ pragma experimental ABIEncoderV2;
 contract TurboVerifier {
     using Bn254Crypto for Types.G1Point;
     using Bn254Crypto for Types.G2Point;
-    using TranscriptLibrary for TranscriptLibrary.Transcript;
+    using Transcript for Transcript.TranscriptData;
 
-    // The first parameter is the proof and the second parameter is the public inputs
-    function verify(bytes calldata, bytes calldata) public view returns (bool) {
-        
+    /**
+        Calldata formatting:
+
+        0x00 - 0x04 : function signature
+        0x04 - 0x24 : proof_data pointer (location in calldata that contains the proof_data array)
+        0x44 - 0x64 : length of `proof_data` array
+        0x64 - ???? : array containing our zk proof data
+    **/
+    /**
+     * @dev Verify a Plonk proof
+     * @param - array of serialized proof data
+     */
+    function verify(bytes calldata)
+        external
+        view
+        returns (bool result)
+    {
+
         Types.VerificationKey memory vk = get_verification_key();
         uint256 num_public_inputs = vk.num_inputs;
 
         // parse the input calldata and construct a Proof object
-        Types.Proof memory decoded_proof = deserialize_proof(num_public_inputs, vk);
-
-        TranscriptLibrary.Transcript memory transcript = TranscriptLibrary.new_transcript(
-            vk.circuit_size,
-            vk.num_inputs
+        Types.Proof memory decoded_proof = deserialize_proof(
+            num_public_inputs,
+            vk
         );
+
+        Transcript.TranscriptData memory transcript;
+        transcript.generate_initial_challenge(vk.circuit_size, vk.num_inputs);
 
         // reconstruct the beta, gamma, alpha and zeta challenges
         Types.ChallengeTranscript memory challenges;
-        transcript.get_beta_gamma_challenges(challenges, vk.num_inputs);
-        transcript.update_with_g1(decoded_proof.Z);
-        challenges.alpha = transcript.get_challenge();
-        challenges.alpha_base = challenges.alpha;
-        transcript.update_with_four_g1_elements(
+        transcript.generate_beta_gamma_challenges(challenges, vk.num_inputs);
+        transcript.generate_alpha_challenge(challenges, decoded_proof.Z);
+        transcript.generate_zeta_challenge(
+            challenges,
             decoded_proof.T1,
             decoded_proof.T2,
             decoded_proof.T3,
             decoded_proof.T4
         );
-        challenges.zeta = transcript.get_challenge();
-
 
         /**
          * Compute all inverses that will be needed throughout the program here.
@@ -91,45 +105,56 @@ contract TurboVerifier {
          * which allows all inversions to be replaced with one inversion operation, at the expense of a few
          * additional multiplications
          **/
-        (uint256 quotient_eval, uint256 L1) = evalaute_field_operations(decoded_proof, vk, challenges);
-        decoded_proof.quotient_polynomial_eval = quotient_eval;
+        (uint256 r_0, uint256 L1) = evalaute_field_operations(
+            decoded_proof,
+            vk,
+            challenges
+        );
+        decoded_proof.r_0 = r_0;
 
         // reconstruct the nu and u challenges
-        transcript.get_nu_challenges(decoded_proof.quotient_polynomial_eval, challenges);
-        transcript.update_with_g1(decoded_proof.PI_Z);
-        transcript.update_with_g1(decoded_proof.PI_Z_OMEGA);
-        challenges.u = transcript.get_challenge();
+        // Need to change nu and u according to the simplified Plonk
+        transcript.generate_nu_challenges(challenges, vk.num_inputs);
+
+        transcript.generate_separator_challenge(
+            challenges,
+            decoded_proof.PI_Z,
+            decoded_proof.PI_Z_OMEGA
+        );
 
         //reset 'alpha base'
         challenges.alpha_base = challenges.alpha;
+        // Computes step 9 -> [D]_1
+        Types.G1Point memory linearised_contribution = PolynomialEval
+            .compute_linearised_opening_terms(
+                challenges,
+                L1,
+                vk,
+                decoded_proof
+            );
+        // Computes step 10 -> [F]_1
+        Types.G1Point memory batch_opening_commitment = PolynomialEval
+            .compute_batch_opening_commitment(
+                challenges,
+                vk,
+                linearised_contribution,
+                decoded_proof
+            );
 
-        Types.G1Point memory partial_opening_commitment = PolynomialEval.compute_linearised_opening_terms(
-            challenges,
-            L1,
-            vk,
-            decoded_proof
-        );
+        uint256 batch_evaluation_g1_scalar = PolynomialEval
+            .compute_batch_evaluation_scalar_multiplier(
+                decoded_proof,
+                challenges
+            );
 
-        Types.G1Point memory batch_opening_commitment = PolynomialEval.compute_batch_opening_commitment(
-            challenges,
-            vk,
-            partial_opening_commitment,
-            decoded_proof
-        );
-
-        uint256 batch_evaluation_g1_scalar = PolynomialEval.compute_batch_evaluation_scalar_multiplier(
-            decoded_proof,
-            challenges
-        );
-
-        bool result = perform_pairing(
+        result = perform_pairing(
             batch_opening_commitment,
             batch_evaluation_g1_scalar,
             challenges,
             decoded_proof,
             vk
         );
-        return result;
+        require(result, "Proof failed");
     }
 
     $0
@@ -164,10 +189,10 @@ contract TurboVerifier {
         uint256 l_start;
         uint256 l_end;
         {
-            (uint256 public_input_numerator, uint256 public_input_denominator) = PolynomialEval.compute_public_input_delta(
-                challenges,
-                vk
-            );
+            (
+                uint256 public_input_numerator,
+                uint256 public_input_denominator
+            ) = PolynomialEval.compute_public_input_delta(challenges, vk);
 
             (
                 uint256 vanishing_numerator,
@@ -175,10 +200,17 @@ contract TurboVerifier {
                 uint256 lagrange_numerator,
                 uint256 l_start_denominator,
                 uint256 l_end_denominator
-            ) = PolynomialEval.compute_lagrange_and_vanishing_fractions(vk, challenges.zeta);
+            ) = PolynomialEval.compute_lagrange_and_vanishing_fractions(
+                    vk,
+                    challenges.zeta
+                );
 
-
-            (zero_polynomial_eval, public_input_delta, l_start, l_end) = PolynomialEval.compute_batch_inversions(
+            (
+                zero_polynomial_eval,
+                public_input_delta,
+                l_start,
+                l_end
+            ) = PolynomialEval.compute_batch_inversions(
                 public_input_numerator,
                 public_input_denominator,
                 vanishing_numerator,
@@ -187,9 +219,10 @@ contract TurboVerifier {
                 l_start_denominator,
                 l_end_denominator
             );
+            vk.zero_polynomial_eval = zero_polynomial_eval;
         }
 
-        uint256 quotient_eval = PolynomialEval.compute_quotient_polynomial(
+        uint256 r_0 = PolynomialEval.compute_linear_polynomial_constant(
             zero_polynomial_eval,
             public_input_delta,
             challenges,
@@ -198,9 +231,8 @@ contract TurboVerifier {
             decoded_proof
         );
 
-        return (quotient_eval, l_start);
+        return (r_0, l_start);
     }
-
 
     /**
      * @dev Perform the pairing check
@@ -219,16 +251,15 @@ contract TurboVerifier {
         Types.Proof memory decoded_proof,
         Types.VerificationKey memory vk
     ) internal view returns (bool) {
-
         uint256 u = challenges.u;
         bool success;
         uint256 p = Bn254Crypto.r_mod;
-        Types.G1Point memory rhs;     
+        Types.G1Point memory rhs;
         Types.G1Point memory PI_Z_OMEGA = decoded_proof.PI_Z_OMEGA;
         Types.G1Point memory PI_Z = decoded_proof.PI_Z;
         PI_Z.validateG1Point();
         PI_Z_OMEGA.validateG1Point();
-    
+
         // rhs = zeta.[PI_Z] + u.zeta.omega.[PI_Z_OMEGA] + [batch_opening_commitment] - batch_evaluation_g1_scalar.[1]
         // scope this block to prevent stack depth errors
         {
@@ -244,34 +275,73 @@ contract TurboVerifier {
 
                 // set accumulator = batch_opening_commitment
                 mstore(mPtr, mload(batch_opening_commitment))
-                mstore(add(mPtr, 0x20), mload(add(batch_opening_commitment, 0x20)))
+                mstore(
+                    add(mPtr, 0x20),
+                    mload(add(batch_opening_commitment, 0x20))
+                )
 
                 // compute zeta.[PI_Z] and add into accumulator
                 mstore(add(mPtr, 0x40), mload(PI_Z))
                 mstore(add(mPtr, 0x60), mload(add(PI_Z, 0x20)))
                 mstore(add(mPtr, 0x80), zeta)
-                success := staticcall(gas(), 7, add(mPtr, 0x40), 0x60, add(mPtr, 0x40), 0x40)
-                success := and(success, staticcall(gas(), 6, mPtr, 0x80, mPtr, 0x40))
+                success := staticcall(
+                    gas(),
+                    7,
+                    add(mPtr, 0x40),
+                    0x60,
+                    add(mPtr, 0x40),
+                    0x40
+                )
+                success := and(
+                    success,
+                    staticcall(gas(), 6, mPtr, 0x80, mPtr, 0x40)
+                )
 
                 // compute u.zeta.omega.[PI_Z_OMEGA] and add into accumulator
                 mstore(add(mPtr, 0x40), mload(PI_Z_OMEGA))
                 mstore(add(mPtr, 0x60), mload(add(PI_Z_OMEGA, 0x20)))
                 mstore(add(mPtr, 0x80), pi_z_omega_scalar)
-                success := and(success, staticcall(gas(), 7, add(mPtr, 0x40), 0x60, add(mPtr, 0x40), 0x40))
-                success := and(success, staticcall(gas(), 6, mPtr, 0x80, mPtr, 0x40))
+                success := and(
+                    success,
+                    staticcall(
+                        gas(),
+                        7,
+                        add(mPtr, 0x40),
+                        0x60,
+                        add(mPtr, 0x40),
+                        0x40
+                    )
+                )
+                success := and(
+                    success,
+                    staticcall(gas(), 6, mPtr, 0x80, mPtr, 0x40)
+                )
 
                 // compute -batch_evaluation_g1_scalar.[1]
                 mstore(add(mPtr, 0x40), 0x01) // hardcoded generator point (1, 2)
                 mstore(add(mPtr, 0x60), 0x02)
                 mstore(add(mPtr, 0x80), batch_evaluation_g1_scalar)
-                success := and(success, staticcall(gas(), 7, add(mPtr, 0x40), 0x60, add(mPtr, 0x40), 0x40))
+                success := and(
+                    success,
+                    staticcall(
+                        gas(),
+                        7,
+                        add(mPtr, 0x40),
+                        0x60,
+                        add(mPtr, 0x40),
+                        0x40
+                    )
+                )
 
                 // add -batch_evaluation_g1_scalar.[1] and the accumulator point, write result into rhs
-                success := and(success, staticcall(gas(), 6, mPtr, 0x80, rhs, 0x40))
+                success := and(
+                    success,
+                    staticcall(gas(), 6, mPtr, 0x80, rhs, 0x40)
+                )
             }
         }
 
-        Types.G1Point memory lhs;   
+        Types.G1Point memory lhs;
         assembly {
             // store accumulator point at mptr
             let mPtr := mload(0x40)
@@ -284,8 +354,18 @@ contract TurboVerifier {
             mstore(add(mPtr, 0x40), mload(PI_Z_OMEGA))
             mstore(add(mPtr, 0x60), mload(add(PI_Z_OMEGA, 0x20)))
             mstore(add(mPtr, 0x80), u)
-            success := and(success, staticcall(gas(), 7, add(mPtr, 0x40), 0x60, add(mPtr, 0x40), 0x40))
-            
+            success := and(
+                success,
+                staticcall(
+                    gas(),
+                    7,
+                    add(mPtr, 0x40),
+                    0x60,
+                    add(mPtr, 0x40),
+                    0x40
+                )
+            )
+
             // add [PI_Z] + u.[PI_Z_OMEGA] and write result into lhs
             success := and(success, staticcall(gas(), 6, mPtr, 0x80, lhs, 0x40))
         }
@@ -296,8 +376,7 @@ contract TurboVerifier {
             mstore(add(lhs, 0x20), sub(q, mload(add(lhs, 0x20))))
         }
 
-        if (vk.contains_recursive_proof)
-        {
+        if (vk.contains_recursive_proof) {
             // If the proof itself contains an accumulated proof,
             // we will have extracted two G1 elements `recursive_P1`, `recursive_p2` from the public inputs
 
@@ -321,22 +400,34 @@ contract TurboVerifier {
                 mstore(mPtr, mload(recursive_P1))
                 mstore(add(mPtr, 0x20), mload(add(recursive_P1, 0x20)))
                 mstore(add(mPtr, 0x40), mulmod(u, u, p)) // separator_challenge = u * u
-                success := and(success, staticcall(gas(), 7, mPtr, 0x60, add(mPtr, 0x60), 0x40))
+                success := and(
+                    success,
+                    staticcall(gas(), 7, mPtr, 0x60, add(mPtr, 0x60), 0x40)
+                )
 
                 // compute u.u.[recursive_P2] (u*u is still in memory at (mPtr + 0x40), no need to re-write it)
                 mstore(mPtr, mload(recursive_P2))
                 mstore(add(mPtr, 0x20), mload(add(recursive_P2, 0x20)))
-                success := and(success, staticcall(gas(), 7, mPtr, 0x60, mPtr, 0x40))
+                success := and(
+                    success,
+                    staticcall(gas(), 7, mPtr, 0x60, mPtr, 0x40)
+                )
 
                 // compute u.u.[recursiveP2] + rhs and write into rhs
                 mstore(add(mPtr, 0xa0), mload(rhs))
                 mstore(add(mPtr, 0xc0), mload(add(rhs, 0x20)))
-                success := and(success, staticcall(gas(), 6, add(mPtr, 0x60), 0x80, rhs, 0x40))
+                success := and(
+                    success,
+                    staticcall(gas(), 6, add(mPtr, 0x60), 0x80, rhs, 0x40)
+                )
 
                 // compute u.u.[recursiveP1] + lhs and write into lhs
                 mstore(add(mPtr, 0x40), mload(lhs))
                 mstore(add(mPtr, 0x60), mload(add(lhs, 0x20)))
-                success := and(success, staticcall(gas(), 6, mPtr, 0x80, lhs, 0x40))
+                success := and(
+                    success,
+                    staticcall(gas(), 6, mPtr, 0x80, lhs, 0x40)
+                )
             }
         }
 
@@ -350,11 +441,10 @@ contract TurboVerifier {
      * @param num_public_inputs - number of public inputs in the proof. Taken from verification key
      * @return proof - proof deserialized into the proof struct
      */
-    function deserialize_proof(uint256 num_public_inputs, Types.VerificationKey memory vk)
-        internal
-        pure
-        returns (Types.Proof memory proof)
-    {
+    function deserialize_proof(
+        uint256 num_public_inputs,
+        Types.VerificationKey memory vk
+    ) internal pure returns (Types.Proof memory proof) {
         uint256 p = Bn254Crypto.r_mod;
         uint256 q = Bn254Crypto.p_mod;
         uint256 data_ptr;
@@ -372,7 +462,7 @@ contract TurboVerifier {
             uint256 x1 = 0;
             uint256 y1 = 0;
             assembly {
-                index_counter := add(index_counter, add(calldataload(0x24), 0x04))
+                index_counter := add(index_counter, data_ptr)
                 x0 := calldataload(index_counter)
                 x0 := add(x0, shl(68, calldataload(add(index_counter, 0x20))))
                 x0 := add(x0, shl(136, calldataload(add(index_counter, 0x40))))
@@ -395,88 +485,198 @@ contract TurboVerifier {
             proof.recursive_P2 = Bn254Crypto.new_g1(x1, y1);
         }
 
-        assembly {  
+        assembly {
+            let public_input_byte_length := mul(num_public_inputs, 0x20)
+            data_ptr := add(data_ptr, public_input_byte_length)
+
             // proof.W1
             mstore(mload(proof_ptr), mod(calldataload(add(data_ptr, 0x20)), q))
             mstore(add(mload(proof_ptr), 0x20), mod(calldataload(data_ptr), q))
 
             // proof.W2
-            mstore(mload(add(proof_ptr, 0x20)), mod(calldataload(add(data_ptr, 0x60)), q))
-            mstore(add(mload(add(proof_ptr, 0x20)), 0x20), mod(calldataload(add(data_ptr, 0x40)), q))
- 
+            mstore(
+                mload(add(proof_ptr, 0x20)),
+                mod(calldataload(add(data_ptr, 0x60)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x20)), 0x20),
+                mod(calldataload(add(data_ptr, 0x40)), q)
+            )
+
             // proof.W3
-            mstore(mload(add(proof_ptr, 0x40)), mod(calldataload(add(data_ptr, 0xa0)), q))
-            mstore(add(mload(add(proof_ptr, 0x40)), 0x20), mod(calldataload(add(data_ptr, 0x80)), q))
+            mstore(
+                mload(add(proof_ptr, 0x40)),
+                mod(calldataload(add(data_ptr, 0xa0)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x40)), 0x20),
+                mod(calldataload(add(data_ptr, 0x80)), q)
+            )
 
             // proof.W4
-            mstore(mload(add(proof_ptr, 0x60)), mod(calldataload(add(data_ptr, 0xe0)), q))
-            mstore(add(mload(add(proof_ptr, 0x60)), 0x20), mod(calldataload(add(data_ptr, 0xc0)), q))
-  
+            mstore(
+                mload(add(proof_ptr, 0x60)),
+                mod(calldataload(add(data_ptr, 0xe0)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x60)), 0x20),
+                mod(calldataload(add(data_ptr, 0xc0)), q)
+            )
+
             // proof.Z
-            mstore(mload(add(proof_ptr, 0x80)), mod(calldataload(add(data_ptr, 0x120)), q))
-            mstore(add(mload(add(proof_ptr, 0x80)), 0x20), mod(calldataload(add(data_ptr, 0x100)), q))
-  
+            mstore(
+                mload(add(proof_ptr, 0x80)),
+                mod(calldataload(add(data_ptr, 0x120)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x80)), 0x20),
+                mod(calldataload(add(data_ptr, 0x100)), q)
+            )
+
             // proof.T1
-            mstore(mload(add(proof_ptr, 0xa0)), mod(calldataload(add(data_ptr, 0x160)), q))
-            mstore(add(mload(add(proof_ptr, 0xa0)), 0x20), mod(calldataload(add(data_ptr, 0x140)), q))
+            mstore(
+                mload(add(proof_ptr, 0xa0)),
+                mod(calldataload(add(data_ptr, 0x160)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0xa0)), 0x20),
+                mod(calldataload(add(data_ptr, 0x140)), q)
+            )
 
             // proof.T2
-            mstore(mload(add(proof_ptr, 0xc0)), mod(calldataload(add(data_ptr, 0x1a0)), q))
-            mstore(add(mload(add(proof_ptr, 0xc0)), 0x20), mod(calldataload(add(data_ptr, 0x180)), q))
+            mstore(
+                mload(add(proof_ptr, 0xc0)),
+                mod(calldataload(add(data_ptr, 0x1a0)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0xc0)), 0x20),
+                mod(calldataload(add(data_ptr, 0x180)), q)
+            )
 
             // proof.T3
-            mstore(mload(add(proof_ptr, 0xe0)), mod(calldataload(add(data_ptr, 0x1e0)), q))
-            mstore(add(mload(add(proof_ptr, 0xe0)), 0x20), mod(calldataload(add(data_ptr, 0x1c0)), q))
+            mstore(
+                mload(add(proof_ptr, 0xe0)),
+                mod(calldataload(add(data_ptr, 0x1e0)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0xe0)), 0x20),
+                mod(calldataload(add(data_ptr, 0x1c0)), q)
+            )
 
             // proof.T4
-            mstore(mload(add(proof_ptr, 0x100)), mod(calldataload(add(data_ptr, 0x220)), q))
-            mstore(add(mload(add(proof_ptr, 0x100)), 0x20), mod(calldataload(add(data_ptr, 0x200)), q))
-  
+            mstore(
+                mload(add(proof_ptr, 0x100)),
+                mod(calldataload(add(data_ptr, 0x220)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x100)), 0x20),
+                mod(calldataload(add(data_ptr, 0x200)), q)
+            )
+
             // proof.w1 to proof.w4
-            mstore(add(proof_ptr, 0x120), mod(calldataload(add(data_ptr, 0x240)), p))
-            mstore(add(proof_ptr, 0x140), mod(calldataload(add(data_ptr, 0x260)), p))
-            mstore(add(proof_ptr, 0x160), mod(calldataload(add(data_ptr, 0x280)), p))
-            mstore(add(proof_ptr, 0x180), mod(calldataload(add(data_ptr, 0x2a0)), p))
- 
+            mstore(
+                add(proof_ptr, 0x120),
+                mod(calldataload(add(data_ptr, 0x240)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x140),
+                mod(calldataload(add(data_ptr, 0x260)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x160),
+                mod(calldataload(add(data_ptr, 0x280)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x180),
+                mod(calldataload(add(data_ptr, 0x2a0)), p)
+            )
+
             // proof.sigma1
-            mstore(add(proof_ptr, 0x1a0), mod(calldataload(add(data_ptr, 0x2c0)), p))
+            mstore(
+                add(proof_ptr, 0x1a0),
+                mod(calldataload(add(data_ptr, 0x2c0)), p)
+            )
 
             // proof.sigma2
-            mstore(add(proof_ptr, 0x1c0), mod(calldataload(add(data_ptr, 0x2e0)), p))
+            mstore(
+                add(proof_ptr, 0x1c0),
+                mod(calldataload(add(data_ptr, 0x2e0)), p)
+            )
 
             // proof.sigma3
-            mstore(add(proof_ptr, 0x1e0), mod(calldataload(add(data_ptr, 0x300)), p))
+            mstore(
+                add(proof_ptr, 0x1e0),
+                mod(calldataload(add(data_ptr, 0x300)), p)
+            )
 
             // proof.q_arith
-            mstore(add(proof_ptr, 0x200), mod(calldataload(add(data_ptr, 0x320)), p))
+            mstore(
+                add(proof_ptr, 0x200),
+                mod(calldataload(add(data_ptr, 0x320)), p)
+            )
 
             // proof.q_ecc
-            mstore(add(proof_ptr, 0x220), mod(calldataload(add(data_ptr, 0x340)), p))
+            mstore(
+                add(proof_ptr, 0x220),
+                mod(calldataload(add(data_ptr, 0x340)), p)
+            )
 
             // proof.q_c
-            mstore(add(proof_ptr, 0x240), mod(calldataload(add(data_ptr, 0x360)), p))
- 
+            mstore(
+                add(proof_ptr, 0x240),
+                mod(calldataload(add(data_ptr, 0x360)), p)
+            )
+
             // proof.linearization_polynomial
-            mstore(add(proof_ptr, 0x260), mod(calldataload(add(data_ptr, 0x380)), p))
+            // mstore(add(proof_ptr, 0x260), mod(calldataload(add(data_ptr, 0x380)), p))
 
             // proof.grand_product_at_z_omega
-            mstore(add(proof_ptr, 0x280), mod(calldataload(add(data_ptr, 0x3a0)), p))
+            mstore(
+                add(proof_ptr, 0x260),
+                mod(calldataload(add(data_ptr, 0x380)), p)
+            )
 
             // proof.w1_omega to proof.w4_omega
-            mstore(add(proof_ptr, 0x2a0), mod(calldataload(add(data_ptr, 0x3c0)), p))
-            mstore(add(proof_ptr, 0x2c0), mod(calldataload(add(data_ptr, 0x3e0)), p))
-            mstore(add(proof_ptr, 0x2e0), mod(calldataload(add(data_ptr, 0x400)), p))
-            mstore(add(proof_ptr, 0x300), mod(calldataload(add(data_ptr, 0x420)), p))
-  
+            mstore(
+                add(proof_ptr, 0x280),
+                mod(calldataload(add(data_ptr, 0x3a0)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x2a0),
+                mod(calldataload(add(data_ptr, 0x3c0)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x2c0),
+                mod(calldataload(add(data_ptr, 0x3e0)), p)
+            )
+            mstore(
+                add(proof_ptr, 0x2e0),
+                mod(calldataload(add(data_ptr, 0x400)), p)
+            )
+
             // proof.PI_Z
-            mstore(mload(add(proof_ptr, 0x320)), mod(calldataload(add(data_ptr, 0x460)), q))
-            mstore(add(mload(add(proof_ptr, 0x320)), 0x20), mod(calldataload(add(data_ptr, 0x440)), q))
+            //Order of x and y coordinate are reverse in case of serialization
+            mstore(
+                mload(add(proof_ptr, 0x300)),
+                mod(calldataload(add(data_ptr, 0x440)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x300)), 0x20),
+                mod(calldataload(add(data_ptr, 0x420)), q)
+            )
 
             // proof.PI_Z_OMEGA
-            mstore(mload(add(proof_ptr, 0x340)), mod(calldataload(add(data_ptr, 0x4a0)), q))
-            mstore(add(mload(add(proof_ptr, 0x340)), 0x20), mod(calldataload(add(data_ptr, 0x480)), q))
+            mstore(
+                mload(add(proof_ptr, 0x320)),
+                mod(calldataload(add(data_ptr, 0x480)), q)
+            )
+            mstore(
+                add(mload(add(proof_ptr, 0x320)), 0x20),
+                mod(calldataload(add(data_ptr, 0x460)), q)
+            )
         }
     }
 }
+
 
 "#;
