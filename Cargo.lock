@@ -170,7 +170,7 @@ checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
 name = "aztec_backend"
-version = "0.7.0"
+version = "0.9.0"
 dependencies = [
  "acvm",
  "barretenberg_wrapper",
@@ -210,7 +210,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?rev=417dc4e0114c7509a62c177d19edec337b7cde06#417dc4e0114c7509a62c177d19edec337b7cde06"
+source = "git+https://github.com/noir-lang/aztec-connect?rev=558243b7bf4f9a128b8345c5a757f42b49d70c43#558243b7bf4f9a128b8345c5a757f42b49d70c43"
 dependencies = [
  "bindgen",
  "cmake",

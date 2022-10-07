@@ -47,7 +47,10 @@ impl ProofSystemCompiler for Plonk {
             sorted_witness.push(value);
         }
 
-        composer.create_proof(sorted_witness)
+        remove_public_inputs(
+            circuit.public_inputs.0.len(),
+            composer.create_proof(sorted_witness),
+        )
     }
 
     #[cfg(feature = "wasm-base")]
@@ -68,10 +71,9 @@ impl ProofSystemCompiler for Plonk {
         let circuit_file_path = tempfile_to_path(&circuit_file);
         let witness_file_path = tempfile_to_path(&witness_file);
 
-        let result = create_proof_using_cli(circuit_file_path, witness_file_path);
-        witness_file.close().unwrap();   //ensure the witness file is deleted, or error else.
-
-        result
+        let proof_bytes = create_proof_using_cli(circuit_file_path, witness_file_path);
+        witness_file.close().unwrap(); //ensure the witness file is deleted, or error else.
+        remove_public_inputs(circuit.public_inputs.0.len(), proof_bytes)
     }
 
     #[cfg(feature = "sys")]
@@ -193,4 +195,12 @@ fn verify_proof_using_cli(path_to_acir: String, path_to_proof: String) -> bool {
 #[cfg(feature = "wasm-base")]
 fn tempfile_to_path(file: &NamedTempFile) -> String {
     file.path().as_os_str().to_str().unwrap().to_owned()
+}
+
+fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {
+    // This is only for public inputs and for Barretenberg.
+    // Barretenberg only uses bn254, so each element is 32 bytes.
+    // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
+    let num_bytes_to_remove = 32 * num_pub_inputs;
+    proof[num_bytes_to_remove..].to_vec()
 }
