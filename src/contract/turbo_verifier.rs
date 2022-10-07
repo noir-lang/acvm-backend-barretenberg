@@ -91,7 +91,7 @@ contract TurboVerifier {
          * which allows all inversions to be replaced with one inversion operation, at the expense of a few
          * additional multiplications
          **/
-        (uint256 quotient_eval, uint256 L1) = evalaute_field_operations(decoded_proof, vk, challenges);
+        (uint256 quotient_eval, uint256 L1) = evaluate_field_operations(decoded_proof, vk, challenges);
         decoded_proof.quotient_polynomial_eval = quotient_eval;
 
         // reconstruct the nu and u challenges
@@ -145,7 +145,7 @@ contract TurboVerifier {
      * Specifically, each function call: compute_public_input_delta() etc. at some point needs to invert a
      * value to calculate a denominator in a fraction. Instead of performing this inversion as it is needed, we
      * instead 'save up' the denominator calculations. The inputs to this are returned from the various functions
-     * and then we perform all necessary inversions in one go at the end of `evalaute_field_operations()`. This
+     * and then we perform all necessary inversions in one go at the end of `evaluate_field_operations()`. This
      * gives us the various variables that need to be returned.
      *
      * @param decoded_proof - deserialised proof
@@ -154,7 +154,7 @@ contract TurboVerifier {
      * ChallengeTranscript struct form
      * @return quotient polynomial evaluation (field element) and lagrange 1 evaluation (field element)
      */
-    function evalaute_field_operations(
+    function evaluate_field_operations(
         Types.Proof memory decoded_proof,
         Types.VerificationKey memory vk,
         Types.ChallengeTranscript memory challenges
