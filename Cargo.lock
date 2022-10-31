@@ -175,6 +175,7 @@ dependencies = [
  "acvm",
  "barretenberg_wrapper",
  "blake2",
+ "common",
  "console_error_panic_hook",
  "dirs",
  "downloader",
@@ -210,7 +211,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?rev=558243b7bf4f9a128b8345c5a757f42b49d70c43#558243b7bf4f9a128b8345c5a757f42b49d70c43"
+source = "git+https://github.com/noir-lang/aztec-connect?rev=582b34ea4ec0bb55a1369d8cb8b8ae1e6f009f1a#582b34ea4ec0bb55a1369d8cb8b8ae1e6f009f1a"
 dependencies = [
  "bindgen",
  "cmake",
@@ -386,6 +387,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8ad8cef104ac57b68b89df3208164d228503abbdce70f6880ffa3d970e7443a"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "acvm",
+ "blake2",
+ "dirs",
+ "downloader",
+ "indicatif",
+ "regex",
+ "sled",
 ]
 
 [[package]]

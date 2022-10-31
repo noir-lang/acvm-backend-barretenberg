@@ -1,6 +1,6 @@
 pub mod blake2s;
 pub mod composer;
-mod crs;
+pub use common::crs;
 pub mod pedersen;
 mod pippenger;
 pub mod scalar_mul;

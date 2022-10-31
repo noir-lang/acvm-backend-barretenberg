@@ -1,9 +1,9 @@
-use super::merkle::MerkleTree;
 use crate::Barretenberg;
 use acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
 use acvm::pwg::{self, input_to_value};
 use acvm::FieldElement;
 use blake2::Blake2s;
+use common::merkle::MerkleTree;
 use sha2::Digest;
 use std::collections::BTreeMap;
 
@@ -39,7 +39,8 @@ impl GadgetCaller {
                 let hash_path: Vec<_> = inputs_iter
                     .map(|input| input_to_value(initial_witness, input))
                     .collect();
-                let result = MerkleTree::check_membership(hash_path, root, index, leaf);
+                let result =
+                    common::merkle::check_membership::<Barretenberg>(hash_path, root, index, leaf);
 
                 initial_witness.insert(gadget_call.outputs[0], result);
             }
