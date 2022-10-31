@@ -4,7 +4,10 @@ pub static WASM: &[u8] = include_bytes!("barretenberg.wasm");
 pub mod pedersen;
 pub mod scalar_mul;
 pub mod schnorr;
-
+pub mod blake2s;
+pub mod composer;
+pub mod pippenger;
+pub mod crs;
 use wasmer::{
     imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
 };
