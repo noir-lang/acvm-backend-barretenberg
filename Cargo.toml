@@ -2,8 +2,9 @@
 
 members = [
     "common",
-    "barretenberg_static_lib",
     "barretenberg_js",
     "barretenberg_wasm",
     "aztec_backend_wasm",
 ]
+# This has compilation problems on most platforms
+exclude = ["barretenberg_static_lib"]
