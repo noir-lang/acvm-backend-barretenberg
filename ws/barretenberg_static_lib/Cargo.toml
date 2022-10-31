@@ -1,0 +1,30 @@
+[package]
+name = "barretenberg_static_lib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+acvm = { git = "https://github.com/noir-lang/noir" }
+common = { path = "../common" }
+barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", rev = "582b34ea4ec0bb55a1369d8cb8b8ae1e6f009f1a" }
+
+sha2 = "0.9.3"
+blake2 = "0.9.1"
+sled = "0.34.6"
+
+dirs = "3.0"
+downloader = { version = "0.2.6" }
+console_error_panic_hook = { version = "*" }
+indicatif = "0.15.0"
+regex = "1.4.0"
+
+num-bigint = "0.4"
+num-traits = "0.2.8"
+
+hex = "*"
+
+[features]
+default = ["acvm/bn254"]

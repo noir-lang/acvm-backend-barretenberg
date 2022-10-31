@@ -1,0 +1,9 @@
+[workspace]
+
+members = [
+    "common",
+    "barretenberg_static_lib",
+    "barretenberg_js",
+    "barretenberg_wasm",
+    "aztec_backend_wasm",
+]
