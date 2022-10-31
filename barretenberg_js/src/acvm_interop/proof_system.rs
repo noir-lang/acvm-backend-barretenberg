@@ -2,7 +2,6 @@ use super::Plonk;
 use acvm::acir::{circuit::Circuit, native_types::Witness};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
-use common::barretenberg_structures::Assignments;
 use std::collections::BTreeMap;
 use std::io::Write;
 use tempfile::NamedTempFile;

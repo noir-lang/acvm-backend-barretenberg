@@ -3,10 +3,6 @@ use acvm::FieldElement;
 use acvm::PartialWitnessGenerator;
 use std::collections::BTreeMap;
 
-mod gadget_call;
-pub mod merkle;
-
-use self::gadget_call::GadgetCaller;
 use super::Plonk;
 
 impl PartialWitnessGenerator for Plonk {

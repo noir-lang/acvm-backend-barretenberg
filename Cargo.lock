@@ -186,6 +186,11 @@ dependencies = [
 [[package]]
 name = "barretenberg_js"
 version = "0.1.0"
+dependencies = [
+ "acvm",
+ "common",
+ "tempfile",
+]
 
 [[package]]
 name = "barretenberg_wasm"
