@@ -1,4 +1,3 @@
-#[cfg(feature = "sys")]
 use crate::barretenberg_rs::composer::StandardComposer;
 use acvm::acir::circuit::Circuit;
 

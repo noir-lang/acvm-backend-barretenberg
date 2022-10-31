@@ -197,7 +197,10 @@ name = "barretenberg_wasm"
 version = "0.1.0"
 dependencies = [
  "acvm",
+ "blake2",
  "common",
+ "sha2",
+ "sled",
  "wasmer",
 ]
 

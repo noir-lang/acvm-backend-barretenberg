@@ -10,6 +10,9 @@ wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
 acvm = { git = "https://github.com/noir-lang/noir", features = ["bn254"] }
 
+sha2 = "0.9.3"
+blake2 = "0.9.1"
+sled = "0.34.6"
 
 [features]
 default = [

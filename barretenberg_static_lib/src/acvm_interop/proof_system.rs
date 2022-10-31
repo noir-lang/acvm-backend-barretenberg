@@ -1,25 +1,10 @@
 use super::Plonk;
-#[cfg(feature = "sys")]
 use crate::barretenberg_rs::composer::StandardComposer;
 use crate::barretenberg_structures::Assignments;
 use acvm::acir::{circuit::Circuit, native_types::Witness};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
-#[cfg(feature = "wasm-base")]
-use std::io::Write;
-#[cfg(feature = "wasm-base")]
-use tempfile::NamedTempFile;
-
-#[cfg(windows)]
-pub const NODE: &'static str = "node.exe";
-#[cfg(windows)]
-pub const NPM: &'static str = "npm.cmd";
-
-#[cfg(not(windows))]
-pub const NODE: &'static str = "node";
-#[cfg(not(windows))]
-pub const NPM: &'static str = "npm";
 
 impl ProofSystemCompiler for Plonk {
     fn prove_with_meta(
@@ -68,20 +53,4 @@ impl ProofSystemCompiler for Plonk {
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
-}
-
-#[cfg(feature = "wasm-base")]
-fn get_path_to_cli() -> String {
-    let output = std::process::Command::new(NPM)
-        .arg("root")
-        .arg("-g")
-        .stdout(std::process::Stdio::piped())
-        .output()
-        .expect("Failed to execute command to fetch root directory");
-
-    let path_to_root_dir = String::from_utf8(output.stdout).unwrap();
-    let path_to_root_dir = path_to_root_dir.trim().to_owned();
-    let mut path_to_indexjs = path_to_root_dir;
-    path_to_indexjs.push_str("/@noir-lang/noir-cli/dest/index.js");
-    path_to_indexjs
 }
