@@ -1,6 +1,7 @@
 ///  Import the Barretenberg WASM file
 pub static WASM: &[u8] = include_bytes!("barretenberg.wasm");
 
+pub mod acvm_interop;
 pub mod blake2s;
 pub mod composer;
 pub mod pedersen;
