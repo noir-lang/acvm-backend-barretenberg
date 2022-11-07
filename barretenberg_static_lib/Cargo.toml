@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 
-acvm = { git = "https://github.com/noir-lang/noir", features = ["bn254"] }
 common = { path = "../common" }
 barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", rev = "582b34ea4ec0bb55a1369d8cb8b8ae1e6f009f1a" }
 

@@ -1,8 +1,8 @@
 use super::Plonk;
 use crate::composer::{remove_public_inputs, StandardComposer};
-use acvm::acir::{circuit::Circuit, native_types::Witness};
-use acvm::FieldElement;
-use acvm::{Language, ProofSystemCompiler};
+use common::acvm::acir::{circuit::Circuit, native_types::Witness};
+use common::acvm::FieldElement;
+use common::acvm::{Language, ProofSystemCompiler};
 use common::barretenberg_structures::Assignments;
 use common::serialiser::serialise_circuit;
 use std::collections::BTreeMap;

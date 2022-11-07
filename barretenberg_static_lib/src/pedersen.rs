@@ -1,4 +1,4 @@
-use acvm::FieldElement;
+use common::acvm::FieldElement;
 use std::convert::TryInto;
 
 use super::field_to_array;

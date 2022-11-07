@@ -1,4 +1,4 @@
-use acvm::FieldElement;
+use common::acvm::FieldElement;
 use wasmer::Value;
 
 use common::barretenberg_structures::Assignments;

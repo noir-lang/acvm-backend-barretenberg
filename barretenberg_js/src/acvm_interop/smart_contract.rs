@@ -1,6 +1,6 @@
-use acvm::acir::circuit::Circuit;
+use common::acvm::acir::circuit::Circuit;
 
-use acvm::SmartContract;
+use common::acvm::SmartContract;
 
 use super::Plonk;
 

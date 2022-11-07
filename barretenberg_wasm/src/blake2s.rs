@@ -1,10 +1,9 @@
-use acvm::FieldElement;
-use wasmer::Value;
 use super::Barretenberg;
-
+use common::acvm::FieldElement;
+use wasmer::Value;
 
 impl Barretenberg {
-    // TODO : Replace this call with a blake2s call and a field element reduce 
+    // TODO : Replace this call with a blake2s call and a field element reduce
     /// Hashes to a bn254 scalar field element using blake2s
     pub fn hash_to_field(&mut self, input: &[u8]) -> FieldElement {
         let input_ptr = self.allocate(input); // 0..32
@@ -27,7 +26,6 @@ impl Barretenberg {
 
 #[test]
 fn basic_interop() {
-
     struct Test<'a> {
         input: Vec<u8>,
         expected_hex: &'a str,

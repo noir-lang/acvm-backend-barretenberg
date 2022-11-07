@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
-acvm = { git = "https://github.com/noir-lang/noir", features = ["bn254"] }
 
 sha2 = "0.9.3"
 blake2 = "0.9.1"
@@ -16,6 +15,7 @@ sled = "0.34.6"
 
 [features]
 default = [
+    # "acvm/bn254",
     "common/std",
     "wasmer/sys-default",
     "wasmer/cranelift",
@@ -23,4 +23,8 @@ default = [
     "wasmer/default-cranelift",
     "wasmer/default-universal",
 ]
-js = ["wasmer/js-default"]
+js = [
+
+    # "acvm/bn254", 
+    "wasmer/js-default",
+]

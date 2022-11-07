@@ -5,19 +5,17 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#466a368642e0a92c1202f1a6dd2b5313a2c8d849"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
- "flate2",
  "indexmap",
  "noir_field",
- "rmp-serde",
  "serde",
 ]
 
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#466a368642e0a92c1202f1a6dd2b5313a2c8d849"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
  "acir",
  "blake2",
@@ -187,7 +185,6 @@ dependencies = [
 name = "barretenberg_js"
 version = "0.1.0"
 dependencies = [
- "acvm",
  "common",
  "tempfile",
 ]
@@ -196,7 +193,6 @@ dependencies = [
 name = "barretenberg_wasm"
 version = "0.1.0"
 dependencies = [
- "acvm",
  "blake2",
  "common",
  "sha2",
@@ -721,16 +717,6 @@ dependencies = [
  "bitvec",
  "rand_core 0.5.1",
  "subtle",
-]
-
-[[package]]
-name = "flate2"
-version = "1.0.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f82b0f4c27ad9f8bfd1f3208d882da2b09c301bc1c828fd3a00d0216d2fbbff6"
-dependencies = [
- "crc32fast",
- "miniz_oxide",
 ]
 
 [[package]]
@@ -1291,7 +1277,7 @@ dependencies = [
 [[package]]
 name = "noir_field"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir#466a368642e0a92c1202f1a6dd2b5313a2c8d849"
+source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -1773,28 +1759,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "rmp"
-version = "0.8.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
-dependencies = [
- "byteorder",
- "num-traits",
- "paste",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
-dependencies = [
- "byteorder",
- "rmp",
- "serde",
 ]
 
 [[package]]

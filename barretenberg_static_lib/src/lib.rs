@@ -6,7 +6,7 @@ pub mod pedersen;
 mod pippenger;
 pub mod scalar_mul;
 pub mod schnorr;
-use acvm::FieldElement;
+use common::acvm::FieldElement;
 use std::convert::TryInto;
 
 pub struct Barretenberg;

@@ -1,6 +1,6 @@
-use acvm::acir::{self, circuit::gate::GadgetCall, native_types::Witness};
-use acvm::FieldElement;
-use acvm::PartialWitnessGenerator;
+use common::acvm::acir::{self, circuit::gate::GadgetCall, native_types::Witness};
+use common::acvm::FieldElement;
+use common::acvm::PartialWitnessGenerator;
 use std::collections::BTreeMap;
 
 mod gadget_call;

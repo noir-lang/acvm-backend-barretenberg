@@ -2,7 +2,7 @@ pub use barretenberg_wasm::Barretenberg;
 
 use wasm_bindgen::prelude::*;
 
-use acvm::{
+use common::acvm::{
     acir::circuit::Circuit, acir::native_types::Witness, FieldElement, PartialWitnessGenerator,
 };
 
@@ -94,7 +94,7 @@ pub fn eth_contract_from_cs(vk_method: String) -> String {
 pub fn serialise_public_inputs(pub_inputs_js_string: Vec<js_sys::JsString>) -> Vec<u8> {
     console_error_panic_hook::set_once();
 
-    use acvm::FieldElement;
+    use common::acvm::FieldElement;
 
     let mut pub_inputs_string = Vec::new();
     for val in pub_inputs_js_string {

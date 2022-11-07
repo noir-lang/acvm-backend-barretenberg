@@ -1,7 +1,7 @@
 // TODO: remove once this module is used
 #![allow(dead_code)]
 use crate::Barretenberg;
-use acvm::FieldElement;
+use common::acvm::FieldElement;
 use common::merkle::{MessageHasher, PathHasher};
 use std::path::Path;
 

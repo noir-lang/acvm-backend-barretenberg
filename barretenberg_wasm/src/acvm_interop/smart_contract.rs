@@ -1,7 +1,7 @@
 use crate::composer::StandardComposer;
-use acvm::acir::circuit::Circuit;
+use common::acvm::acir::circuit::Circuit;
 
-use acvm::SmartContract;
+use common::acvm::SmartContract;
 use common::serialiser::serialise_circuit;
 
 use super::Plonk;

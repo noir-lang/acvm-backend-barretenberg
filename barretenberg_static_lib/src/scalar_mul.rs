@@ -1,4 +1,4 @@
-use acvm::FieldElement;
+use common::acvm::FieldElement;
 
 use super::field_to_array;
 use super::Barretenberg;

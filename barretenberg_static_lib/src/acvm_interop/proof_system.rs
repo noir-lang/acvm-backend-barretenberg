@@ -1,9 +1,9 @@
 use super::Plonk;
 use crate::barretenberg_rs::composer::StandardComposer;
 use crate::barretenberg_structures::Assignments;
-use acvm::acir::{circuit::Circuit, native_types::Witness};
-use acvm::FieldElement;
-use acvm::{Language, ProofSystemCompiler};
+use common::acvm::acir::{circuit::Circuit, native_types::Witness};
+use common::acvm::FieldElement;
+use common::acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
