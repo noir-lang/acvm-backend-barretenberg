@@ -126,22 +126,12 @@ impl StandardComposer {
         let no_pub_input: Vec<u8> = Vec::new();
         let verified;
         unsafe {
-            verified = match public_inputs {
-                None => barretenberg_wrapper::composer::verify(
-                    self.pippenger.pointer(),
-                    &proof,
-                    no_pub_input.as_slice(),
-                    &self.constraint_system.to_bytes(),
-                    &self.crs.g2_data,
-                ),
-                Some(pub_inputs) => barretenberg_wrapper::composer::verify(
-                    self.pippenger.pointer(),
-                    &proof,
-                    &pub_inputs.to_bytes(),
-                    &self.constraint_system.to_bytes(),
-                    &self.crs.g2_data,
-                ),
-            };
+            verified = barretenberg_wrapper::composer::verify(
+                self.pippenger.pointer(),
+                &proof,
+                &self.constraint_system.to_bytes(),
+                &self.crs.g2_data,
+            );
         }
         verified
     }

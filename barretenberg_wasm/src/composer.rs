@@ -173,44 +173,20 @@ impl StandardComposer {
 
         let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
 
-        let verified = match public_inputs {
-            None => self
-                .barretenberg
-                .call_multiple(
-                    "composer__verify_proof",
-                    vec![
-                        &self.pippenger.pointer(),
-                        &g2_ptr,
-                        &cs_ptr,
-                        &proof_ptr,
-                        &Value::I32(proof.len() as i32),
-                    ],
-                )
-                .value(),
-            Some(pub_inputs) => {
-                let pub_inputs_buf = pub_inputs.to_bytes();
-                let pub_inputs_ptr = self.barretenberg.allocate(&pub_inputs_buf);
+        let verified = self
+            .barretenberg
+            .call_multiple(
+                "composer__verify_proof",
+                vec![
+                    &self.pippenger.pointer(),
+                    &g2_ptr,
+                    &cs_ptr,
+                    &proof_ptr,
+                    &Value::I32(proof.len() as i32),
+                ],
+            )
+            .value();
 
-                let verified = self
-                    .barretenberg
-                    .call_multiple(
-                        "composer__verify_proof_with_public_inputs",
-                        vec![
-                            &self.pippenger.pointer(),
-                            &g2_ptr,
-                            &cs_ptr,
-                            &pub_inputs_ptr,
-                            &proof_ptr,
-                            &Value::I32(proof.len() as i32),
-                        ],
-                    )
-                    .value();
-
-                self.barretenberg.free(pub_inputs_ptr);
-
-                verified
-            }
-        };
         // self.barretenberg.free(cs_ptr);
         self.barretenberg.free(proof_ptr);
         // self.barretenberg.free(g2_ptr);
