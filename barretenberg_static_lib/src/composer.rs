@@ -70,6 +70,8 @@ impl StandardComposer {
     }
 
     pub fn create_proof(&mut self, witness: WitnessAssignments) -> Vec<u8> {
+        let now = std::time::Instant::now();
+
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
@@ -99,6 +101,11 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize)
         }
+        println!(
+            "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
+            now.elapsed().as_nanos(),
+            now.elapsed().as_secs(),
+        );
         result
     }
 
@@ -123,6 +130,8 @@ impl StandardComposer {
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
         }
+        let now = std::time::Instant::now();
+
         let no_pub_input: Vec<u8> = Vec::new();
         let verified;
         unsafe {
@@ -133,6 +142,11 @@ impl StandardComposer {
                 &self.crs.g2_data,
             );
         }
+        println!(
+            "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
+            now.elapsed().as_nanos(),
+            now.elapsed().as_secs(),
+        );
         verified
     }
 }
