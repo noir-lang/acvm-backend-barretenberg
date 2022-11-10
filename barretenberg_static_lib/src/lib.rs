@@ -1,4 +1,5 @@
 pub mod acvm_interop;
+pub use acvm_interop::Plonk;
 pub mod blake2s;
 pub mod composer;
 mod crs;

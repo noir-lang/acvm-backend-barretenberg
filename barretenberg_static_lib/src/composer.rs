@@ -1,6 +1,6 @@
 use super::crs::CRS;
 use super::pippenger::Pippenger;
-use crate::barretenberg_structures::*;
+use common::barretenberg_structures::*;
 use std::slice;
 pub struct StandardComposer {
     pippenger: Pippenger,
@@ -48,7 +48,7 @@ impl StandardComposer {
         // For some reason, the first line is partially mangled
         // So in C+ the first line is duplicated and then truncated
         let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
-        crate::contract::turbo_verifier::create(&verification_method)
+        common::contract::turbo_verifier::create(&verification_method)
     }
 
     // XXX: There seems to be a bug in the C++ code
@@ -145,6 +145,15 @@ impl StandardComposer {
         }
         verified
     }
+}
+
+// TODO: move this to common
+pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {
+    // This is only for public inputs and for Barretenberg.
+    // Barretenberg only used bn254, so each element is 32 bytes.
+    // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
+    let num_bytes_to_remove = 32 * num_pub_inputs;
+    proof[num_bytes_to_remove..].to_vec()
 }
 
 #[cfg(test)]
