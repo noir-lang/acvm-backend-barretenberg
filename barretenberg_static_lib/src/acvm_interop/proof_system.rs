@@ -54,4 +54,12 @@ impl ProofSystemCompiler for Plonk {
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
+
+    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
+        let constraint_system = serialise_circuit(&circuit);
+
+        let circuit_size = StandardComposer::get_exact_circuit_size(&constraint_system);
+
+        circuit_size
+    }
 }
