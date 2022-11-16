@@ -16,6 +16,7 @@ sled = "0.34.6"
 
 dirs = "3.0"
 downloader = { version = "0.2.6" }
+tempfile = "3.3.0"
 console_error_panic_hook = { version = "*" }
 indicatif = "0.15.0"
 regex = "1.4.0"

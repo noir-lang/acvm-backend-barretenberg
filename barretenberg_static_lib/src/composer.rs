@@ -172,7 +172,7 @@ pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec
 mod test {
 
     use super::*;
-    use crate::barretenberg_structures::Scalar;
+    use common::barretenberg_structures::Scalar;
 
     #[test]
     fn test_a_single_constraint_no_pub_inputs() {
