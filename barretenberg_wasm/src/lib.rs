@@ -10,10 +10,10 @@ pub mod pedersen;
 pub mod pippenger;
 pub mod scalar_mul;
 pub mod schnorr;
-
+use std::cell::Cell;
 pub use common::crs;
 use wasmer::{
-    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
+    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value
 };
 
 /// Barretenberg is the low level struct which calls the WASM file
@@ -73,7 +73,7 @@ impl Barretenberg {
         #[cfg(not(feature = "js"))]
         return memory.view()[start as usize..end]
             .iter()
-            .map(|cell: &Cell<T>| cell.get())
+            .map(|cell: &Cell<u8>| cell.get())
             .collect();
     }
 
