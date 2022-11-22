@@ -73,7 +73,7 @@ impl Barretenberg {
         #[cfg(not(feature = "js"))]
         return memory.view()[start as usize..end]
             .iter()
-            .map(|cell| cell.get())
+            .map(|cell: &Cell<T>| cell.get())
             .collect();
     }
 
