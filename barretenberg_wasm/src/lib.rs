@@ -12,6 +12,7 @@ pub mod scalar_mul;
 pub mod schnorr;
 
 pub use common::crs;
+use std::cell::Cell;
 use wasmer::{
     imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
 };
@@ -73,7 +74,7 @@ impl Barretenberg {
         #[cfg(not(feature = "js"))]
         return memory.view()[start as usize..end]
             .iter()
-            .map(|cell| cell.get())
+            .map(|cell: &Cell<u8>| cell.get())
             .collect();
     }
 
