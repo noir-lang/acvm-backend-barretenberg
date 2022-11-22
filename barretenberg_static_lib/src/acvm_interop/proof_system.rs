@@ -1,9 +1,10 @@
 use super::Plonk;
-use crate::barretenberg_rs::composer::StandardComposer;
-use crate::barretenberg_structures::Assignments;
+use crate::composer::{remove_public_inputs, StandardComposer};
+use common::barretenberg_structures::Assignments;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
+use common::serialiser::serialise_circuit;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
@@ -12,7 +13,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8> {
-        let constraint_system = crate::serialise_circuit(&circuit);
+        let constraint_system = serialise_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
@@ -43,7 +44,7 @@ impl ProofSystemCompiler for Plonk {
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool {
-        let constraint_system = crate::serialise_circuit(&circuit);
+        let constraint_system = serialise_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
@@ -52,5 +53,13 @@ impl ProofSystemCompiler for Plonk {
 
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
+    }
+
+    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
+        let constraint_system = serialise_circuit(&circuit);
+
+        let circuit_size = StandardComposer::get_exact_circuit_size(&constraint_system);
+
+        circuit_size
     }
 }

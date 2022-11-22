@@ -68,7 +68,7 @@ pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
 pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8> {
     console_error_panic_hook::set_once();
 
-    use crate::barretenberg_structures::Assignments;
+    use common::barretenberg_structures::Assignments;
     let circuit: Circuit = acir.into_serde().unwrap();
     let witness_values = Witness::from_bytes(&witness_arr);
     let mut sorted_witness = Assignments::new();

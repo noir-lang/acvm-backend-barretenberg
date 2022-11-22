@@ -32,10 +32,7 @@ impl ProofSystemCompiler for Plonk {
             sorted_witness.push(value);
         }
 
-        remove_public_inputs(
-            circuit.public_inputs.0.len(),
-            composer.create_proof(sorted_witness),
-        )
+        composer.create_proof(sorted_witness)
     }
 
     fn verify_from_cs(

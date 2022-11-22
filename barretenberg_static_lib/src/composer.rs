@@ -1,6 +1,6 @@
 use super::crs::CRS;
 use super::pippenger::Pippenger;
-use crate::barretenberg_structures::*;
+use common::barretenberg_structures::*;
 use std::slice;
 pub struct StandardComposer {
     pippenger: Pippenger,
@@ -48,7 +48,7 @@ impl StandardComposer {
         // For some reason, the first line is partially mangled
         // So in C+ the first line is duplicated and then truncated
         let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
-        crate::contract::turbo_verifier::create(&verification_method)
+        common::contract::turbo_verifier::create(&verification_method)
     }
 
     // XXX: There seems to be a bug in the C++ code
@@ -69,7 +69,17 @@ impl StandardComposer {
         }
     }
 
+    pub fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
+        unsafe {
+            barretenberg_wrapper::composer::get_exact_circuit_size(
+                constraint_system.to_bytes().as_slice().as_ptr(),
+            )
+        }
+    }
+
     pub fn create_proof(&mut self, witness: WitnessAssignments) -> Vec<u8> {
+        let now = std::time::Instant::now();
+
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
@@ -99,6 +109,11 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize)
         }
+        println!(
+            "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
+            now.elapsed().as_nanos(),
+            now.elapsed().as_secs(),
+        );
         result
     }
 
@@ -123,35 +138,41 @@ impl StandardComposer {
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
         }
+        let now = std::time::Instant::now();
+
         let no_pub_input: Vec<u8> = Vec::new();
         let verified;
         unsafe {
-            verified = match public_inputs {
-                None => barretenberg_wrapper::composer::verify(
-                    self.pippenger.pointer(),
-                    &proof,
-                    no_pub_input.as_slice(),
-                    &self.constraint_system.to_bytes(),
-                    &self.crs.g2_data,
-                ),
-                Some(pub_inputs) => barretenberg_wrapper::composer::verify(
-                    self.pippenger.pointer(),
-                    &proof,
-                    &pub_inputs.to_bytes(),
-                    &self.constraint_system.to_bytes(),
-                    &self.crs.g2_data,
-                ),
-            };
+            verified = barretenberg_wrapper::composer::verify(
+                self.pippenger.pointer(),
+                &proof,
+                &self.constraint_system.to_bytes(),
+                &self.crs.g2_data,
+            );
         }
+        println!(
+            "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
+            now.elapsed().as_nanos(),
+            now.elapsed().as_secs(),
+        );
         verified
     }
+}
+
+// TODO: move this to common
+pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {
+    // This is only for public inputs and for Barretenberg.
+    // Barretenberg only used bn254, so each element is 32 bytes.
+    // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
+    let num_bytes_to_remove = 32 * num_pub_inputs;
+    proof[num_bytes_to_remove..].to_vec()
 }
 
 #[cfg(test)]
 mod test {
 
     use super::*;
-    use crate::barretenberg_structures::Scalar;
+    use common::barretenberg_structures::Scalar;
 
     #[test]
     fn test_a_single_constraint_no_pub_inputs() {

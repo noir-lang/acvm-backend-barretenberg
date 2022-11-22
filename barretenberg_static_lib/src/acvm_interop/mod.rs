@@ -4,4 +4,4 @@ pub mod pwg;
 mod smart_contract;
 pub struct Plonk;
 
-impl acvm::Backend for Plonk {}
+impl common::acvm::Backend for Plonk {}
