@@ -12,11 +12,10 @@ pub mod scalar_mul;
 pub mod schnorr;
 
 pub use common::crs;
-use wasmer::{
-    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value
-};
 use std::cell::Cell;
-
+use wasmer::{
+    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
+};
 
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
