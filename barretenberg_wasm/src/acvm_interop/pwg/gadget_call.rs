@@ -144,7 +144,8 @@ impl GadgetCaller {
                 initial_witness.insert(gadget_call.outputs[0], pub_x);
                 initial_witness.insert(gadget_call.outputs[1], pub_y);
             }
-            OPCODE::ToBits => unreachable!(),
+            OPCODE::ToBits => unreachable!("to_bits is implemented by the Noir compiler"),
+            OPCODE::ToBytes => unreachable!("to_bytes is implemented by the Noir compiler"),
         }
         Ok(())
     }
