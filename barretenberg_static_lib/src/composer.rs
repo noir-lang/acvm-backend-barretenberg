@@ -69,10 +69,10 @@ impl StandardComposer {
         }
     }
 
-    pub fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
+    pub fn get_exact_circuit_size(&self) -> u32 {
         unsafe {
             barretenberg_wrapper::composer::get_exact_circuit_size(
-                constraint_system.to_bytes().as_slice().as_ptr(),
+                self.constraint_system.to_bytes().as_slice().as_ptr(),
             )
         }
     }
