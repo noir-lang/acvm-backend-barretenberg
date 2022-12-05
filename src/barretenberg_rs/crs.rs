@@ -26,7 +26,12 @@ impl CRS {
             download_crs(transcript_location());
         }
 
-        let crs = read_crs(transcript_location());
+        // Read CRS, if it's incomplete, download it
+        let mut crs = read_crs(transcript_location());
+        if crs.len() != G2_END {
+            download_crs(transcript_location());
+            crs = read_crs(transcript_location());
+        }
 
         let g1_data = crs[G1_START..=g1_end].to_vec();
         let g2_data = crs[G2_START..=G2_END].to_vec();
@@ -58,9 +63,9 @@ fn read_crs(path: std::path::PathBuf) -> Vec<u8> {
 // XXX: Below is the logic to download the CRS if it is not already present
 
 pub fn download_crs(mut path_to_transcript: std::path::PathBuf) {
+    // Remove old crs
     if path_to_transcript.exists() {
-        println!("File already exists {:?}", path_to_transcript);
-        return;
+        let _ = std::fs::remove_file(path_to_transcript.as_path());
     }
     // Pop off the transcript component to get just the directory
     path_to_transcript.pop();
