@@ -46,3 +46,20 @@ impl Barretenberg {
         (point_x, point_y)
     }
 }
+
+#[test]
+fn pedersen_hash_to_point() {
+    let mut barretenberg = Barretenberg::new();
+    let (x, y) = barretenberg.encrypt(vec![FieldElement::zero(), FieldElement::one()]);
+    let expected_x = FieldElement::from_hex(
+        "0x229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1",
+    )
+    .unwrap();
+    let expected_y = FieldElement::from_hex(
+        "0x296b4b4605e586a91caa3202baad557628a8c56d0a1d6dff1a7ca35aed3029d5",
+    )
+    .unwrap();
+
+    assert_eq!(expected_x.to_hex(), x.to_hex());
+    assert_eq!(expected_y.to_hex(), y.to_hex());
+}
