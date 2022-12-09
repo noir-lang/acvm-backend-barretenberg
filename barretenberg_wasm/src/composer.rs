@@ -102,6 +102,31 @@ impl StandardComposer {
         }
     }
 
+    pub fn get_exact_circuit_size(&mut self) -> u32 {
+        let cs_buf = self.constraint_system.to_bytes();
+        let cs_ptr = self.barretenberg.allocate(&cs_buf);
+
+        let func = self
+            .barretenberg
+            .instance
+            .exports
+            .get_function("standard_example__get_exact_circuit_size")
+            .unwrap();
+
+        let params: Vec<_> = vec![cs_ptr.clone()];
+        match func.call(&params) {
+            Ok(vals) => {
+                let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
+                let u32_val = u32::from_be_bytes(i32_bytes);
+                self.barretenberg.free(cs_ptr);
+                u32_val
+            }
+            Err(_) => {
+                unreachable!("failed on standard_example__get_exact_circuit_size call");
+            }
+        }
+    }
+
     pub fn create_proof(&mut self, witness: WitnessAssignments) -> Vec<u8> {
         let now = std::time::Instant::now();
 
