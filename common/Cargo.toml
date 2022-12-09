@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { git = "https://github.com/noir-lang/noir", rev = "f1beed56ada60099db0c95d54aa3518635c37b46", features = [
+acvm = { git = "https://github.com/noir-lang/noir", rev = "17f628f577391f0cac01ba4aa09213f48cbc3ada", features = [
     "bn254",
 ] }
 

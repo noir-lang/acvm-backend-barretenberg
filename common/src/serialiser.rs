@@ -313,8 +313,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
-                    OPCODE::ToBits => unreachable!("to_bits is not supported in Barretenberg"),
-                    OPCODE::ToBytes => unreachable!("to_bytes is not supported in Barretenberg"),
+                    _ => unreachable!("{} is not supported in Barretenberg", gadget_call.name.name()),
                 };
             }
             Gate::Directive(_) => {
