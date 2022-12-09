@@ -146,7 +146,6 @@ impl GadgetCaller {
             }
             OPCODE::ToBits => unreachable!("to_bits is implemented by the Noir compiler"),
             OPCODE::ToBytes => unreachable!("to_bytes is implemented by the Noir compiler"),
-            // _ => unreachable!("{} must be implemented by the Noir compiler or this backend", gadget_call.name.name()),
         }
         Ok(())
     }
