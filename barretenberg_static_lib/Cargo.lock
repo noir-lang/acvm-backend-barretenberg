@@ -5,17 +5,19 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
+source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
 dependencies = [
+ "flate2",
  "indexmap",
  "noir_field",
+ "rmp-serde",
  "serde",
 ]
 
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
+source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
 dependencies = [
  "acir",
  "blake2",
@@ -28,6 +30,12 @@ dependencies = [
  "sha2",
  "sled",
 ]
+
+[[package]]
+name = "adler"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
 name = "aho-corasick"
@@ -163,7 +171,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?rev=f12f3e6b838330ea8094284f7a3c0fcc346d46fe#f12f3e6b838330ea8094284f7a3c0fcc346d46fe"
+source = "git+https://github.com/noir-lang/aztec-connect?rev=47178e9b4d57e9285c5e059dda5cf0a66392c457#47178e9b4d57e9285c5e059dda5cf0a66392c457"
 dependencies = [
  "bindgen",
  "cmake",
@@ -582,6 +590,16 @@ dependencies = [
  "bitvec",
  "rand_core 0.5.1",
  "subtle",
+]
+
+[[package]]
+name = "flate2"
+version = "1.0.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8a2db397cb1c8772f31494cb8917e48cd1e64f0fa7efac59fbd741a0a8ce841"
+dependencies = [
+ "crc32fast",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -1042,6 +1060,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "miniz_oxide"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b275950c28b37e794e8c55d88aeb5e139d0ce23fdbbeda68f8d7174abdf9e8fa"
+dependencies = [
+ "adler",
+]
+
+[[package]]
 name = "mio"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1074,7 +1101,7 @@ dependencies = [
 [[package]]
 name = "noir_field"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=cc5ee63072e09779bebd7e7dd054ae16be307d7f#cc5ee63072e09779bebd7e7dd054ae16be307d7f"
+source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -1441,6 +1468,28 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "winreg",
+]
+
+[[package]]
+name = "rmp"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44519172358fd6d58656c86ab8e7fbc9e1490c3e8f14d35ed78ca0dd07403c9f"
+dependencies = [
+ "byteorder",
+ "num-traits",
+ "paste",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c5b13be192e0220b8afb7222aa5813cb62cc269ebb5cac346ca6487681d2913e"
+dependencies = [
+ "byteorder",
+ "rmp",
+ "serde",
 ]
 
 [[package]]
