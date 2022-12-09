@@ -2,7 +2,6 @@
 macro_rules! TYPES_LIBRARY {
     () => { r#"
 
-
 /**
  * @title Bn254Crypto library used for the fr, g1 and g2 point types
  * @dev Used to manipulate fr, g1, g2 types, perform modular arithmetic on them and call
@@ -17,12 +16,16 @@ library Types {
     uint256 constant PROGRAM_WIDTH = 4;
     uint256 constant NUM_NU_CHALLENGES = 11;
 
-    uint256 constant coset_generator0 = 0x0000000000000000000000000000000000000000000000000000000000000005;
-    uint256 constant coset_generator1 = 0x0000000000000000000000000000000000000000000000000000000000000006;
-    uint256 constant coset_generator2 = 0x0000000000000000000000000000000000000000000000000000000000000007;
+    uint256 constant coset_generator0 =
+        0x0000000000000000000000000000000000000000000000000000000000000005;
+    uint256 constant coset_generator1 =
+        0x0000000000000000000000000000000000000000000000000000000000000006;
+    uint256 constant coset_generator2 =
+        0x0000000000000000000000000000000000000000000000000000000000000007;
 
     // TODO: add external_coset_generator() method to compute this
-    uint256 constant coset_generator7 = 0x000000000000000000000000000000000000000000000000000000000000000c;
+    uint256 constant coset_generator7 =
+        0x000000000000000000000000000000000000000000000000000000000000000c;
 
     struct G1Point {
         uint256 x;
@@ -59,7 +62,7 @@ library Types {
         uint256 q_arith;
         uint256 q_ecc;
         uint256 q_c;
-        uint256 linearization_polynomial;
+        // uint256 linearization_polynomial;
         uint256 grand_product_at_z_omega;
         uint256 w1_omega;
         uint256 w2_omega;
@@ -69,7 +72,8 @@ library Types {
         G1Point PI_Z_OMEGA;
         G1Point recursive_P1;
         G1Point recursive_P2;
-        uint256 quotient_polynomial_eval;
+        //    uint256 quotient_polynomial_eval;
+        uint256 r_0;
     }
 
     struct ChallengeTranscript {
@@ -116,13 +120,13 @@ library Types {
         bool contains_recursive_proof;
         uint256 recursive_proof_indices;
         G2Point g2_x;
-
         // zeta challenge raised to the power of the circuit size.
         // Not actually part of the verification key, but we put it here to prevent stack depth errors
         uint256 zeta_pow_n;
+        // necessary fot the simplified plonk
+        uint256 zero_polynomial_eval;
     }
 }
-
     
     "# };
 }
