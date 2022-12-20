@@ -1,0 +1,24 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+acvm = { git = "https://github.com/noir-lang/noir", rev = "7460dda929130589bccfd6619f9409834b72a135", features = [
+    "bn254",
+] }
+
+sled = "0.34.6"
+blake2 = "0.9.1"
+dirs = "3.0"
+downloader = { version = "0.2.6", optional = true }
+indicatif = "0.15.0"
+regex = "1.4.0"
+
+[features]
+# This feature flag is here because we cannot compile
+# the downloader dependency with the wasm32 target
+default = ["std"]
+std = ["downloader"]
