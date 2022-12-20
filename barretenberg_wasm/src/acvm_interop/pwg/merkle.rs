@@ -15,9 +15,9 @@ impl PathHasher for Barretenberg {
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
     use common::merkle::{MerkleTree, MessageHasher, PathHasher};
     use std::path::Path;
-
     #[test]
     fn basic_interop_initial_root() {
         use tempfile::tempdir;
