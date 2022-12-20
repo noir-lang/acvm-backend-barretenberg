@@ -72,7 +72,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         let mut result = [0i32; 32];
                         for (i, res) in result.iter_mut().enumerate() {
                             let out_byte = outputs_iter.next().unwrap_or_else(|| {
-                                panic!("missing rest of output. Tried to get byte {} but failed", i)
+                                panic!("missing rest of output. Tried to get byte {i} but failed")
                             });
 
                             let out_byte_index = out_byte.witness_index() as i32;
@@ -99,7 +99,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         let mut result = [0i32; 32];
                         for (i, res) in result.iter_mut().enumerate() {
                             let out_byte = outputs_iter.next().unwrap_or_else(|| {
-                                panic!("missing rest of output. Tried to get byte {} but failed", i)
+                                panic!("missing rest of output. Tried to get byte {i} but failed")
                             });
 
                             let out_byte_index = out_byte.witness_index() as i32;
@@ -179,8 +179,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         for (i, sig) in signature.iter_mut().enumerate() {
                             let sig_byte = inputs_iter.next().unwrap_or_else(|| {
                                 panic!(
-                                    "missing rest of signature. Tried to get byte {} but failed",
-                                    i
+                                    "missing rest of signature. Tried to get byte {i} but failed",
                                 )
                             });
                             let sig_byte_index = sig_byte.witness.witness_index() as i32;
@@ -251,7 +250,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         // public key x
                         let mut public_key_x = [0i32; 32];
                         for (i, pkx) in public_key_x.iter_mut().enumerate() {
-                            let x_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of x component for public key. Tried to get byte {} but failed", i));
+                            let x_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of x component for public key. Tried to get byte {i} but failed"));
                             let x_byte_index = x_byte.witness.witness_index() as i32;
                             *pkx = x_byte_index;
                         }
@@ -259,7 +258,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         // public key y
                         let mut public_key_y = [0i32; 32];
                         for (i, pky) in public_key_y.iter_mut().enumerate() {
-                            let y_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of y component for public key. Tried to get byte {} but failed", i));
+                            let y_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of y component for public key. Tried to get byte {i} but failed"));
                             let y_byte_index = y_byte.witness.witness_index() as i32;
                             *pky = y_byte_index;
                         }
@@ -269,8 +268,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                         for (i, sig) in signature.iter_mut().enumerate() {
                             let sig_byte = inputs_iter.next().unwrap_or_else(|| {
                                 panic!(
-                                    "missing rest of signature. Tried to get byte {} but failed",
-                                    i
+                                    "missing rest of signature. Tried to get byte {i} but failed",
                                 )
                             });
                             let sig_byte_index = sig_byte.witness.witness_index() as i32;

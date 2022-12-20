@@ -72,7 +72,7 @@ impl Barretenberg {
         return memory.uint8view().to_vec()[start as usize..end].to_vec();
 
         #[cfg(not(feature = "js"))]
-        return memory.view()[start as usize..end]
+        return memory.view()[start..end]
             .iter()
             .map(|cell: &Cell<u8>| cell.get())
             .collect();

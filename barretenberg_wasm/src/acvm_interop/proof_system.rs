@@ -1,5 +1,5 @@
 use super::Plonk;
-use crate::composer::{remove_public_inputs, StandardComposer};
+use crate::composer::StandardComposer;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
@@ -57,8 +57,6 @@ impl ProofSystemCompiler for Plonk {
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        let circuit_size = composer.get_exact_circuit_size();
-
-        circuit_size
+        composer.get_exact_circuit_size()
     }
 }

@@ -79,10 +79,7 @@ fn insert_empty_index(db: &mut sled::Db, index: u32) {
     let depth = fetch_depth(db);
     let total_size = 1 << depth;
     if index > total_size {
-        panic!(
-            "trying to insert at index {}, but total width is {}",
-            index, total_size
-        )
+        panic!("trying to insert at index {index}, but total width is {total_size}")
     }
     db.insert("EMPTY".as_bytes(), &index.to_be_bytes()).unwrap();
 }
@@ -250,7 +247,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             index += 1;
             insert_empty_index(&mut self.db, index as u32);
         } else {
-            panic!("this is an regular append-only merkle tree. Tried to insert at {}, but next empty is at {}", index, empty_index);
+            panic!("this is an regular append-only merkle tree. Tried to insert at {index}, but next empty is at {empty_index}");
         }
     }
 

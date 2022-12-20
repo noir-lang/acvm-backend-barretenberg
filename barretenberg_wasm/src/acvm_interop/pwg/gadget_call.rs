@@ -3,7 +3,6 @@ use blake2::Blake2s;
 use common::acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
 use common::acvm::pwg::{self, input_to_value};
 use common::acvm::FieldElement;
-use common::merkle::MerkleTree;
 use sha2::Digest;
 use std::collections::BTreeMap;
 
@@ -70,7 +69,7 @@ impl GadgetCaller {
                 let mut signature = [0u8; 64];
                 for (i, sig) in signature.iter_mut().enumerate() {
                     let _sig_i = inputs_iter.next().unwrap_or_else(|| {
-                        panic!("signature should be 64 bytes long, found only {} bytes", i)
+                        panic!("signature should be 64 bytes long, found only {i} bytes")
                     });
                     let sig_i = input_to_value(initial_witness, _sig_i);
                     *sig = *sig_i.to_bytes().last().unwrap()
@@ -117,7 +116,7 @@ impl GadgetCaller {
 
                     let witness_assignment = initial_witness.get(witness);
                     let assignment = match witness_assignment {
-                        None => panic!("cannot find witness assignment for {:?}", witness),
+                        None => panic!("cannot find witness assignment for {witness:?}"),
                         Some(assignment) => assignment,
                     };
 
@@ -135,7 +134,7 @@ impl GadgetCaller {
             OPCODE::FixedBaseScalarMul => {
                 let scalar = initial_witness.get(&gadget_call.inputs[0].witness);
                 let scalar = match scalar {
-                    None => panic!("cannot find witness assignment for {:?}", scalar),
+                    None => panic!("cannot find witness assignment for {scalar:?}"),
                     Some(assignment) => assignment,
                 };
                 let mut barretenberg = Barretenberg::new();

@@ -59,7 +59,7 @@ fn read_crs(path: std::path::PathBuf) -> Vec<u8> {
 
 pub fn download_crs(mut path_to_transcript: std::path::PathBuf) {
     if path_to_transcript.exists() {
-        println!("File already exists {:?}", path_to_transcript);
+        println!("File already exists {path_to_transcript:?}");
         return;
     }
     // Pop off the transcript component to get just the directory
@@ -82,7 +82,7 @@ pub fn download_crs(mut path_to_transcript: std::path::PathBuf) {
 
     for r in result {
         match r {
-            Err(e) => println!("Error: {}", e),
+            Err(e) => println!("Error: {e}"),
             Ok(s) => println!("\nSRS is located at : {:?}", &s.file_name),
         };
     }
