@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 
 common = { path = "../common" }
-barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", rev = "d79bbda6ec1fae6650256479a5f044843912ae2c" }
+barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", rev = "2c961d511c245d7debef04d99b42c3de4268cad8" }
 
 sha2 = "0.9.3"
 blake2 = "0.9.1"
