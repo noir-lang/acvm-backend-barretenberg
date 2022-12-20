@@ -1,10 +1,7 @@
 [workspace]
 
-members = [
-    "common",
-    # "barretenberg_js",
-    "barretenberg_wasm",
-    # "aztec_backend_wasm",
-]
-# This has compilation problems on most platforms
-exclude = ["barretenberg_static_lib"]
+
+members = ["common", "barretenberg_wasm"]
+# barretenberg_static_lib has compilation problems on most platforms
+# barretenberg_js will be phased out in the future
+exclude = ["barretenberg_js", "barretenberg_static_lib", "aztec_backend_wasm"]
