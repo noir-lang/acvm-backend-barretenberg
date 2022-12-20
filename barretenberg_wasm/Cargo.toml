@@ -12,6 +12,7 @@ common = { path = "../common", default-features = false }
 sha2 = "0.9.3"
 blake2 = "0.9.1"
 sled = "0.34.6"
+tempfile = "*"
 
 [features]
 default = [
