@@ -261,8 +261,11 @@ fn logstr(ptr: i32) {
 }
 
 #[test]
-fn foo() {
+fn smoke() {
     let mut b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()]);
+    let (x, y) = b.encrypt(vec![
+        common::acvm::FieldElement::zero(),
+        common::acvm::FieldElement::one(),
+    ]);
     dbg!(x.to_hex(), y.to_hex());
 }
