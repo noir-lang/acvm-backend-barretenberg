@@ -28,7 +28,7 @@ impl CRS {
 
         // Read CRS, if it's incomplete, download it
         let mut crs = read_crs(transcript_location());
-        if crs.len() != G2_END {
+        if crs.len() < G2_END + 1 {
             download_crs(transcript_location());
             crs = read_crs(transcript_location());
         }
