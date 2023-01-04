@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
+js-sys = { version = "0.3.55", optional = true }
 
 sha2 = "0.9.3"
 blake2 = "0.9.1"
@@ -27,4 +28,5 @@ js = [
 
     # "acvm/bn254", 
     "wasmer/js-default",
+    "js-sys"
 ]

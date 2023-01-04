@@ -22,6 +22,7 @@ impl CRS {
         let g1_end = G1_START + (num_points * 64) - 1;
 
         // If the CRS does not exist, then download it from S3
+        #[cfg(feature = "std")]
         if !transcript_location().exists() {
             download_crs(transcript_location());
         }
@@ -56,7 +57,7 @@ fn read_crs(path: std::path::PathBuf) -> Vec<u8> {
 }
 
 // XXX: Below is the logic to download the CRS if it is not already present
-
+#[cfg(feature = "std")]
 pub fn download_crs(mut path_to_transcript: std::path::PathBuf) {
     if path_to_transcript.exists() {
         println!("File already exists {:?}", path_to_transcript);
@@ -104,6 +105,7 @@ impl SimpleReporter {
     }
 }
 
+#[cfg(feature = "std")]
 impl downloader::progress::Reporter for SimpleReporter {
     fn setup(&self, max_progress: Option<u64>, _message: &str) {
         let bar = indicatif::ProgressBar::new(max_progress.unwrap());

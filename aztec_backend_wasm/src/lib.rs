@@ -39,14 +39,23 @@ pub fn compute_witnesses(
     // Now use the partial witness generator to fill in the rest of the witnesses
     // which are possible
 
+    use barretenberg_wasm::Plonk;
+    use common::acvm::GateResolution;    
     let plonk = Plonk;
     match plonk.solve(&mut witness_map, circuit.gates) {
-        Ok(_) => {}
-        Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
+        GateResolution::UnsupportedOpcode(opcode) =>  panic!(
+            "backend does not currently support the {} opcode. ACVM does not currently fall back to arithmetic gates.",
+            opcode
+        ),
+        GateResolution::UnsatisfiedConstrain => panic!(
+                "could not satisfy all constraints"
+        ),
+        GateResolution::Resolved => (),
+        _ => unreachable!(),
     };
 
     // Serialise the witness in a way that the C++ codebase can deserialise
-    let assignments = crate::barretenberg_structures::Assignments::from_vec(
+    let assignments = common::barretenberg_structures::Assignments::from_vec(
         witness_map
             .into_iter()
             .map(|(_, field_val)| field_val)
@@ -61,7 +70,7 @@ pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
     console_error_panic_hook::set_once();
 
     let circuit: Circuit = acir.into_serde().unwrap();
-    serialise_circuit(&circuit).to_bytes()
+    common::serialiser::serialise_circuit(&circuit).to_bytes()
 }
 
 #[wasm_bindgen]
@@ -87,7 +96,7 @@ pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8>
 
 #[wasm_bindgen]
 pub fn eth_contract_from_cs(vk_method: String) -> String {
-    crate::contract::turbo_verifier::create(&vk_method)
+    common::contract::turbo_verifier::create(&vk_method)
 }
 
 #[wasm_bindgen]

@@ -12,7 +12,7 @@ crate-type = ["cdylib", "rlib"]
 barretenberg_wasm = { path = "../barretenberg_wasm", default-features = false, features = [
     "js",
 ] }
-
+common = { path = "../common", default-features = false }
 console_error_panic_hook = { version = "*" }
 wasm-bindgen = { version = "*", features = ["serde-serialize"] }
 js-sys = { version = "0.3.55" }
