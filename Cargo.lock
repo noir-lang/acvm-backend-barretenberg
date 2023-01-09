@@ -5,26 +5,44 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5b510cf711ccaedb4c56172a52745e9f1cbc2d88731430ceccd2d6eb5b2f6cd"
 dependencies = [
+ "acir_field",
  "flate2",
  "indexmap",
- "noir_field",
  "rmp-serde",
+ "serde",
+]
+
+[[package]]
+name = "acir_field"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e1224a7cd03cf504dafae9e0b64229ffef1a2211811a406e877c3b7e17517ff"
+dependencies = [
+ "ark-bn254",
+ "ark-ff",
+ "blake2",
+ "cfg-if",
+ "hex",
+ "num-bigint",
+ "num-traits",
  "serde",
 ]
 
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12081750c69705a0a2677ab0e171c209be69e020ca6c90c8700a40d1de7918a4"
 dependencies = [
  "acir",
+ "acir_field",
  "blake2",
  "hex",
  "indexmap",
  "k256",
- "noir_field",
  "num-bigint",
  "num-traits",
  "sha2",
@@ -1263,21 +1281,6 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "tempfile",
-]
-
-[[package]]
-name = "noir_field"
-version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
-dependencies = [
- "ark-bn254",
- "ark-ff",
- "blake2",
- "cfg-if",
- "hex",
- "num-bigint",
- "num-traits",
- "serde",
 ]
 
 [[package]]
