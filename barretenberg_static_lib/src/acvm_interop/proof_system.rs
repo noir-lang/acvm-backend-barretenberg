@@ -1,9 +1,9 @@
 use super::Plonk;
 use crate::composer::{remove_public_inputs, StandardComposer};
-use common::barretenberg_structures::Assignments;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
+use common::barretenberg_structures::Assignments;
 use common::serialiser::serialise_circuit;
 use std::collections::BTreeMap;
 
@@ -58,7 +58,7 @@ impl ProofSystemCompiler for Plonk {
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
         let constraint_system = serialise_circuit(&circuit);
 
-        let mut composer = StandardComposer::new(constraint_system);
+        let composer = StandardComposer::new(constraint_system);
 
         let circuit_size = composer.get_exact_circuit_size();
 

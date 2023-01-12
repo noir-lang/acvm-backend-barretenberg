@@ -140,7 +140,6 @@ impl StandardComposer {
         }
         let now = std::time::Instant::now();
 
-        let no_pub_input: Vec<u8> = Vec::new();
         let verified;
         unsafe {
             verified = barretenberg_wrapper::composer::verify(

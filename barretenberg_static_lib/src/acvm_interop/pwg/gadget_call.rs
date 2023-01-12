@@ -3,7 +3,6 @@ use blake2::Blake2s;
 use common::acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
 use common::acvm::pwg::{self, input_to_value};
 use common::acvm::FieldElement;
-use common::merkle::MerkleTree;
 use sha2::Digest;
 use std::collections::BTreeMap;
 
