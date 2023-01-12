@@ -16,8 +16,8 @@ impl PathHasher for Barretenberg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::merkle::{MerkleTree, MessageHasher, PathHasher};
-    use std::path::Path;
+    use common::merkle::{MerkleTree, MessageHasher};
+
     #[test]
     fn basic_interop_initial_root() {
         use tempfile::tempdir;
@@ -65,14 +65,14 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
-        tree.update_message(0, &vec![0; 64]);
-        tree.update_message(1, &vec![1; 64]);
-        tree.update_message(2, &vec![2; 64]);
-        tree.update_message(3, &vec![3; 64]);
-        tree.update_message(4, &vec![4; 64]);
-        tree.update_message(5, &vec![5; 64]);
-        tree.update_message(6, &vec![6; 64]);
-        let root = tree.update_message(7, &vec![7; 64]);
+        tree.update_message(0, &[0; 64]);
+        tree.update_message(1, &[1; 64]);
+        tree.update_message(2, &[2; 64]);
+        tree.update_message(3, &[3; 64]);
+        tree.update_message(4, &[4; 64]);
+        tree.update_message(5, &[5; 64]);
+        tree.update_message(6, &[6; 64]);
+        let root = tree.update_message(7, &[7; 64]);
 
         assert_eq!(
             "2ef749aee0274b151c91428ace22da4f661a7a6dd0b698a8e2b80e24fabc8432",
