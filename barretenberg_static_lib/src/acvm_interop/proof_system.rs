@@ -64,4 +64,21 @@ impl ProofSystemCompiler for Plonk {
 
         circuit_size
     }
+
+    fn blackbox_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
+        match opcode {
+            common::acvm::acir::BlackBoxFunc::AES => false,
+            common::acvm::acir::BlackBoxFunc::AND => true,
+            common::acvm::acir::BlackBoxFunc::XOR => true,
+            common::acvm::acir::BlackBoxFunc::RANGE => true,
+            common::acvm::acir::BlackBoxFunc::SHA256 => true,
+            common::acvm::acir::BlackBoxFunc::Blake2s => true,
+            common::acvm::acir::BlackBoxFunc::MerkleMembership => true,
+            common::acvm::acir::BlackBoxFunc::SchnorrVerify => true,
+            common::acvm::acir::BlackBoxFunc::Pedersen => true,
+            common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
+            common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
+            common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
+        }
+    }
 }
