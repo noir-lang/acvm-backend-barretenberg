@@ -159,7 +159,10 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
             initial_witness.insert(gadget_call.outputs[0], pub_x);
             initial_witness.insert(gadget_call.outputs[1], pub_y);
         }
-        _ => unreachable!(),
+        BlackBoxFunc::AND | BlackBoxFunc::XOR => {
+            acvm::pwg::logic::solve_logic_opcode(initial_witness, gadget_call)?
+        }
+        BlackBoxFunc::RANGE => acvm::pwg::range::solve_range_opcode(initial_witness, gadget_call)?,
     }
     Ok(())
 }
