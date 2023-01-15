@@ -70,7 +70,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
                                 num_bits as i32,
                             );
                             logic_constraints.push(and);
-                        } else if gadget_call.name == BlackBoxFunc::AND {
+                        } else if gadget_call.name == BlackBoxFunc::XOR {
                             let xor = LogicConstraint::xor(
                                 witness_lhs.witness_index() as i32,
                                 witness_rhs.witness_index() as i32,
