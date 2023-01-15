@@ -5,26 +5,44 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5b510cf711ccaedb4c56172a52745e9f1cbc2d88731430ceccd2d6eb5b2f6cd"
 dependencies = [
+ "acir_field",
  "flate2",
  "indexmap",
- "noir_field",
  "rmp-serde",
+ "serde",
+]
+
+[[package]]
+name = "acir_field"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e1224a7cd03cf504dafae9e0b64229ffef1a2211811a406e877c3b7e17517ff"
+dependencies = [
+ "ark-bn254",
+ "ark-ff",
+ "blake2",
+ "cfg-if",
+ "hex",
+ "num-bigint",
+ "num-traits",
  "serde",
 ]
 
 [[package]]
 name = "acvm"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12081750c69705a0a2677ab0e171c209be69e020ca6c90c8700a40d1de7918a4"
 dependencies = [
  "acir",
+ "acir_field",
  "blake2",
  "hex",
  "indexmap",
  "k256",
- "noir_field",
  "num-bigint",
  "num-traits",
  "sha2",
@@ -218,7 +236,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?rev=2c961d511c245d7debef04d99b42c3de4268cad8#2c961d511c245d7debef04d99b42c3de4268cad8"
+source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#2ef8be41993ead9993c09b1d99fef6dc68e231a6"
 dependencies = [
  "bindgen",
  "cmake",
@@ -1431,25 +1449,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "noir_field"
-version = "0.1.0"
-source = "git+https://github.com/noir-lang/noir?rev=7460dda929130589bccfd6619f9409834b72a135#7460dda929130589bccfd6619f9409834b72a135"
-dependencies = [
- "ark-bn254",
- "ark-ff",
- "blake2",
- "cfg-if",
- "hex",
- "num-bigint",
- "num-traits",
- "serde",
-]
-
-[[package]]
 name = "nom"
-version = "7.1.1"
+version = "7.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
+checksum = "e5507769c4919c998e69e49c839d9dc6e693ede4cc4290d6ad8b41d4f09c548c"
 dependencies = [
  "memchr",
  "minimal-lexical",

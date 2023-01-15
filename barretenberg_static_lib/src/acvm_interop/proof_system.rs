@@ -58,7 +58,7 @@ impl ProofSystemCompiler for Plonk {
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
         let constraint_system = serialise_circuit(&circuit);
 
-        let mut composer = StandardComposer::new(constraint_system);
+        let composer = StandardComposer::new(constraint_system);
 
         let circuit_size = composer.get_exact_circuit_size();
 

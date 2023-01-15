@@ -3,7 +3,6 @@ use blake2::Blake2s;
 use common::acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
 use common::acvm::pwg::{self, input_to_value};
 use common::acvm::FieldElement;
-use common::merkle::MerkleTree;
 use sha2::Digest;
 use std::collections::BTreeMap;
 
@@ -144,7 +143,7 @@ impl GadgetCaller {
                 initial_witness.insert(gadget_call.outputs[0], pub_x);
                 initial_witness.insert(gadget_call.outputs[1], pub_y);
             }
-            OPCODE::ToBits => unreachable!(),
+            _ => unreachable!(),
         }
         Ok(())
     }
