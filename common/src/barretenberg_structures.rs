@@ -12,7 +12,7 @@ impl Assignments {
         buffer.extend_from_slice(&witness_len.to_be_bytes());
 
         for assignment in self.0.iter() {
-            buffer.extend_from_slice(&assignment.to_bytes());
+            buffer.extend_from_slice(&assignment.to_be_bytes());
         }
 
         buffer
@@ -60,11 +60,11 @@ impl Constraint {
         buffer.extend_from_slice(&self.c.to_be_bytes());
 
         // serialise selectors
-        buffer.extend_from_slice(&self.qm.to_bytes());
-        buffer.extend_from_slice(&self.ql.to_bytes());
-        buffer.extend_from_slice(&self.qr.to_bytes());
-        buffer.extend_from_slice(&self.qo.to_bytes());
-        buffer.extend_from_slice(&self.qc.to_bytes());
+        buffer.extend_from_slice(&self.qm.to_be_bytes());
+        buffer.extend_from_slice(&self.ql.to_be_bytes());
+        buffer.extend_from_slice(&self.qr.to_be_bytes());
+        buffer.extend_from_slice(&self.qo.to_be_bytes());
+        buffer.extend_from_slice(&self.qc.to_be_bytes());
 
         buffer
     }

@@ -5,7 +5,7 @@ use super::Barretenberg;
 
 impl Barretenberg {
     pub fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
-        let lhs_ptr = self.allocate(&input.to_bytes()); // 0..32
+        let lhs_ptr = self.allocate(&input.to_be_bytes()); // 0..32
         let result_ptr = Value::I32(32);
         self.call_multiple("compute_public_key", vec![&lhs_ptr, &result_ptr]);
 
