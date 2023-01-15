@@ -1,8 +1,8 @@
 use crate::Barretenberg;
 use blake2::Blake2s;
-use common::acvm::acir::{circuit::gate::GadgetCall, native_types::Witness, OPCODE};
-use common::acvm::pwg::{self, input_to_value};
-use common::acvm::FieldElement;
+use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc};
+use common::acvm::pwg::{self, witness_to_value};
+use common::acvm::{FieldElement, OpcodeResolutionError};
 use sha2::Digest;
 use std::collections::BTreeMap;
 
@@ -12,38 +12,43 @@ use std::collections::BTreeMap;
 pub struct GadgetCaller;
 
 impl GadgetCaller {
-    pub fn solve_gadget_call(
+    pub fn solve_blackbox_func_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gadget_call: &GadgetCall,
-    ) -> Result<(), OPCODE> {
+        gadget_call: &BlackBoxFuncCall,
+    ) -> Result<(), OpcodeResolutionError> {
         match gadget_call.name {
-            OPCODE::SHA256 => pwg::hash::sha256(initial_witness, gadget_call),
-            OPCODE::Blake2s => pwg::hash::blake2s(initial_witness, gadget_call),
-            OPCODE::EcdsaSecp256k1 => {
-                pwg::signature::ecdsa::secp256k1_prehashed(initial_witness, gadget_call)
+            BlackBoxFunc::SHA256 => pwg::hash::sha256(initial_witness, gadget_call),
+            BlackBoxFunc::Blake2s => pwg::hash::blake2s(initial_witness, gadget_call),
+            BlackBoxFunc::EcdsaSecp256k1 => {
+                pwg::signature::ecdsa::secp256k1_prehashed(initial_witness, gadget_call)?
             }
-            OPCODE::AES => return Err(gadget_call.name),
-            OPCODE::MerkleMembership => {
+            BlackBoxFunc::AES => {
+                return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(
+                    gadget_call.name,
+                ))
+            }
+            BlackBoxFunc::MerkleMembership => {
                 let mut inputs_iter = gadget_call.inputs.iter();
 
                 let _root = inputs_iter.next().expect("expected a root");
-                let root = input_to_value(initial_witness, _root);
+                let root = witness_to_value(initial_witness, _root.witness)?;
 
                 let _leaf = inputs_iter.next().expect("expected a leaf");
-                let leaf = input_to_value(initial_witness, _leaf);
+                let leaf = witness_to_value(initial_witness, _leaf.witness)?;
 
                 let _index = inputs_iter.next().expect("expected an index");
-                let index = input_to_value(initial_witness, _index);
+                let index = witness_to_value(initial_witness, _index.witness)?;
 
-                let hash_path: Vec<_> = inputs_iter
-                    .map(|input| input_to_value(initial_witness, input))
+                let hash_path: Result<Vec<_>, _> = inputs_iter
+                    .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
+
                 let result =
-                    common::merkle::check_membership::<Barretenberg>(hash_path, root, index, leaf);
+                    common::merkle::check_membership::<Barretenberg>(hash_path?, root, index, leaf);
 
                 initial_witness.insert(gadget_call.outputs[0], result);
             }
-            OPCODE::SchnorrVerify => {
+            BlackBoxFunc::SchnorrVerify => {
                 // In barretenberg, if the signature fails, then the whole thing fails.
                 //
 
@@ -52,12 +57,14 @@ impl GadgetCaller {
                 let _pub_key_x = inputs_iter
                     .next()
                     .expect("expected `x` component for public key");
-                let pub_key_x = input_to_value(initial_witness, _pub_key_x).to_bytes();
+                let pub_key_x =
+                    witness_to_value(initial_witness, _pub_key_x.witness)?.to_be_bytes();
 
                 let _pub_key_y = inputs_iter
                     .next()
                     .expect("expected `y` component for public key");
-                let pub_key_y = input_to_value(initial_witness, _pub_key_y).to_bytes();
+                let pub_key_y =
+                    witness_to_value(initial_witness, _pub_key_y.witness)?.to_be_bytes();
 
                 let pub_key_bytes: Vec<u8> = pub_key_x
                     .iter()
@@ -71,14 +78,14 @@ impl GadgetCaller {
                     let _sig_i = inputs_iter.next().unwrap_or_else(|| {
                         panic!("signature should be 64 bytes long, found only {i} bytes")
                     });
-                    let sig_i = input_to_value(initial_witness, _sig_i);
-                    *sig = *sig_i.to_bytes().last().unwrap()
+                    let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
+                    *sig = *sig_i.to_be_bytes().last().unwrap()
                 }
 
                 let mut message = Vec::new();
                 for msg in inputs_iter {
-                    let msg_i_field = input_to_value(initial_witness, msg);
-                    let msg_i = *msg_i_field.to_bytes().last().unwrap();
+                    let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
+                    let msg_i = *msg_i_field.to_be_bytes().last().unwrap();
                     message.push(msg_i);
                 }
 
@@ -91,20 +98,20 @@ impl GadgetCaller {
 
                 initial_witness.insert(gadget_call.outputs[0], result);
             }
-            OPCODE::Pedersen => {
+            BlackBoxFunc::Pedersen => {
                 let inputs_iter = gadget_call.inputs.iter();
 
-                let scalars: Vec<_> = inputs_iter
-                    .map(|input| *input_to_value(initial_witness, input))
+                let scalars: Result<Vec<_>, _> = inputs_iter
+                    .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
-
+                let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
                 let mut barretenberg = Barretenberg::new();
 
                 let (res_x, res_y) = barretenberg.encrypt(scalars);
                 initial_witness.insert(gadget_call.outputs[0], res_x);
                 initial_witness.insert(gadget_call.outputs[1], res_y);
             }
-            OPCODE::HashToField => {
+            BlackBoxFunc::HashToField128Security => {
                 // Deal with Blake2s -- XXX: It's not possible for pwg to know that it is Blake2s
                 // We need to get this method from the backend
                 let mut hasher = Blake2s::new();
@@ -131,7 +138,7 @@ impl GadgetCaller {
 
                 initial_witness.insert(gadget_call.outputs[0], reduced_res);
             }
-            OPCODE::FixedBaseScalarMul => {
+            BlackBoxFunc::FixedBaseScalarMul => {
                 let scalar = initial_witness.get(&gadget_call.inputs[0].witness);
                 let scalar = match scalar {
                     None => panic!("cannot find witness assignment for {scalar:?}"),
