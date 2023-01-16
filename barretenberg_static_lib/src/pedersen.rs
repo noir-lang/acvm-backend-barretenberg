@@ -1,5 +1,4 @@
 use common::acvm::FieldElement;
-use std::convert::TryInto;
 
 use super::field_to_array;
 use super::Barretenberg;
@@ -7,8 +6,8 @@ use super::Barretenberg;
 impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         let result_bytes = barretenberg_wrapper::pedersen::compress_native(
-            left.to_bytes().as_slice().try_into().unwrap(),
-            right.to_bytes().as_slice().try_into().unwrap(),
+            left.to_be_bytes().as_slice().try_into().unwrap(),
+            right.to_be_bytes().as_slice().try_into().unwrap(),
         );
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
