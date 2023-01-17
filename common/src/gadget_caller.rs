@@ -130,11 +130,7 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
                 let witness = &input_index.witness;
                 let num_bits = input_index.num_bits;
 
-                let witness_assignment = initial_witness.get(witness);
-                let assignment = match witness_assignment {
-                    None => panic!("cannot find witness assignment for {witness:?}"),
-                    Some(assignment) => assignment,
-                };
+                let assignment = witness_to_value(initial_witness, *witness)?;
 
                 let bytes = assignment.fetch_nearest_bytes(num_bits as usize);
 
@@ -148,11 +144,8 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
             initial_witness.insert(gadget_call.outputs[0], reduced_res);
         }
         BlackBoxFunc::FixedBaseScalarMul => {
-            let scalar = initial_witness.get(&gadget_call.inputs[0].witness);
-            let scalar = match scalar {
-                None => panic!("cannot find witness assignment for {scalar:?}"),
-                Some(assignment) => assignment,
-            };
+            let scalar = witness_to_value(initial_witness, gadget_call.inputs[0].witness)?;
+
             let mut barretenberg = <B as BarretenbergShared>::new();
             let (pub_x, pub_y) = barretenberg.fixed_base(scalar);
 
