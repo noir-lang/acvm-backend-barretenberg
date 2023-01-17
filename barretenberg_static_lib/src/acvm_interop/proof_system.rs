@@ -1,5 +1,5 @@
 use super::Plonk;
-use crate::composer::{remove_public_inputs, StandardComposer};
+use crate::composer::StandardComposer;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
@@ -32,10 +32,7 @@ impl ProofSystemCompiler for Plonk {
             sorted_witness.push(value);
         }
 
-        remove_public_inputs(
-            circuit.public_inputs.0.len(),
-            composer.create_proof(sorted_witness),
-        )
+        composer.create_proof(sorted_witness)
     }
 
     fn verify_from_cs(

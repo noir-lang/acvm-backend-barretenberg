@@ -114,7 +114,7 @@ impl StandardComposer {
             now.elapsed().as_nanos(),
             now.elapsed().as_secs(),
         );
-        result
+        remove_public_inputs(self.constraint_system.public_inputs.len(), result)
     }
 
     pub fn verify(
