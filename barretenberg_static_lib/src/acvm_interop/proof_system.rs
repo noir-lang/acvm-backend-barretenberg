@@ -57,9 +57,7 @@ impl ProofSystemCompiler for Plonk {
 
         let composer = StandardComposer::new(constraint_system);
 
-        let circuit_size = composer.get_exact_circuit_size();
-
-        circuit_size
+        composer.get_exact_circuit_size()
     }
 
     fn blackbox_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
