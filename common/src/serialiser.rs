@@ -5,9 +5,9 @@ use crate::barretenberg_structures::{
     HashToFieldConstraint, LogicConstraint, MerkleMembershipConstraint, PedersenConstraint,
     RangeConstraint, SchnorrConstraint, Sha256Constraint,
 };
-use acvm::acir::circuit::{Circuit, Gate};
+use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
-use acvm::acir::OPCODE;
+use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
 
 /// Converts an `IR` into the `StandardFormat` constraint system
@@ -25,40 +25,64 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
     let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
     let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
 
-    for gate in circuit.gates.iter() {
+    for gate in circuit.opcodes.iter() {
         match gate {
-            Gate::Arithmetic(expression) => {
+            Opcode::Arithmetic(expression) => {
                 let constraint = serialise_arithmetic_gates(expression);
                 constraints.push(constraint);
             }
-            Gate::Range(witness, num_bits) => {
-                let range_constraint = RangeConstraint {
-                    a: witness.witness_index() as i32,
-                    num_bits: *num_bits as i32,
-                };
-                range_constraints.push(range_constraint);
-            }
-            Gate::And(and_gate) => {
-                let and = LogicConstraint::and(
-                    and_gate.a.witness_index() as i32,
-                    and_gate.b.witness_index() as i32,
-                    and_gate.result.witness_index() as i32,
-                    and_gate.num_bits as i32,
-                );
-                logic_constraints.push(and);
-            }
-            Gate::Xor(xor_gate) => {
-                let xor = LogicConstraint::xor(
-                    xor_gate.a.witness_index() as i32,
-                    xor_gate.b.witness_index() as i32,
-                    xor_gate.result.witness_index() as i32,
-                    xor_gate.num_bits as i32,
-                );
-                logic_constraints.push(xor);
-            }
-            Gate::GadgetCall(gadget_call) => {
+            Opcode::BlackBoxFuncCall(gadget_call) => {
                 match gadget_call.name {
-                    OPCODE::SHA256 => {
+                    BlackBoxFunc::RANGE => {
+                        assert_eq!(gadget_call.inputs.len(), 1);
+                        assert_eq!(gadget_call.outputs.len(), 0);
+
+                        let function_input = &gadget_call.inputs[0];
+                        let witness = function_input.witness;
+                        let num_bits = function_input.num_bits;
+
+                        let range_constraint = RangeConstraint {
+                            a: witness.witness_index() as i32,
+                            num_bits: num_bits as i32,
+                        };
+                        range_constraints.push(range_constraint);
+                    }
+                    BlackBoxFunc::AND | BlackBoxFunc::XOR => {
+                        assert_eq!(gadget_call.inputs.len(), 2);
+                        assert_eq!(gadget_call.outputs.len(), 1);
+
+                        let function_input_lhs = &gadget_call.inputs[0];
+                        let witness_lhs = function_input_lhs.witness;
+
+                        let function_input_rhs = &gadget_call.inputs[1];
+                        let witness_rhs = function_input_rhs.witness;
+
+                        let function_output = &gadget_call.outputs[0];
+
+                        assert_eq!(function_input_lhs.num_bits, function_input_rhs.num_bits);
+                        let num_bits = function_input_rhs.num_bits;
+
+                        if gadget_call.name == BlackBoxFunc::AND {
+                            let and = LogicConstraint::and(
+                                witness_lhs.witness_index() as i32,
+                                witness_rhs.witness_index() as i32,
+                                function_output.witness_index() as i32,
+                                num_bits as i32,
+                            );
+                            logic_constraints.push(and);
+                        } else if gadget_call.name == BlackBoxFunc::XOR {
+                            let xor = LogicConstraint::xor(
+                                witness_lhs.witness_index() as i32,
+                                witness_rhs.witness_index() as i32,
+                                function_output.witness_index() as i32,
+                                num_bits as i32,
+                            );
+                            logic_constraints.push(xor);
+                        } else {
+                            unreachable!("expected either an AND or XOR opcode")
+                        }
+                    }
+                    BlackBoxFunc::SHA256 => {
                         let mut sha256_inputs: Vec<(i32, i32)> = Vec::new();
                         for input in gadget_call.inputs.iter() {
                             let witness_index = input.witness.witness_index() as i32;
@@ -85,7 +109,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         sha256_constraints.push(sha256_constraint);
                     }
-                    OPCODE::Blake2s => {
+                    BlackBoxFunc::Blake2s => {
                         let mut blake2s_inputs: Vec<(i32, i32)> = Vec::new();
                         for input in gadget_call.inputs.iter() {
                             let witness_index = input.witness.witness_index() as i32;
@@ -112,7 +136,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         blake2s_constraints.push(blake2s_constraint);
                     }
-                    OPCODE::MerkleMembership => {
+                    BlackBoxFunc::MerkleMembership => {
                         let mut inputs_iter = gadget_call.inputs.iter().peekable();
 
                         // root
@@ -157,7 +181,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         merkle_membership_constraints.push(constraint);
                     }
-                    OPCODE::SchnorrVerify => {
+                    BlackBoxFunc::SchnorrVerify => {
                         let mut inputs_iter = gadget_call.inputs.iter();
 
                         // pub_key_x
@@ -206,8 +230,8 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         schnorr_constraints.push(constraint);
                     }
-                    OPCODE::AES => panic!("AES has not yet been implemented"),
-                    OPCODE::Pedersen => {
+                    BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
+                    BlackBoxFunc::Pedersen => {
                         let mut inputs = Vec::new();
                         for scalar in gadget_call.inputs.iter() {
                             let scalar_index = scalar.witness.witness_index() as i32;
@@ -225,7 +249,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         pedersen_constraints.push(constraint);
                     }
-                    OPCODE::HashToField => {
+                    BlackBoxFunc::HashToField128Security => {
                         let mut hash_to_field_inputs: Vec<(i32, i32)> = Vec::new();
                         for input in gadget_call.inputs.iter() {
                             let witness_index = input.witness.witness_index() as i32;
@@ -244,7 +268,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         hash_to_field_constraints.push(hash_to_field_constraint);
                     }
-                    OPCODE::EcdsaSecp256k1 => {
+                    BlackBoxFunc::EcdsaSecp256k1 => {
                         let mut inputs_iter = gadget_call.inputs.iter();
 
                         // public key x
@@ -295,7 +319,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         ecdsa_secp256k1_constraints.push(constraint);
                     }
-                    OPCODE::FixedBaseScalarMul => {
+                    BlackBoxFunc::FixedBaseScalarMul => {
                         assert_eq!(gadget_call.inputs.len(), 1);
                         let scalar = gadget_call.inputs[0].witness.witness_index() as i32;
 
@@ -311,10 +335,9 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
-                    _ => unreachable!("opcode is not supported in Barretenberg"),
                 };
             }
-            Gate::Directive(_) => {
+            Opcode::Directive(_) => {
                 // Directives are only needed by the pwg
             }
         }

@@ -1,4 +1,4 @@
-use common::acvm::acir::{self, circuit::gate::GadgetCall, native_types::Witness};
+use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::PartialWitnessGenerator;
 use std::collections::BTreeMap;
@@ -10,10 +10,10 @@ use self::gadget_call::GadgetCaller;
 use super::Plonk;
 
 impl PartialWitnessGenerator for Plonk {
-    fn solve_gadget_call(
+    fn solve_blackbox_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        gc: &GadgetCall,
-    ) -> Result<(), acir::OPCODE> {
-        GadgetCaller::solve_gadget_call(initial_witness, gc)
+        func_call: &BlackBoxFuncCall,
+    ) -> Result<(), common::acvm::OpcodeResolutionError> {
+        GadgetCaller::solve_blackbox_func_call(initial_witness, func_call)
     }
 }

@@ -7,8 +7,8 @@ use super::Barretenberg;
 
 impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
-        let lhs_ptr = self.allocate(&left.to_bytes()); // 0..32
-        let rhs_ptr = self.allocate(&right.to_bytes()); // 32..64
+        let lhs_ptr = self.allocate(&left.to_be_bytes()); // 0..32
+        let rhs_ptr = self.allocate(&right.to_be_bytes()); // 32..64
         let result_ptr = Value::I32(64); // 64..96
         self.call_multiple(
             "pedersen__compress_fields",

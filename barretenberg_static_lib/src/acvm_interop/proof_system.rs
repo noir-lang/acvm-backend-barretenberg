@@ -1,5 +1,5 @@
 use super::Plonk;
-use crate::composer::{remove_public_inputs, StandardComposer};
+use crate::composer::StandardComposer;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
@@ -32,10 +32,7 @@ impl ProofSystemCompiler for Plonk {
             sorted_witness.push(value);
         }
 
-        remove_public_inputs(
-            circuit.public_inputs.0.len(),
-            composer.create_proof(sorted_witness),
-        )
+        composer.create_proof(sorted_witness)
     }
 
     fn verify_from_cs(
@@ -60,8 +57,23 @@ impl ProofSystemCompiler for Plonk {
 
         let composer = StandardComposer::new(constraint_system);
 
-        let circuit_size = composer.get_exact_circuit_size();
+        composer.get_exact_circuit_size()
+    }
 
-        circuit_size
+    fn blackbox_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
+        match opcode {
+            common::acvm::acir::BlackBoxFunc::AES => false,
+            common::acvm::acir::BlackBoxFunc::AND => true,
+            common::acvm::acir::BlackBoxFunc::XOR => true,
+            common::acvm::acir::BlackBoxFunc::RANGE => true,
+            common::acvm::acir::BlackBoxFunc::SHA256 => true,
+            common::acvm::acir::BlackBoxFunc::Blake2s => true,
+            common::acvm::acir::BlackBoxFunc::MerkleMembership => true,
+            common::acvm::acir::BlackBoxFunc::SchnorrVerify => true,
+            common::acvm::acir::BlackBoxFunc::Pedersen => true,
+            common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
+            common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
+            common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
+        }
     }
 }

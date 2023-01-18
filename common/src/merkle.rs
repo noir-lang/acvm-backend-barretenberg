@@ -55,7 +55,7 @@ pub struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
 }
 
 fn insert_root(db: &mut sled::Db, value: FieldElement) {
-    db.insert("ROOT".as_bytes(), value.to_bytes()).unwrap();
+    db.insert("ROOT".as_bytes(), value.to_be_bytes()).unwrap();
 }
 fn fetch_root(db: &sled::Db) -> FieldElement {
     let value = db
@@ -120,7 +120,8 @@ fn insert_hash(db: &mut sled::Db, index: u32, hash: FieldElement) {
     let tree = db.open_tree("hashes").unwrap();
     let index = index as u128;
 
-    tree.insert(index.to_be_bytes(), hash.to_bytes()).unwrap();
+    tree.insert(index.to_be_bytes(), hash.to_be_bytes())
+        .unwrap();
 }
 
 fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128> {
@@ -130,7 +131,7 @@ fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128
         let (key, db_leaf_hash) = index_db_lef_hash.unwrap();
         let index = u128::from_be_bytes(key.to_vec().try_into().unwrap());
 
-        if db_leaf_hash.to_vec() == leaf_value.to_bytes() {
+        if db_leaf_hash.to_vec() == leaf_value.to_be_bytes() {
             return Some(index);
         }
     }

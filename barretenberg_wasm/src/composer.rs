@@ -184,7 +184,7 @@ impl StandardComposer {
         if let Some(pi) = &public_inputs {
             let mut proof_with_pi = Vec::new();
             for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_bytes());
+                proof_with_pi.extend(&assignment.to_be_bytes());
             }
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
