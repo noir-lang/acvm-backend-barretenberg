@@ -375,95 +375,94 @@ mod test {
 
         test_circuit(constraint_system, vec![case_1, case_2]);
     }
-    // TODO: an added asset statement was added, making this test fail
-    // TODO: we can regenerate a signature using the new code
-    // #[test]
-    // fn test_schnorr_constraints() {
-    //     let mut signature_indices = [0i32; 64];
-    //     for i in 13..(13 + 64) {
-    //         signature_indices[i - 13] = i as i32;
-    //     }
-    //     let result_indice = signature_indices.last().unwrap() + 1;
 
-    //     let constraint = SchnorrConstraint {
-    //         message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    //         public_key_x: 11,
-    //         public_key_y: 12,
-    //         signature: signature_indices,
-    //         result: result_indice,
-    //     };
+    #[test]
+    fn test_schnorr_constraints() {
+        let mut signature_indices = [0i32; 64];
+        for i in 13..(13 + 64) {
+            signature_indices[i - 13] = i as i32;
+        }
+        let result_indice = signature_indices.last().unwrap() + 1;
 
-    //     let arith_constraint = Constraint {
-    //         a: result_indice,
-    //         b: result_indice,
-    //         c: result_indice,
-    //         qm: Scalar::zero(),
-    //         ql: Scalar::zero(),
-    //         qr: Scalar::zero(),
-    //         qo: Scalar::one(),
-    //         qc: -Scalar::one(),
-    //     };
+        let constraint = SchnorrConstraint {
+            message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            public_key_x: 11,
+            public_key_y: 12,
+            signature: signature_indices,
+            result: result_indice,
+        };
 
-    //     let constraint_system = ConstraintSystem {
-    //         var_num: 80,
-    //         public_inputs: vec![],
-    //         logic_constraints: vec![],
-    //         range_constraints: vec![],
-    //         sha256_constraints: vec![],
-    //         merkle_membership_constraints: vec![],
-    //         schnorr_constraints: vec![constraint],
-    //         blake2s_constraints: vec![],
-    //         pedersen_constraints: vec![],
-    //         hash_to_field_constraints: vec![],
-    //         constraints: vec![arith_constraint],
-    //         ecdsa_secp256k1_constraints: vec![],
-    //         fixed_base_scalar_mul_constraints: vec![],
-    //     };
+        let arith_constraint = Constraint {
+            a: result_indice,
+            b: result_indice,
+            c: result_indice,
+            qm: Scalar::zero(),
+            ql: Scalar::zero(),
+            qr: Scalar::zero(),
+            qo: Scalar::one(),
+            qc: -Scalar::one(),
+        };
 
-    //     let pub_x =
-    //         Scalar::from_hex("0x17cbd3ed3151ccfd170efe1d54280a6a4822640bf5c369908ad74ea21518a9c5")
-    //             .unwrap();
-    //     let pub_y =
-    //         Scalar::from_hex("0x0e0456e3795c1a31f20035b741cd6158929eeccd320d299cfcac962865a6bc74")
-    //             .unwrap();
+        let constraint_system = ConstraintSystem {
+            var_num: 80,
+            public_inputs: vec![],
+            logic_constraints: vec![],
+            range_constraints: vec![],
+            sha256_constraints: vec![],
+            merkle_membership_constraints: vec![],
+            schnorr_constraints: vec![constraint],
+            blake2s_constraints: vec![],
+            pedersen_constraints: vec![],
+            hash_to_field_constraints: vec![],
+            constraints: vec![arith_constraint],
+            ecdsa_secp256k1_constraints: vec![],
+            fixed_base_scalar_mul_constraints: vec![],
+        };
 
-    //     let sig: [i128; 64] = [
-    //         7, 131, 147, 205, 145, 77, 60, 169, 159, 86, 91, 209, 140, 210, 4, 21, 186, 39, 221,
-    //         195, 62, 35, 220, 144, 135, 28, 201, 97, 145, 125, 146, 211, 92, 16, 67, 59, 162, 133,
-    //         144, 52, 184, 137, 241, 102, 176, 152, 138, 220, 21, 40, 211, 178, 191, 67, 71, 11,
-    //         209, 191, 86, 91, 196, 68, 98, 214,
-    //     ];
-    //     let mut sig_as_scalars = [Scalar::zero(); 64];
-    //     for i in 0..64 {
-    //         sig_as_scalars[i] = sig[i].into()
-    //     }
-    //     let message: Vec<Scalar> = vec![
-    //         0_i128.into(),
-    //         1_i128.into(),
-    //         2_i128.into(),
-    //         3_i128.into(),
-    //         4_i128.into(),
-    //         5_i128.into(),
-    //         6_i128.into(),
-    //         7_i128.into(),
-    //         8_i128.into(),
-    //         9_i128.into(),
-    //     ];
-    //     let mut witness_values = Vec::new();
-    //     witness_values.extend(message);
-    //     witness_values.push(pub_x);
-    //     witness_values.push(pub_y);
-    //     witness_values.extend(&sig_as_scalars);
-    //     witness_values.push(Scalar::zero());
+        let pub_x =
+            Scalar::from_hex("0x17cbd3ed3151ccfd170efe1d54280a6a4822640bf5c369908ad74ea21518a9c5")
+                .unwrap();
+        let pub_y =
+            Scalar::from_hex("0x0e0456e3795c1a31f20035b741cd6158929eeccd320d299cfcac962865a6bc74")
+                .unwrap();
 
-    //     let case_1 = WitnessResult {
-    //         witness: Assignments(witness_values),
-    //         public_inputs: None,
-    //         result: true,
-    //     };
+        let sig: [i128; 64] = [
+            5, 202, 31, 146, 81, 242, 246, 69, 43, 107, 249, 153, 198, 44, 14, 111, 191, 121, 137,
+            166, 160, 103, 18, 181, 243, 233, 226, 95, 67, 16, 37, 128, 85, 76, 19, 253, 30, 77,
+            192, 53, 138, 205, 69, 33, 236, 163, 83, 194, 84, 137, 184, 221, 176, 121, 179, 27, 63,
+            70, 54, 16, 176, 250, 39, 239,
+        ];
+        let mut sig_as_scalars = [Scalar::zero(); 64];
+        for i in 0..64 {
+            sig_as_scalars[i] = sig[i].into()
+        }
+        let message: Vec<Scalar> = vec![
+            0_i128.into(),
+            1_i128.into(),
+            2_i128.into(),
+            3_i128.into(),
+            4_i128.into(),
+            5_i128.into(),
+            6_i128.into(),
+            7_i128.into(),
+            8_i128.into(),
+            9_i128.into(),
+        ];
+        let mut witness_values = Vec::new();
+        witness_values.extend(message);
+        witness_values.push(pub_x);
+        witness_values.push(pub_y);
+        witness_values.extend(&sig_as_scalars);
+        witness_values.push(Scalar::zero());
 
-    //     test_circuit(constraint_system, vec![case_1]);
-    // }
+        let case_1 = WitnessResult {
+            witness: Assignments(witness_values),
+            public_inputs: None,
+            result: true,
+        };
+
+        test_circuit(constraint_system, vec![case_1]);
+    }
 
     #[test]
     fn test_ped_constraints() {
