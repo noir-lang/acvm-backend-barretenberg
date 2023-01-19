@@ -218,7 +218,6 @@ dependencies = [
  "barretenberg_wrapper",
  "blake2",
  "common",
- "console_error_panic_hook",
  "dirs",
  "downloader",
  "hex",
@@ -246,7 +245,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#2ef8be41993ead9993c09b1d99fef6dc68e231a6"
+source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#95988ba712d03b139e3ee116ad4d5c4050bcef5c"
 dependencies = [
  "bindgen",
  "cmake",
@@ -449,16 +448,6 @@ dependencies = [
  "terminal_size",
  "unicode-width",
  "winapi",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
 ]
 
 [[package]]
