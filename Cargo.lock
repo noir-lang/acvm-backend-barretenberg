@@ -5,8 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aad7977c11d19ae0dd983b50dc5fd9eb96c002072f75643e45daa6dc0c23fba5"
+source = "git+https://github.com/vezenovm/acvm?branch=mv/logging#c1577fe22ca2fe64c11d67cb1f80055f5bb4f0b5"
 dependencies = [
  "acir_field",
  "flate2",
@@ -17,8 +16,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "687506e635efa7ce15d6b93ceae14dec1519ed2e54c24298fc8c40e86edbce24"
+source = "git+https://github.com/vezenovm/acvm?branch=mv/logging#c1577fe22ca2fe64c11d67cb1f80055f5bb4f0b5"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -33,8 +31,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99007127e84602134226eefc2245c59b7fe55853bfeba572714b04c5b3fefdea"
+source = "git+https://github.com/vezenovm/acvm?branch=mv/logging#c1577fe22ca2fe64c11d67cb1f80055f5bb4f0b5"
 dependencies = [
  "acir",
  "acir_field",
@@ -52,8 +49,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4f5ef183f4a10b4a257d25c3a37fd090b9e8fbb7dff0902329fb6606b524114"
+source = "git+https://github.com/vezenovm/acvm?branch=mv/logging#c1577fe22ca2fe64c11d67cb1f80055f5bb4f0b5"
 dependencies = [
  "acir",
  "acir_field",
@@ -218,7 +214,6 @@ dependencies = [
  "barretenberg_wrapper",
  "blake2",
  "common",
- "console_error_panic_hook",
  "dirs",
  "downloader",
  "hex",
@@ -449,16 +444,6 @@ dependencies = [
  "terminal_size",
  "unicode-width",
  "winapi",
-]
-
-[[package]]
-name = "console_error_panic_hook"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a06aeb73f470f66dcdbf7223caeebb85984942f22f1adb2a088cf9668146bbbc"
-dependencies = [
- "cfg-if",
- "wasm-bindgen",
 ]
 
 [[package]]
