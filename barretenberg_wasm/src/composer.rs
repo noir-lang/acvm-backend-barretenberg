@@ -128,8 +128,6 @@ impl StandardComposer {
     }
 
     pub fn create_proof(&mut self, witness: WitnessAssignments) -> Vec<u8> {
-        let now = std::time::Instant::now();
-
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
 
@@ -184,7 +182,6 @@ impl StandardComposer {
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
         }
-        let now = std::time::Instant::now();
 
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
