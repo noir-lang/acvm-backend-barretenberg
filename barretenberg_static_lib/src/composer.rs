@@ -109,11 +109,6 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize)
         }
-        println!(
-            "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
         remove_public_inputs(self.constraint_system.public_inputs.len(), result)
     }
 
@@ -140,21 +135,14 @@ impl StandardComposer {
         }
         let now = std::time::Instant::now();
 
-        let verified;
         unsafe {
-            verified = barretenberg_wrapper::composer::verify(
+            barretenberg_wrapper::composer::verify(
                 self.pippenger.pointer(),
                 &proof,
                 &self.constraint_system.to_bytes(),
                 &self.crs.g2_data,
-            );
+            )
         }
-        println!(
-            "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
-        verified
     }
 }
 
