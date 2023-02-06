@@ -60,7 +60,7 @@ impl ProofSystemCompiler for Plonk {
         composer.get_exact_circuit_size()
     }
 
-    fn blackbox_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
+    fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
         match opcode {
             common::acvm::acir::BlackBoxFunc::AES => false,
             common::acvm::acir::BlackBoxFunc::AND => true,
