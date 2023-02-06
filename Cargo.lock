@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.3.1"
-source = "git+https://github.com/noir-lang/acvm?rev=e459ba40c2ed090beea097e13d4f716ead20a7e2#e459ba40c2ed090beea097e13d4f716ead20a7e2"
+version = "0.4.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "88e54fd5d5ae08e2ec66ece15ac370e44b60b1b1fb515e314aab2f5da7a3c780"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,7 +17,8 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.3.1"
-source = "git+https://github.com/noir-lang/acvm?rev=e459ba40c2ed090beea097e13d4f716ead20a7e2#e459ba40c2ed090beea097e13d4f716ead20a7e2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "687506e635efa7ce15d6b93ceae14dec1519ed2e54c24298fc8c40e86edbce24"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,8 +32,9 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.3.1"
-source = "git+https://github.com/noir-lang/acvm?rev=e459ba40c2ed090beea097e13d4f716ead20a7e2#e459ba40c2ed090beea097e13d4f716ead20a7e2"
+version = "0.4.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c3033563298e7ebd62bc66cf4bed50ecb614dc076dd99891ab6bb8684aa2da7"
 dependencies = [
  "acir",
  "acir_field",
@@ -48,8 +51,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.3.1"
-source = "git+https://github.com/noir-lang/acvm?rev=e459ba40c2ed090beea097e13d4f716ead20a7e2#e459ba40c2ed090beea097e13d4f716ead20a7e2"
+version = "0.4.0-alpha"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ec3a64f71899b4b7ba6e6f749b44f726b53def7d428b58ebc75198f54531e01"
 dependencies = [
  "acir",
  "acir_field",
