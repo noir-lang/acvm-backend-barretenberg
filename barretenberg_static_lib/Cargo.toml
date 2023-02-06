@@ -15,7 +15,7 @@ blake2 = "0.9.1"
 sled = "0.34.6"
 
 dirs = "3.0"
-downloader = { version = "0.2.6" }
+downloader = { version = "0.2.7", default-features = false, features = ["rustls-tls"] }
 tempfile = "3.3.0"
 indicatif = "0.15.0"
 regex = "1.4.0"
