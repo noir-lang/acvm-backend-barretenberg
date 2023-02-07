@@ -10,6 +10,8 @@ pub struct StandardComposer {
 
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
+        // TODO: we should avoid this as we compute the proving key in here 
+        // meaning we are computing the key for any methods that use this composer impl
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
 
         let crs = CRS::new(circuit_size as usize + 1);
@@ -253,7 +255,8 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
+            // result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
+            result = slice::from_raw_parts(proof_addr, proof_size as usize);
         }
         println!(
             "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
@@ -287,17 +290,22 @@ impl StandardComposer {
         }
         let now = std::time::Instant::now();
         let cs_buf = self.constraint_system.to_bytes();
+        let verification_key = verification_key.to_vec();
 
         let verified;
         unsafe {
             verified = barretenberg_wrapper::composer::verify_with_vk(
                 self.pippenger.pointer(),
                 &self.crs.g2_data,
-                verification_key,
+                &verification_key,
                 &cs_buf,
                 &proof,
             );
         }
+
+        std::mem::forget(verification_key);
+        std::mem::forget(cs_buf);
+
         println!(
             "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
             now.elapsed().as_nanos(),
