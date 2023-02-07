@@ -173,7 +173,8 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
+            // result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
+            result = slice::from_raw_parts(pk_addr, pk_size as usize)
         }
         println!(
             "Proving key generation time (Rust + Static Lib) : {}ns ~ {}seconds",
@@ -191,13 +192,14 @@ impl StandardComposer {
         let vk_ptr = &mut vk_addr as *mut *mut u8;
         let g2_clone = self.crs.g2_data.clone();
         let pippenger_ptr = self.pippenger.pointer();
+        let proving_key = proving_key.to_vec();
 
         let vk_size;
         unsafe {
             vk_size = barretenberg_wrapper::composer::init_verification_key(
                 pippenger_ptr,
                 &g2_clone,
-                proving_key,
+                &proving_key,
                 vk_ptr,
             )
         }
@@ -229,13 +231,14 @@ impl StandardComposer {
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
+        let g2_clone = self.crs.g2_data.clone();
         let witness_buf = witness.to_bytes();
         let proof_size;
         let proving_key = proving_key.to_vec();
         unsafe {
             proof_size = barretenberg_wrapper::composer::create_proof_with_pk(
                 self.pippenger.pointer(),
-                &self.crs.g2_data,
+                &g2_clone,
                 &proving_key,
                 &cs_buf,
                 &witness_buf,
@@ -243,6 +246,7 @@ impl StandardComposer {
             );
         }
 
+        std::mem::forget(g2_clone);
         std::mem::forget(proving_key);
         std::mem::forget(cs_buf);
         std::mem::forget(witness_buf);
