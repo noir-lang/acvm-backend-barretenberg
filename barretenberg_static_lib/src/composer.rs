@@ -10,20 +10,6 @@ pub struct StandardComposer {
     pub verification_key: Vec<u8>,
 }
 
-pub fn pk_location() -> std::path::PathBuf {
-    let mut pk_dir = dirs::home_dir().unwrap();
-    pk_dir.push(std::path::Path::new("noir_cache"));
-    pk_dir.push(std::path::Path::new("pk.key"));
-    pk_dir
-}
-
-pub fn vk_location() -> std::path::PathBuf {
-    let mut vk_dir = dirs::home_dir().unwrap();
-    vk_dir.push(std::path::Path::new("noir_cache"));
-    vk_dir.push(std::path::Path::new("vk.key"));
-    vk_dir
-}
-
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
