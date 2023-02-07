@@ -233,7 +233,7 @@ impl StandardComposer {
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
-        let witness_buf = &witness.to_bytes();
+        let witness_buf = witness.to_bytes();
         let proof_size;
         let proving_key = proving_key.to_vec();
         unsafe {
@@ -242,7 +242,7 @@ impl StandardComposer {
                 &self.crs.g2_data,
                 &proving_key,
                 &cs_buf,
-                witness_buf,
+                &witness_buf,
                 p_proof,
             );
         }
@@ -519,7 +519,10 @@ mod test {
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
-        test_composer_with_pk_vk(constraint_system.clone(), vec![case_1.clone(), case_2.clone()]);
+        test_composer_with_pk_vk(
+            constraint_system.clone(),
+            vec![case_1.clone(), case_2.clone()],
+        );
 
         test_circuit(constraint_system, vec![case_1, case_2]);
     }
@@ -713,11 +716,7 @@ mod test {
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
 
-            let verified = sc.verify_with_keys(
-                &proof,
-                test_case.public_inputs,
-                &verification_key,
-            );
+            let verified = sc.verify_with_keys(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }
     }
