@@ -76,4 +76,27 @@ impl ProofSystemCompiler for Plonk {
             common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
         }
     }
+
+    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) {
+        unimplemented!()
+    }
+
+    fn prove_with_pk(
+        &self,
+        circuit: Circuit,
+        witness_values: BTreeMap<Witness, FieldElement>,
+        proving_key: Vec<u8>,
+    ) -> Vec<u8> {
+        unimplemented!()
+    }
+
+    fn verify_with_vk(
+        &self,
+        proof: &[u8],
+        public_inputs: Vec<FieldElement>,
+        circuit: Circuit,
+        verification_key: Vec<u8>,
+    ) -> bool {
+        unimplemented!()
+    }
 }
