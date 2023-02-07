@@ -6,8 +6,6 @@ pub struct StandardComposer {
     pippenger: Pippenger,
     crs: CRS,
     constraint_system: ConstraintSystem,
-    pub proving_key: Vec<u8>,
-    pub verification_key: Vec<u8>,
 }
 
 impl StandardComposer {
@@ -22,8 +20,6 @@ impl StandardComposer {
             pippenger,
             crs,
             constraint_system,
-            proving_key: vec![],
-            verification_key: vec![],
         }
     }
 }
@@ -714,7 +710,7 @@ mod test {
         let verification_key = sc.compute_verification_key(&proving_key.clone());
 
         for test_case in test_cases.into_iter() {
-            let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
+            let proof = sc.create_proof_with_pk(test_case.witness, &proving_key.clone());
 
             let verified = sc.verify_with_keys(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
