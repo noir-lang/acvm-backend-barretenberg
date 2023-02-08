@@ -10,7 +10,7 @@ use self::gadget_call::GadgetCaller;
 use super::Plonk;
 
 impl PartialWitnessGenerator for Plonk {
-    fn solve_blackbox_function_call(
+    fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<(), common::acvm::OpcodeResolutionError> {
