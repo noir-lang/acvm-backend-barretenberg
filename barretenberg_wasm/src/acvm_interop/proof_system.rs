@@ -78,8 +78,8 @@ impl ProofSystemCompiler for Plonk {
     }
 
     #[allow(unused_variables)]
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) { 
-        todo!() 
+    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) {
+        todo!()
     }
 
     #[allow(unused_variables)]
