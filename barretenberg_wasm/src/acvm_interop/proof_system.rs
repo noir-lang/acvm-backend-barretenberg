@@ -77,8 +77,8 @@ impl ProofSystemCompiler for Plonk {
         }
     }
 
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) { 
-        todo!() 
+    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) {
+        todo!()
     }
 
     fn prove_with_pk(
