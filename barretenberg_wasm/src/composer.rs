@@ -227,12 +227,10 @@ impl StandardComposer {
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
         let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
 
-        let proving_key = self.barretenberg.slice_memory(
+        self.barretenberg.slice_memory(
             pk_ptr as usize,
             pk_ptr as usize + pk_size.unwrap_i32() as usize,
-        );
-
-        proving_key
+        )
     }
 
     pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
@@ -251,12 +249,10 @@ impl StandardComposer {
         let vk_ptr = self.barretenberg.slice_memory(0, 4);
         let vk_ptr = u32::from_le_bytes(vk_ptr[0..4].try_into().unwrap());
 
-        let verification_key = self.barretenberg.slice_memory(
+        self.barretenberg.slice_memory(
             vk_ptr as usize,
             vk_ptr as usize + vk_size.unwrap_i32() as usize,
-        );
-
-        verification_key
+        )
     }
 
     pub fn create_proof_with_pk(
