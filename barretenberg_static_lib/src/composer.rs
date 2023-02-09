@@ -10,7 +10,7 @@ pub struct StandardComposer {
 
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-        // TODO: we should avoid this as we compute the proving key in here 
+        // TODO: we should avoid this as we compute the proving key in here
         // meaning we are computing the key for any methods that use this composer impl
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
 
