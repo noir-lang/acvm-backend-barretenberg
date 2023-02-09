@@ -214,6 +214,146 @@ impl StandardComposer {
             _ => panic!("Expected a 1 or a zero for the verification result"),
         }
     }
+
+    pub fn compute_proving_key(&mut self) -> Vec<u8> {
+        let cs_buf = self.constraint_system.to_bytes();
+        let cs_ptr = self.barretenberg.allocate(&cs_buf);
+
+        let pk_size = self
+            .barretenberg
+            .call_multiple("c_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
+            .value();
+
+        let pk_ptr = self.barretenberg.slice_memory(0, 4);
+        let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
+
+        let proving_key = self.barretenberg.slice_memory(
+            pk_ptr as usize,
+            pk_ptr as usize + pk_size.unwrap_i32() as usize,
+        );
+
+        proving_key
+    }
+
+    pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
+        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+
+        let pk_ptr = self.barretenberg.allocate(proving_key);
+
+        let vk_size = self
+            .barretenberg
+            .call_multiple(
+                "c_init_verification_key",
+                vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
+            )
+            .value();
+
+        let vk_ptr = self.barretenberg.slice_memory(0, 4);
+        let vk_ptr = u32::from_le_bytes(vk_ptr[0..4].try_into().unwrap());
+
+        let verification_key = self.barretenberg.slice_memory(
+            vk_ptr as usize,
+            vk_ptr as usize + vk_size.unwrap_i32() as usize,
+        );
+
+        verification_key
+    }
+
+    pub fn create_proof_with_pk(
+        &mut self,
+        witness: WitnessAssignments,
+        proving_key: &[u8],
+    ) -> Vec<u8> {
+        let cs_buf = self.constraint_system.to_bytes();
+        let cs_ptr = self.barretenberg.allocate(&cs_buf);
+
+        let witness_buf = witness.to_bytes();
+        let witness_ptr = self.barretenberg.allocate(&witness_buf);
+
+        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+
+        let pk_ptr = self.barretenberg.allocate(proving_key);
+
+        let proof_size = self
+            .barretenberg
+            .call_multiple(
+                "c_new_proof",
+                vec![
+                    &self.pippenger.pointer(),
+                    &g2_ptr,
+                    &pk_ptr,
+                    &cs_ptr,
+                    &witness_ptr,
+                    &Value::I32(0),
+                ],
+            )
+            .value();
+
+        let proof_ptr = self.barretenberg.slice_memory(0, 4);
+        let proof_ptr = u32::from_le_bytes(proof_ptr[0..4].try_into().unwrap());
+
+        let proof = self.barretenberg.slice_memory(
+            proof_ptr as usize,
+            proof_ptr as usize + proof_size.unwrap_i32() as usize,
+        );
+        remove_public_inputs(self.constraint_system.public_inputs.len(), proof)
+    }
+
+    pub fn verify_with_vk(
+        &mut self,
+        // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
+        // This is not the case, if you take the proof directly from Barretenberg
+        proof: &[u8],
+        public_inputs: Option<Assignments>,
+        verification_key: &[u8],
+    ) -> bool {
+        // Prepend the public inputs to the proof.
+        // This is how Barretenberg expects it to be.
+        // This is non-standard however, so this Rust wrapper will strip the public inputs
+        // from proofs created by Barretenberg. Then in Verify we prepend them again.
+        //
+
+        let mut proof = proof.to_vec();
+        if let Some(pi) = &public_inputs {
+            let mut proof_with_pi = Vec::new();
+            for assignment in pi.0.iter() {
+                proof_with_pi.extend(&assignment.to_be_bytes());
+            }
+            proof_with_pi.extend(proof);
+            proof = proof_with_pi;
+        }
+
+        let cs_buf = self.constraint_system.to_bytes();
+        let cs_ptr = self.barretenberg.allocate(&cs_buf);
+
+        let proof_ptr = self.barretenberg.allocate(&proof);
+
+        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+
+        let vk_ptr = self.barretenberg.allocate(verification_key);
+
+        let verified = self
+            .barretenberg
+            .call_multiple(
+                "c_verify_proof",
+                vec![
+                    &g2_ptr,
+                    &vk_ptr,
+                    &cs_ptr,
+                    &proof_ptr,
+                    &Value::I32(proof.len() as i32),
+                ],
+            )
+            .value();
+
+        self.barretenberg.free(proof_ptr);
+
+        match verified.unwrap_i32() {
+            0 => false,
+            1 => true,
+            _ => panic!("Expected a 1 or a zero for the verification result"),
+        }
+    }
 }
 
 pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {

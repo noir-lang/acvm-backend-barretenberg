@@ -125,7 +125,7 @@ impl ProofSystemCompiler for Plonk {
         let constraint_system = serialise_circuit(&circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
-        composer.verify_with_keys(
+        composer.verify_with_vk(
             proof,
             Some(Assignments::from_vec(public_inputs)),
             &verification_key,
