@@ -175,8 +175,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            // result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
-            result = slice::from_raw_parts(pk_addr, pk_size as usize)
+            result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
         }
         println!(
             "Proving key generation time (Rust + Static Lib) : {}ns ~ {}seconds",
@@ -184,7 +183,7 @@ impl StandardComposer {
             now.elapsed().as_secs(),
         );
 
-        result.to_vec()
+        result
     }
 
     pub fn compute_verification_key(&self, proving_key: &[u8]) -> Vec<u8> {
@@ -211,9 +210,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            // TODO: check why verification key output is attempting to free unallocated memory
-            // when using Vec::from_raw_parts
-            result = slice::from_raw_parts(vk_addr, vk_size as usize)
+            result = Vec::from_raw_parts(vk_addr, vk_size as usize, vk_size as usize);
         }
 
         println!(
@@ -256,8 +253,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            // result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
-            result = slice::from_raw_parts(proof_addr, proof_size as usize);
+            result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
         }
         println!(
             "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
