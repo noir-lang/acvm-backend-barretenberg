@@ -215,6 +215,7 @@ impl StandardComposer {
             // when using Vec::from_raw_parts
             result = slice::from_raw_parts(vk_addr, vk_size as usize)
         }
+
         println!(
             "Verification key generation time (Rust + Static Lib) : {}ns ~ {}seconds",
             now.elapsed().as_nanos(),
@@ -295,17 +296,12 @@ impl StandardComposer {
         let verified;
         unsafe {
             verified = barretenberg_wrapper::composer::verify_with_vk(
-                self.pippenger.pointer(),
                 &self.crs.g2_data,
                 &verification_key,
                 &cs_buf,
                 &proof,
             );
         }
-
-        std::mem::forget(verification_key);
-        std::mem::forget(cs_buf);
-
         println!(
             "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
             now.elapsed().as_nanos(),
@@ -716,14 +712,12 @@ mod test {
         test_cases: Vec<WitnessResult>,
     ) {
         let mut sc = StandardComposer::new(constraint_system);
-        let proving_key = sc.compute_proving_key();
 
-        // We must clone here or else we will get an invalid memory reference later when verifying
+        let proving_key = sc.compute_proving_key();
         let verification_key = sc.compute_verification_key(&proving_key);
 
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
-
             let verified = sc.verify_with_keys(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }
