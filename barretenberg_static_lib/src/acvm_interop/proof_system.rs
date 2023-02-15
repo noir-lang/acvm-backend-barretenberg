@@ -38,14 +38,14 @@ impl ProofSystemCompiler for Plonk {
     fn verify_from_cs(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: Circuit,
     ) -> bool {
         let constraint_system = serialise_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        composer.verify(proof, Some(Assignments::from_vec(public_inputs)))
+        composer.verify(proof, Some(Assignments::from_map(public_inputs)))
     }
 
     fn np_language(&self) -> Language {
@@ -60,6 +60,7 @@ impl ProofSystemCompiler for Plonk {
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
         match opcode {
+            common::acvm::acir::BlackBoxFunc::Keccak256 => todo!(),
             common::acvm::acir::BlackBoxFunc::AES => false,
             common::acvm::acir::BlackBoxFunc::AND => true,
             common::acvm::acir::BlackBoxFunc::XOR => true,
@@ -115,7 +116,7 @@ impl ProofSystemCompiler for Plonk {
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: Circuit,
         verification_key: Vec<u8>,
     ) -> bool {
@@ -124,7 +125,7 @@ impl ProofSystemCompiler for Plonk {
 
         composer.verify_with_vk(
             proof,
-            Some(Assignments::from_vec(public_inputs)),
+            Some(Assignments::from_map(public_inputs)),
             &verification_key,
         )
     }

@@ -42,7 +42,7 @@ impl ProofSystemCompiler for Plonk {
     fn verify_from_cs(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: Circuit,
     ) -> bool {
         let serialized = circuit.to_bytes();
@@ -51,7 +51,7 @@ impl ProofSystemCompiler for Plonk {
 
         // Prepend the public inputs to the proof
         let mut proof_with_pub_inputs = Vec::new();
-        for pi in public_inputs {
+        for pi in public_inputs.values() {
             proof_with_pub_inputs.extend(pi.to_bytes())
         }
         proof_with_pub_inputs.extend(proof);

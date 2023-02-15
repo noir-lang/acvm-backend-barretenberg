@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+
+use acvm::acir::native_types::Witness;
 pub use acvm::FieldElement as Scalar;
 
 #[derive(Debug, Clone)]
@@ -20,6 +23,10 @@ impl Assignments {
 
     pub fn from_vec(vec: Vec<Scalar>) -> Assignments {
         Assignments(vec)
+    }
+
+    pub fn from_map(map: BTreeMap<Witness, Scalar>) -> Assignments {
+        Assignments(map.into_values().collect())
     }
 
     pub fn push_i32(&mut self, value: i32) {

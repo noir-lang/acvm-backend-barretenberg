@@ -29,6 +29,7 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
     gadget_call: &BlackBoxFuncCall,
 ) -> Result<(), OpcodeResolutionError> {
     match gadget_call.name {
+        BlackBoxFunc::Keccak256 => todo!(),
         BlackBoxFunc::SHA256 => pwg::hash::sha256(initial_witness, gadget_call),
         BlackBoxFunc::Blake2s => pwg::hash::blake2s(initial_witness, gadget_call),
         BlackBoxFunc::EcdsaSecp256k1 => {
