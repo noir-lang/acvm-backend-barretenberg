@@ -34,6 +34,8 @@ impl StandardComposer {
 }
 
 impl StandardComposer {
+    const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
+
     // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
     // Since it's already done in C++, we are just re-exporting for now
     pub fn smart_contract(&mut self) -> String {
@@ -79,7 +81,11 @@ impl StandardComposer {
         constraint_system: &ConstraintSystem,
     ) -> u32 {
         let num_gates = StandardComposer::get_exact_circuit_size(barretenberg, constraint_system);
-        pow2ceil(num_gates + 4)
+        pow2ceil(
+            num_gates
+                + constraint_system.public_inputs.len() as u32
+                + StandardComposer::NUM_RESERVED_GATES,
+        )
     }
 
     pub fn get_exact_circuit_size(

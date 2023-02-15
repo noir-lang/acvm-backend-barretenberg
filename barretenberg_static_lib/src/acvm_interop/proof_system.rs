@@ -92,7 +92,6 @@ impl ProofSystemCompiler for Plonk {
         proving_key: Vec<u8>,
     ) -> Vec<u8> {
         let constraint_system = serialise_circuit(&circuit);
-
         let mut composer = StandardComposer::new(constraint_system);
 
         // Add witnesses in the correct order
