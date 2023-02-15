@@ -142,8 +142,6 @@ impl StandardComposer {
     }
 
     pub fn compute_proving_key(&self) -> Vec<u8> {
-        let now = std::time::Instant::now();
-
         let cs_buf = self.constraint_system.to_bytes();
         let mut pk_addr: *mut u8 = std::ptr::null_mut();
         let pk_ptr = &mut pk_addr as *mut *mut u8;
@@ -159,18 +157,10 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
         }
-        println!(
-            "Proving key generation time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
-
         result
     }
 
     pub fn compute_verification_key(&self, proving_key: &[u8]) -> Vec<u8> {
-        let now = std::time::Instant::now();
-
         let mut vk_addr: *mut u8 = std::ptr::null_mut();
         let vk_ptr = &mut vk_addr as *mut *mut u8;
         let g2_clone = self.crs.g2_data.clone();
@@ -194,12 +184,6 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(vk_addr, vk_size as usize, vk_size as usize);
         }
-
-        println!(
-            "Verification key generation time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
         result.to_vec()
     }
 
@@ -208,8 +192,6 @@ impl StandardComposer {
         witness: WitnessAssignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let now = std::time::Instant::now();
-
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
@@ -237,11 +219,6 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
         }
-        println!(
-            "Total Proving time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
         remove_public_inputs(self.constraint_system.public_inputs.len(), result.to_vec())
     }
 
@@ -267,7 +244,6 @@ impl StandardComposer {
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
         }
-        let now = std::time::Instant::now();
         let cs_buf = self.constraint_system.to_bytes();
         let verification_key = verification_key.to_vec();
 
@@ -280,11 +256,6 @@ impl StandardComposer {
                 &proof,
             );
         }
-        println!(
-            "Total Verifier time (Rust + Static Lib) : {}ns ~ {}seconds",
-            now.elapsed().as_nanos(),
-            now.elapsed().as_secs(),
-        );
         verified
     }
 }
