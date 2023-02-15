@@ -78,36 +78,18 @@ impl StandardComposer {
         barretenberg: &mut Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
+        let num_gates = StandardComposer::get_exact_circuit_size(barretenberg, constraint_system);
+        pow2ceil(num_gates + 4)
+    }
+
+    pub fn get_exact_circuit_size(
+        barretenberg: &mut Barretenberg,
+        constraint_system: &ConstraintSystem,
+    ) -> u32 {
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = barretenberg.allocate(&cs_buf);
 
         let func = barretenberg
-            .instance
-            .exports
-            .get_function("composer__get_circuit_size")
-            .unwrap();
-
-        let params: Vec<_> = vec![cs_ptr.clone()];
-        match func.call(&params) {
-            Ok(vals) => {
-                let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
-                let u32_val = u32::from_be_bytes(i32_bytes);
-                barretenberg.free(cs_ptr);
-                u32_val
-            }
-            Err(_) => {
-                // Default to 2^19
-                2u32.pow(19)
-            }
-        }
-    }
-
-    pub fn get_exact_circuit_size(&mut self) -> u32 {
-        let cs_buf = self.constraint_system.to_bytes();
-        let cs_ptr = self.barretenberg.allocate(&cs_buf);
-
-        let func = self
-            .barretenberg
             .instance
             .exports
             .get_function("standard_example__get_exact_circuit_size")
@@ -118,7 +100,7 @@ impl StandardComposer {
             Ok(vals) => {
                 let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
                 let u32_val = u32::from_be_bytes(i32_bytes);
-                self.barretenberg.free(cs_ptr);
+                barretenberg.free(cs_ptr);
                 u32_val
             }
             Err(_) => {
@@ -358,4 +340,12 @@ pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec
     // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
     let num_bytes_to_remove = 32 * num_pub_inputs;
     proof[num_bytes_to_remove..].to_vec()
+}
+
+fn pow2ceil(v: u32) -> u32 {
+    let mut p = 1;
+    while p < v {
+        p <<= 1;
+    }
+    p
 }
