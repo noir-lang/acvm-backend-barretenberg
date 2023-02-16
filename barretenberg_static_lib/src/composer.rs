@@ -25,6 +25,8 @@ impl StandardComposer {
 }
 
 impl StandardComposer {
+    const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
+
     // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
     // Since it's already done in C++, we are just re-exporting for now
     pub fn smart_contract(&mut self) -> String {
@@ -62,17 +64,18 @@ impl StandardComposer {
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
     pub fn get_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
-        unsafe {
-            barretenberg_wrapper::composer::get_circuit_size(
-                constraint_system.to_bytes().as_slice().as_ptr(),
-            )
-        }
+        let num_gates = StandardComposer::get_exact_circuit_size(constraint_system);
+        pow2ceil(
+            num_gates
+                + constraint_system.public_inputs.len() as u32
+                + StandardComposer::NUM_RESERVED_GATES,
+        )
     }
 
-    pub fn get_exact_circuit_size(&self) -> u32 {
+    pub fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
         unsafe {
             barretenberg_wrapper::composer::get_exact_circuit_size(
-                self.constraint_system.to_bytes().as_slice().as_ptr(),
+                constraint_system.to_bytes().as_slice().as_ptr(),
             )
         }
     }
@@ -141,6 +144,124 @@ impl StandardComposer {
             )
         }
     }
+
+    pub fn compute_proving_key(&self) -> Vec<u8> {
+        let cs_buf = self.constraint_system.to_bytes();
+        let mut pk_addr: *mut u8 = std::ptr::null_mut();
+        let pk_ptr = &mut pk_addr as *mut *mut u8;
+
+        let pk_size;
+        unsafe {
+            pk_size = barretenberg_wrapper::composer::init_proving_key(&cs_buf, pk_ptr);
+        }
+
+        std::mem::forget(cs_buf);
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
+        }
+        result
+    }
+
+    pub fn compute_verification_key(&self, proving_key: &[u8]) -> Vec<u8> {
+        let mut vk_addr: *mut u8 = std::ptr::null_mut();
+        let vk_ptr = &mut vk_addr as *mut *mut u8;
+        let g2_clone = self.crs.g2_data.clone();
+        let pippenger_ptr = self.pippenger.pointer();
+        let proving_key = proving_key.to_vec();
+
+        let vk_size;
+        unsafe {
+            vk_size = barretenberg_wrapper::composer::init_verification_key(
+                pippenger_ptr,
+                &g2_clone,
+                &proving_key,
+                vk_ptr,
+            )
+        }
+
+        std::mem::forget(g2_clone);
+        std::mem::forget(proving_key);
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(vk_addr, vk_size as usize, vk_size as usize);
+        }
+        result.to_vec()
+    }
+
+    pub fn create_proof_with_pk(
+        &mut self,
+        witness: WitnessAssignments,
+        proving_key: &[u8],
+    ) -> Vec<u8> {
+        let cs_buf = self.constraint_system.to_bytes();
+        let mut proof_addr: *mut u8 = std::ptr::null_mut();
+        let p_proof = &mut proof_addr as *mut *mut u8;
+        let g2_clone = self.crs.g2_data.clone();
+        let witness_buf = witness.to_bytes();
+        let proof_size;
+        let proving_key = proving_key.to_vec();
+        unsafe {
+            proof_size = barretenberg_wrapper::composer::create_proof_with_pk(
+                self.pippenger.pointer(),
+                &g2_clone,
+                &proving_key,
+                &cs_buf,
+                &witness_buf,
+                p_proof,
+            );
+        }
+
+        std::mem::forget(g2_clone);
+        std::mem::forget(proving_key);
+        std::mem::forget(cs_buf);
+        std::mem::forget(witness_buf);
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
+        }
+        remove_public_inputs(self.constraint_system.public_inputs.len(), result.to_vec())
+    }
+
+    pub fn verify_with_vk(
+        &mut self,
+        // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
+        // This is not the case, if you take the proof directly from Barretenberg
+        proof: &[u8],
+        public_inputs: Option<Assignments>,
+        verification_key: &[u8],
+    ) -> bool {
+        // Prepend the public inputs to the proof.
+        // This is how Barretenberg expects it to be.
+        // This is non-standard however, so this Rust wrapper will strip the public inputs
+        // from proofs created by Barretenberg. Then in Verify we prepend them again.
+
+        let mut proof = proof.to_vec();
+        if let Some(pi) = &public_inputs {
+            let mut proof_with_pi = Vec::new();
+            for assignment in pi.0.iter() {
+                proof_with_pi.extend(&assignment.to_be_bytes());
+            }
+            proof_with_pi.extend(proof);
+            proof = proof_with_pi;
+        }
+        let cs_buf = self.constraint_system.to_bytes();
+        let verification_key = verification_key.to_vec();
+
+        let verified;
+        unsafe {
+            verified = barretenberg_wrapper::composer::verify_with_vk(
+                &self.crs.g2_data,
+                &verification_key,
+                &cs_buf,
+                &proof,
+            );
+        }
+        verified
+    }
 }
 
 // TODO: move this to common
@@ -150,6 +271,10 @@ pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec
     // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
     let num_bytes_to_remove = 32 * num_pub_inputs;
     proof[num_bytes_to_remove..].to_vec()
+}
+
+fn pow2ceil(v: u32) -> u32 {
+    v.next_power_of_two()
 }
 
 #[cfg(test)]
@@ -212,11 +337,10 @@ mod test {
             public_inputs: None,
             result: false,
         };
+        let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
+        test_composer_with_pk_vk(constraint_system.clone(), test_cases.clone());
 
-        test_circuit(
-            constraint_system,
-            vec![case_1, case_2, case_3, case_4, case_5],
-        );
+        test_circuit(constraint_system, test_cases);
     }
     #[test]
     fn test_a_single_constraint_with_pub_inputs() {
@@ -289,13 +413,12 @@ mod test {
             public_inputs: Some(Assignments(vec![Scalar::one(), 3_i128.into()])),
             result: false,
         };
+        let test_cases = vec![
+            /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
+        ];
+        test_composer_with_pk_vk(constraint_system.clone(), test_cases.clone());
 
-        test_circuit(
-            constraint_system,
-            vec![
-                /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
-            ],
-        );
+        test_circuit(constraint_system, test_cases);
     }
 
     #[test]
@@ -357,6 +480,10 @@ mod test {
             public_inputs: Some(Assignments(vec![Scalar::one()])),
             result: false,
         };
+        test_composer_with_pk_vk(
+            constraint_system.clone(),
+            vec![case_1.clone(), case_2.clone()],
+        );
 
         test_circuit(constraint_system, vec![case_1, case_2]);
     }
@@ -446,6 +573,8 @@ mod test {
             result: true,
         };
 
+        test_composer_with_pk_vk(constraint_system.clone(), vec![case_1.clone()]);
+
         test_circuit(constraint_system, vec![case_1]);
     }
 
@@ -514,6 +643,8 @@ mod test {
             result: true,
         };
 
+        test_composer_with_pk_vk(constraint_system.clone(), vec![case_1.clone()]);
+
         test_circuit(constraint_system, vec![case_1]);
     }
 
@@ -529,6 +660,22 @@ mod test {
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof(test_case.witness);
             let verified = sc.verify(&proof, test_case.public_inputs);
+            assert_eq!(verified, test_case.result);
+        }
+    }
+
+    fn test_composer_with_pk_vk(
+        constraint_system: ConstraintSystem,
+        test_cases: Vec<WitnessResult>,
+    ) {
+        let mut sc = StandardComposer::new(constraint_system);
+
+        let proving_key = sc.compute_proving_key();
+        let verification_key = sc.compute_verification_key(&proving_key);
+
+        for test_case in test_cases.into_iter() {
+            let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
+            let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }
     }
