@@ -10,8 +10,6 @@ pub struct StandardComposer {
 
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-        // TODO: we should avoid this as we compute the proving key in here
-        // meaning we are computing the key for any methods that use this composer impl
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
 
         let crs = CRS::new(circuit_size as usize + 1);
@@ -27,6 +25,8 @@ impl StandardComposer {
 }
 
 impl StandardComposer {
+    const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
+
     // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
     // Since it's already done in C++, we are just re-exporting for now
     pub fn smart_contract(&mut self) -> String {
@@ -64,17 +64,18 @@ impl StandardComposer {
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
     pub fn get_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
-        unsafe {
-            barretenberg_wrapper::composer::get_circuit_size(
-                constraint_system.to_bytes().as_slice().as_ptr(),
-            )
-        }
+        let num_gates = StandardComposer::get_exact_circuit_size(constraint_system);
+        pow2ceil(
+            num_gates
+                + constraint_system.public_inputs.len() as u32
+                + StandardComposer::NUM_RESERVED_GATES,
+        )
     }
 
-    pub fn get_exact_circuit_size(&self) -> u32 {
+    pub fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
         unsafe {
             barretenberg_wrapper::composer::get_exact_circuit_size(
-                self.constraint_system.to_bytes().as_slice().as_ptr(),
+                constraint_system.to_bytes().as_slice().as_ptr(),
             )
         }
     }
@@ -270,6 +271,10 @@ pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec
     // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
     let num_bytes_to_remove = 32 * num_pub_inputs;
     proof[num_bytes_to_remove..].to_vec()
+}
+
+fn pow2ceil(v: u32) -> u32 {
+    v.next_power_of_two()
 }
 
 #[cfg(test)]

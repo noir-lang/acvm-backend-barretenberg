@@ -55,9 +55,7 @@ impl ProofSystemCompiler for Plonk {
     fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
         let constraint_system = serialise_circuit(&circuit);
 
-        let composer = StandardComposer::new(constraint_system);
-
-        composer.get_exact_circuit_size()
+        StandardComposer::get_exact_circuit_size(&constraint_system)
     }
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
@@ -94,7 +92,6 @@ impl ProofSystemCompiler for Plonk {
         proving_key: Vec<u8>,
     ) -> Vec<u8> {
         let constraint_system = serialise_circuit(&circuit);
-
         let mut composer = StandardComposer::new(constraint_system);
 
         // Add witnesses in the correct order
