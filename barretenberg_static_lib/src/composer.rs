@@ -274,11 +274,7 @@ pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec
 }
 
 fn pow2ceil(v: u32) -> u32 {
-    let mut p = 1;
-    while p < v {
-        p <<= 1;
-    }
-    p
+    v.next_power_of_two()
 }
 
 #[cfg(test)]
