@@ -335,6 +335,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
+                    BlackBoxFunc::Keccak256 => todo!(),
                 };
             }
             Opcode::Directive(_) => {

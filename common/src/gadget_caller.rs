@@ -31,6 +31,7 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
     match gadget_call.name {
         BlackBoxFunc::SHA256 => pwg::hash::sha256(initial_witness, gadget_call),
         BlackBoxFunc::Blake2s => pwg::hash::blake2s(initial_witness, gadget_call),
+        BlackBoxFunc::Keccak256 => todo!(),
         BlackBoxFunc::EcdsaSecp256k1 => {
             pwg::signature::ecdsa::secp256k1_prehashed(initial_witness, gadget_call)?
         }
