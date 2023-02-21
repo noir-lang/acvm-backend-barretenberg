@@ -90,7 +90,7 @@ impl ProofSystemCompiler for Plonk {
         &self,
         circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
-        proving_key: Vec<u8>,
+        proving_key: &[u8],
     ) -> Vec<u8> {
         let constraint_system = serialise_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
@@ -110,7 +110,7 @@ impl ProofSystemCompiler for Plonk {
             sorted_witness.push(value);
         }
 
-        composer.create_proof_with_pk(sorted_witness, &proving_key)
+        composer.create_proof_with_pk(sorted_witness, proving_key)
     }
 
     fn verify_with_vk(
@@ -118,7 +118,7 @@ impl ProofSystemCompiler for Plonk {
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
         circuit: &Circuit,
-        verification_key: Vec<u8>,
+        verification_key: &[u8],
     ) -> bool {
         let constraint_system = serialise_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
@@ -126,7 +126,7 @@ impl ProofSystemCompiler for Plonk {
         composer.verify_with_vk(
             proof,
             Some(Assignments::from_vec(public_inputs)),
-            &verification_key,
+            verification_key,
         )
     }
 }
