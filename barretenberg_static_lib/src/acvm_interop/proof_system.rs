@@ -52,14 +52,15 @@ impl ProofSystemCompiler for Plonk {
         Language::PLONKCSat { width: 3 }
     }
 
-    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
-        let constraint_system = serialise_circuit(&circuit);
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
+        let constraint_system = serialise_circuit(circuit);
 
         StandardComposer::get_exact_circuit_size(&constraint_system)
     }
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
         match opcode {
+            common::acvm::acir::BlackBoxFunc::Keccak256 => todo!(),
             common::acvm::acir::BlackBoxFunc::AES => false,
             common::acvm::acir::BlackBoxFunc::AND => true,
             common::acvm::acir::BlackBoxFunc::XOR => true,
@@ -75,8 +76,8 @@ impl ProofSystemCompiler for Plonk {
         }
     }
 
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) {
-        let constraint_system = serialise_circuit(&circuit);
+    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
+        let constraint_system = serialise_circuit(circuit);
         let composer = StandardComposer::new(constraint_system);
 
         let proving_key = composer.compute_proving_key();
@@ -87,11 +88,11 @@ impl ProofSystemCompiler for Plonk {
 
     fn prove_with_pk(
         &self,
-        circuit: Circuit,
+        circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: Vec<u8>,
     ) -> Vec<u8> {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialise_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
         // Add witnesses in the correct order
@@ -116,10 +117,10 @@ impl ProofSystemCompiler for Plonk {
         &self,
         proof: &[u8],
         public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
+        circuit: &Circuit,
         verification_key: Vec<u8>,
     ) -> bool {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialise_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
         composer.verify_with_vk(

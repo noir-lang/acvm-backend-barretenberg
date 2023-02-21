@@ -33,6 +33,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
             }
             Opcode::BlackBoxFuncCall(gadget_call) => {
                 match gadget_call.name {
+                    BlackBoxFunc::Keccak256 => todo!(),
                     BlackBoxFunc::RANGE => {
                         assert_eq!(gadget_call.inputs.len(), 1);
                         assert_eq!(gadget_call.outputs.len(), 0);
