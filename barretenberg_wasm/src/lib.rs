@@ -12,7 +12,6 @@ pub mod scalar_mul;
 pub mod schnorr;
 
 pub use common::crs;
-use std::cell::Cell;
 use wasmer::{
     imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
 };
