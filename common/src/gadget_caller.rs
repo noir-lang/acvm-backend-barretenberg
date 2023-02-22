@@ -34,7 +34,7 @@ pub fn solve_blackbox_func_call<B: BarretenbergShared>(
         BlackBoxFunc::EcdsaSecp256k1 => {
             pwg::signature::ecdsa::secp256k1_prehashed(initial_witness, gadget_call)?
         }
-        BlackBoxFunc::AES => {
+        BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => {
             return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(
                 gadget_call.name,
             ))

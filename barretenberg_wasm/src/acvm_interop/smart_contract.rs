@@ -7,6 +7,10 @@ use common::serialiser::serialise_circuit;
 use super::Plonk;
 
 impl SmartContract for Plonk {
+    fn eth_contract_from_vk(&self, _verification_key: &[u8]) -> String {
+        todo!("use `eth_contract_from_cs` for now");
+    }
+
     fn eth_contract_from_cs(&self, circuit: Circuit) -> String {
         let constraint_system = serialise_circuit(&circuit);
 

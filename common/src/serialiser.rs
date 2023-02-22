@@ -230,7 +230,6 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         schnorr_constraints.push(constraint);
                     }
-                    BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                     BlackBoxFunc::Pedersen => {
                         let mut inputs = Vec::new();
                         for scalar in gadget_call.inputs.iter() {
@@ -335,6 +334,8 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
+                    BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
+                    BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                 };
             }
             Opcode::Directive(_) => {
