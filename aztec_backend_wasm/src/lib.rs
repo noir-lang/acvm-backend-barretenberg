@@ -45,15 +45,22 @@ pub fn compute_witnesses(
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
 
-    // Serialise the witness in a way that the C++ codebase can deserialise
-    let assignments = crate::barretenberg_structures::Assignments::from_vec(
-        witness_map
-            .into_iter()
-            .map(|(_, field_val)| field_val)
-            .collect(),
-    );
+    // Add witnesses in the correct order
+    // Note: The witnesses are sorted via their witness index
+    // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
+    let mut sorted_witness = common::barretenberg_structures::Assignments::new();
+    let num_witnesses = circuit.num_vars();
+    for i in 1..num_witnesses {
+        // Get the value if it exists. If i does not, then we fill it with the zero value
+        let value = match witness_map.get(&Witness(i)) {
+            Some(value) => *value,
+            None => FieldElement::zero(),
+        };
 
-    assignments.to_bytes()
+        sorted_witness.push(value);
+    }
+
+    sorted_witness.to_bytes()
 }
 
 #[wasm_bindgen]
