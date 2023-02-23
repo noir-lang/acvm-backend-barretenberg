@@ -47,7 +47,7 @@ pub fn compute_witnesses(
 
     // Add witnesses in the correct order
     // Note: The witnesses are sorted via their witness index
-    // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
+    // witness_map may not have all the witness indexes, e.g for unused witness which are not solved by the solver
     let mut sorted_witness = common::barretenberg_structures::Assignments::new();
     let num_witnesses = circuit.num_vars();
     for i in 1..num_witnesses {
