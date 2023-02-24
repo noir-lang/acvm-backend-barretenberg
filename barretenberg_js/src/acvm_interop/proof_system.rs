@@ -22,7 +22,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8> {
-        //Serialise to disk
+        //Serialize to disk
         let serialized = circuit.to_bytes();
         let mut circuit_file = NamedTempFile::new().unwrap();
         circuit_file.write_all(serialized.as_slice());

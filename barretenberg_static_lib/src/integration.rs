@@ -52,7 +52,7 @@ fn integration_test_does_not_panic() {
 
     println!("Constraint system created\n");
 
-    println!("Initialising CRS, FFT, Pippenger and compiling WASM\n");
+    println!("Initializing CRS, FFT, Pippenger and compiling WASM\n");
     let mut composer = StandardComposer::new(constraint_system.size());
     println!("WASM compiled and the standard composer is ready\n");
 
