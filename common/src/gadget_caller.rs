@@ -24,7 +24,7 @@ pub trait BarretenbergShared: PathHasher {
     fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
 }
 
-pub fn solve_blackbox_func_call<B: BarretenbergShared>(
+pub fn solve_black_box_func_call<B: BarretenbergShared>(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     gadget_call: &BlackBoxFuncCall,
 ) -> Result<(), OpcodeResolutionError> {

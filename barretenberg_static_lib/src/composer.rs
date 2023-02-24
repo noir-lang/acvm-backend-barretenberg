@@ -494,20 +494,20 @@ mod test {
         for i in 13..(13 + 64) {
             signature_indices[i - 13] = i as i32;
         }
-        let result_indice = signature_indices.last().unwrap() + 1;
+        let result_index = signature_indices.last().unwrap() + 1;
 
         let constraint = SchnorrConstraint {
             message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             public_key_x: 11,
             public_key_y: 12,
             signature: signature_indices,
-            result: result_indice,
+            result: result_index,
         };
 
         let arith_constraint = Constraint {
-            a: result_indice,
-            b: result_indice,
-            c: result_indice,
+            a: result_index,
+            b: result_index,
+            c: result_index,
             qm: Scalar::zero(),
             ql: Scalar::zero(),
             qr: Scalar::zero(),

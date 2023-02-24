@@ -34,11 +34,11 @@ impl BarretenbergShared for Barretenberg {
 }
 
 impl GadgetCaller {
-    pub fn solve_blackbox_func_call(
+    pub fn solve_black_box_func_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gadget_call: &BlackBoxFuncCall,
     ) -> Result<(), OpcodeResolutionError> {
-        common::gadget_caller::solve_blackbox_func_call::<Barretenberg>(
+        common::gadget_caller::solve_black_box_func_call::<Barretenberg>(
             initial_witness,
             gadget_call,
         )

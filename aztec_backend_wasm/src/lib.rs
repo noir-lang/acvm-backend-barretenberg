@@ -45,7 +45,7 @@ pub fn compute_witnesses(
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
 
-    // Serialise the witness in a way that the C++ codebase can deserialise
+    // Serialize the witness in a way that the C++ codebase can deserialize
     let assignments = crate::barretenberg_structures::Assignments::from_vec(
         witness_map
             .into_iter()
