@@ -60,7 +60,6 @@ impl ProofSystemCompiler for Plonk {
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
         match opcode {
-            common::acvm::acir::BlackBoxFunc::Keccak256 => false,
             common::acvm::acir::BlackBoxFunc::AES => false,
             common::acvm::acir::BlackBoxFunc::AND => true,
             common::acvm::acir::BlackBoxFunc::XOR => true,
@@ -73,6 +72,7 @@ impl ProofSystemCompiler for Plonk {
             common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
             common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
             common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
+            common::acvm::acir::BlackBoxFunc::Keccak256 => false,
         }
     }
 
