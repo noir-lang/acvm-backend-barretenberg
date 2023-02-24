@@ -40,7 +40,7 @@ pub fn compute_witnesses(
     // which are possible
 
     let plonk = Plonk;
-    match plonk.solve(&mut witness_map, circuit.gates) {
+    match plonk.solve(&mut witness_map, circuit.opcodes) {
         Ok(_) => {}
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
