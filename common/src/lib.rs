@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 pub mod barretenberg_structures;
 pub mod contract;
 pub mod gadget_caller;

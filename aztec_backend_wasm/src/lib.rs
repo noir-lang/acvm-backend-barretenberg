@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 pub use barretenberg_wasm::Barretenberg;
 
 use wasm_bindgen::prelude::*;
