@@ -257,17 +257,7 @@ name = "barretenberg_static_lib"
 version = "0.1.0"
 dependencies = [
  "barretenberg_wrapper",
- "blake2",
  "common",
- "dirs",
- "downloader",
- "hex",
- "indicatif",
- "num-bigint",
- "num-traits",
- "regex",
- "sha2",
- "sled",
  "tempfile",
 ]
 
@@ -277,8 +267,6 @@ version = "0.1.0"
 dependencies = [
  "blake2",
  "common",
- "sha2",
- "sled",
  "tempfile",
  "wasmer",
 ]

@@ -10,17 +10,5 @@ edition = "2021"
 common = { path = "../common" }
 barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", branch = "kw/noir-dsl" }
 
-sha2 = "0.9.3"
-blake2 = "0.9.1"
-sled = "0.34.6"
-
-dirs = "3.0"
-downloader = { version = "0.2.7", default-features = false, features = ["rustls-tls"] }
-tempfile = "3.3.0"
-indicatif = "0.15.0"
-regex = "1.4.0"
-
-num-bigint = "0.4"
-num-traits = "0.2.8"
-
-hex = "*"
+[dev-dependencies]
+tempfile = "*"
