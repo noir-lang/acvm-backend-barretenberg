@@ -1,3 +1,5 @@
+#![warn(unused_crate_dependencies, unused_extern_crates)]
+
 pub use barretenberg_wasm::Barretenberg;
 
 use wasm_bindgen::prelude::*;
