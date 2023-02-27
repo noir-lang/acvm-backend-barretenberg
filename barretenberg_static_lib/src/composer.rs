@@ -118,7 +118,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
     ) -> bool {
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -126,10 +126,10 @@ impl StandardComposer {
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
 
         let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
+        if !public_inputs.0.is_empty() {
             let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
+            for assignment in public_inputs.0.into_iter() {
+                proof_with_pi.extend(assignment.to_be_bytes());
             }
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
@@ -231,7 +231,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
         // Prepend the public inputs to the proof.
@@ -240,14 +240,15 @@ impl StandardComposer {
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
 
         let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
+        if !public_inputs.0.is_empty() {
             let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
+            for assignment in public_inputs.0.into_iter() {
+                proof_with_pi.extend(assignment.to_be_bytes());
             }
             proof_with_pi.extend(proof);
             proof = proof_with_pi;
         }
+
         let cs_buf = self.constraint_system.to_bytes();
         let verification_key = verification_key.to_vec();
 
@@ -314,27 +315,27 @@ mod test {
 
         let case_1 = WitnessResult {
             witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: true,
         };
         let case_2 = WitnessResult {
             witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: true,
         };
         let case_3 = WitnessResult {
             witness: Assignments(vec![10_i128.into(), (-3_i128).into(), 7_i128.into()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: true,
         };
         let case_4 = WitnessResult {
             witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::one()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: false,
         };
         let case_5 = WitnessResult {
             witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: false,
         };
         let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
@@ -376,18 +377,18 @@ mod test {
         // supply anything.
         let case_1 = WitnessResult {
             witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: false,
         };
         let case_2 = WitnessResult {
             witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
-            public_inputs: Some(Assignments(vec![Scalar::zero(), Scalar::zero()])),
+            public_inputs: Assignments(vec![Scalar::zero(), Scalar::zero()]),
             result: true,
         };
 
         let case_3 = WitnessResult {
             witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 3_i128.into()])),
+            public_inputs: Assignments(vec![Scalar::one(), 3_i128.into()]),
             result: false,
         };
 
@@ -398,19 +399,19 @@ mod test {
                 Scalar::from(2_i128),
                 Scalar::from(6_i128),
             ]),
-            public_inputs: Some(Assignments(vec![Scalar::one()])),
+            public_inputs: Assignments(vec![Scalar::one()]),
             result: false,
         };
 
         let case_5 = WitnessResult {
             witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 2_i128.into()])),
+            public_inputs: Assignments(vec![Scalar::one(), 2_i128.into()]),
             result: true,
         };
 
         let case_6 = WitnessResult {
             witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
-            public_inputs: Some(Assignments(vec![Scalar::one(), 3_i128.into()])),
+            public_inputs: Assignments(vec![Scalar::one(), 3_i128.into()]),
             result: false,
         };
         let test_cases = vec![
@@ -467,7 +468,7 @@ mod test {
                 2_i128.into(),
                 3_i128.into(),
             ]),
-            public_inputs: Some(Assignments(vec![Scalar::one()])),
+            public_inputs: Assignments(vec![Scalar::one()]),
             result: true,
         };
         let case_2 = WitnessResult {
@@ -477,7 +478,7 @@ mod test {
                 2_i128.into(),
                 13_i128.into(),
             ]),
-            public_inputs: Some(Assignments(vec![Scalar::one()])),
+            public_inputs: Assignments(vec![Scalar::one()]),
             result: false,
         };
         test_composer_with_pk_vk(
@@ -569,7 +570,7 @@ mod test {
 
         let case_1 = WitnessResult {
             witness: Assignments(witness_values),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: true,
         };
 
@@ -639,7 +640,7 @@ mod test {
 
         let case_1 = WitnessResult {
             witness: Assignments(witness_values),
-            public_inputs: None,
+            public_inputs: Assignments::default(),
             result: true,
         };
 
@@ -651,7 +652,7 @@ mod test {
     #[derive(Clone, Debug)]
     struct WitnessResult {
         witness: WitnessAssignments,
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
         result: bool,
     }
 

@@ -288,7 +288,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
         // Prepend the public inputs to the proof.
@@ -298,10 +298,10 @@ impl StandardComposer {
         //
 
         let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
+        if !public_inputs.0.is_empty() {
             let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
+            for assignment in public_inputs.0.into_iter() {
+                proof_with_pi.extend(assignment.to_be_bytes());
             }
             proof_with_pi.extend(proof);
             proof = proof_with_pi;

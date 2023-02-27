@@ -131,7 +131,7 @@ impl ProofSystemCompiler for Plonk {
 
         composer.verify_with_vk(
             proof,
-            Some(Assignments::from_vec(flattened_public_inputs)),
+            Assignments::from_vec(flattened_public_inputs),
             verification_key,
         )
     }
