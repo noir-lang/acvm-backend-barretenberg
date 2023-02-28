@@ -154,7 +154,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
     ) -> bool {
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -162,15 +162,7 @@ impl StandardComposer {
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
         //
 
-        let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
-            let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
-            }
-            proof_with_pi.extend(proof);
-            proof = proof_with_pi;
-        }
+        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
 
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);

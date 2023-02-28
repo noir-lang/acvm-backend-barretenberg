@@ -231,15 +231,7 @@ impl StandardComposer {
         // This is non-standard however, so this Rust wrapper will strip the public inputs
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
 
-        let mut proof = proof.to_vec();
-        if !public_inputs.0.is_empty() {
-            let mut proof_with_pi = Vec::new();
-            for assignment in public_inputs.0.into_iter() {
-                proof_with_pi.extend(assignment.to_be_bytes());
-            }
-            proof_with_pi.extend(proof);
-            proof = proof_with_pi;
-        }
+        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
 
         let cs_buf = self.constraint_system.to_bytes();
         let verification_key = verification_key.to_vec();
