@@ -1,3 +1,5 @@
+#![warn(unreachable_pub)]
+
 pub mod acvm_interop;
 pub use acvm_interop::Plonk;
 pub mod blake2s;
