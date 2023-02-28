@@ -42,7 +42,7 @@ impl ProofSystemCompiler for Plonk {
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool {
-        let constraint_system = common::serialiser::serialise_circuit(&circuit);
+        let constraint_system = serialise_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
