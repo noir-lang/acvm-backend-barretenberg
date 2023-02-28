@@ -45,7 +45,7 @@ impl ProofSystemCompiler for Plonk {
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        composer.verify(proof, Some(Assignments::from_vec(public_inputs)))
+        composer.verify(proof, Assignments::from_vec(public_inputs))
     }
 
     fn np_language(&self) -> Language {
@@ -127,7 +127,7 @@ impl ProofSystemCompiler for Plonk {
 
         composer.verify_with_vk(
             proof,
-            Some(Assignments::from_vec(flattened_public_inputs)),
+            Assignments::from_vec(flattened_public_inputs),
             verification_key,
         )
     }
