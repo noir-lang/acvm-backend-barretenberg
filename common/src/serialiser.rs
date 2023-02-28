@@ -1,5 +1,5 @@
 // Aztec uses a `TurboFormat` object in order to bridge the gap between Rust and C++.
-// This serialiser converts the IR into the `TurboFormat` which can then be fed into the WASM file
+// This serializer converts the IR into the `TurboFormat` which can then be fed into the WASM file
 use crate::barretenberg_structures::{
     Blake2sConstraint, Constraint, ConstraintSystem, EcdsaConstraint, FixedBaseScalarMulConstraint,
     HashToFieldConstraint, LogicConstraint, MerkleMembershipConstraint, PedersenConstraint,
@@ -28,7 +28,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
     for gate in circuit.opcodes.iter() {
         match gate {
             Opcode::Arithmetic(expression) => {
-                let constraint = serialise_arithmetic_gates(expression);
+                let constraint = serialize_arithmetic_gates(expression);
                 constraints.push(constraint);
             }
             Opcode::BlackBoxFuncCall(gadget_call) => {
@@ -363,7 +363,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 }
 
 #[allow(non_snake_case)]
-fn serialise_arithmetic_gates(gate: &Expression) -> Constraint {
+fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut a: i32 = 0;
     let mut b: i32 = 0;
     let mut c: i32 = 0;

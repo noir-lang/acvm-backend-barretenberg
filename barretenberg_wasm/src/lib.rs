@@ -1,4 +1,5 @@
 #![warn(unused_crate_dependencies, unused_extern_crates)]
+#![warn(unreachable_pub)]
 
 ///  Import the Barretenberg WASM file
 pub static WASM: &[u8] = include_bytes!("barretenberg.wasm");

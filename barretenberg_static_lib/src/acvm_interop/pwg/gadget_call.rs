@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 // Note that the outputs for things like Sha256 need to be computed
 // as they may be used in later arithmetic gates
 
-pub struct GadgetCaller;
+pub(super) struct GadgetCaller;
 
 impl BarretenbergShared for Barretenberg {
     fn new() -> Self {
@@ -34,11 +34,11 @@ impl BarretenbergShared for Barretenberg {
 }
 
 impl GadgetCaller {
-    pub fn solve_blackbox_func_call(
+    pub(super) fn solve_black_box_func_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gadget_call: &BlackBoxFuncCall,
     ) -> Result<(), OpcodeResolutionError> {
-        common::gadget_caller::solve_blackbox_func_call::<Barretenberg>(
+        common::gadget_caller::solve_black_box_func_call::<Barretenberg>(
             initial_witness,
             gadget_call,
         )

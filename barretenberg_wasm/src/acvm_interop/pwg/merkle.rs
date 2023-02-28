@@ -124,7 +124,7 @@ mod tests {
             result : true,
             message : vec![0;64],
             should_update_tree: false,
-            error_msg : "this should always be true, since the tree is initialised with 64 zeroes"
+            error_msg : "this should always be true, since the tree is initialized with 64 zeroes"
         },
         Test {
             index : "0",
