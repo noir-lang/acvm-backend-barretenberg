@@ -110,7 +110,7 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize)
         }
-        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), result)
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &result)
     }
 
     pub fn verify(
@@ -215,7 +215,7 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
         }
-        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), result.to_vec())
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &result)
     }
 
     pub fn verify_with_vk(

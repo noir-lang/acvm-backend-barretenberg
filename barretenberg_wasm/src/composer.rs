@@ -146,7 +146,7 @@ impl StandardComposer {
             proof_ptr as usize,
             proof_ptr as usize + proof_size.unwrap_i32() as usize,
         );
-        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), proof)
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &proof)
     }
 
     pub fn verify(
@@ -281,7 +281,7 @@ impl StandardComposer {
             proof_ptr as usize,
             proof_ptr as usize + proof_size.unwrap_i32() as usize,
         );
-        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), proof)
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &proof)
     }
 
     pub fn verify_with_vk(
