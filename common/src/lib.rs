@@ -2,13 +2,13 @@
 #![warn(unreachable_pub)]
 
 pub mod barretenberg_structures;
+pub mod black_box_functions;
 pub mod contract;
-pub mod gadget_caller;
 
 #[cfg(feature = "std")]
 pub mod crs;
 pub mod merkle;
-pub mod serialiser;
+pub mod serializer;
 
 pub mod proof;
 

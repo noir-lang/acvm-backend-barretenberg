@@ -3,10 +3,10 @@ use common::acvm::FieldElement;
 use common::acvm::PartialWitnessGenerator;
 use std::collections::BTreeMap;
 
-mod gadget_call;
+mod black_box_functions;
 pub mod merkle;
 
-use self::gadget_call::GadgetCaller;
+use self::black_box_functions::BlackBoxFuncCaller;
 use super::Plonk;
 
 impl PartialWitnessGenerator for Plonk {
@@ -14,6 +14,6 @@ impl PartialWitnessGenerator for Plonk {
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<(), common::acvm::OpcodeResolutionError> {
-        GadgetCaller::solve_black_box_func_call(initial_witness, func_call)
+        BlackBoxFuncCaller::solve_black_box_func_call(initial_witness, func_call)
     }
 }

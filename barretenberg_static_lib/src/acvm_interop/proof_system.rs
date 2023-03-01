@@ -4,7 +4,7 @@ use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
 use common::barretenberg_structures::Assignments;
-use common::serialiser::serialise_circuit;
+use common::serializer::serialize_circuit;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
@@ -13,7 +13,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8> {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
@@ -41,7 +41,7 @@ impl ProofSystemCompiler for Plonk {
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
@@ -53,7 +53,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        let constraint_system = serialise_circuit(circuit);
+        let constraint_system = serialize_circuit(circuit);
 
         StandardComposer::get_exact_circuit_size(&constraint_system)
     }
@@ -77,7 +77,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let constraint_system = serialise_circuit(circuit);
+        let constraint_system = serialize_circuit(circuit);
         let composer = StandardComposer::new(constraint_system);
 
         let proving_key = composer.compute_proving_key();
@@ -92,7 +92,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let constraint_system = serialise_circuit(circuit);
+        let constraint_system = serialize_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
         // Add witnesses in the correct order
@@ -118,7 +118,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let constraint_system = serialise_circuit(circuit);
+        let constraint_system = serialize_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
         // Unlike when proving, we omit any unassigned witnesses.

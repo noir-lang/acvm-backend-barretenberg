@@ -64,7 +64,7 @@ pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
     console_error_panic_hook::set_once();
 
     let circuit: Circuit = acir.into_serde().unwrap();
-    serialise_circuit(&circuit).to_bytes()
+    serialize_circuit(&circuit).to_bytes()
 }
 
 #[wasm_bindgen]

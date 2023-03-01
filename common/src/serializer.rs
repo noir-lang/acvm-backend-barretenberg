@@ -11,7 +11,7 @@ use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
 
 /// Converts an `IR` into the `StandardFormat` constraint system
-pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
+pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
     // Create constraint system
     let mut constraints: Vec<Constraint> = Vec::new();
     let mut range_constraints: Vec<RangeConstraint> = Vec::new();
