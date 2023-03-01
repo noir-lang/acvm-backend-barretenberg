@@ -8,7 +8,7 @@ pub mod contract;
 #[cfg(feature = "std")]
 pub mod crs;
 pub mod merkle;
-pub mod serialiser;
+pub mod serializer;
 
 pub mod proof;
 
