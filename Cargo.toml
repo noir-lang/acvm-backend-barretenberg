@@ -1,9 +1,8 @@
 [workspace]
 
 members = ["common", "barretenberg_wasm", "barretenberg_static_lib"]
-# barretenberg_js will be phased out in the future
 
-exclude = ["barretenberg_js", "aztec_backend_wasm"]
+exclude = ["aztec_backend_wasm"]
 
 [workspace.package]
 
