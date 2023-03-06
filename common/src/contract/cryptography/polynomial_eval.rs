@@ -78,21 +78,26 @@ library PolynomialEval {
 
         accumulator = Bn254Crypto.invert(accumulator);
         assembly {
-            let intermediate := mulmod(accumulator, mload(add(mPtr, 0xe0)), p)
-            accumulator := mulmod(accumulator, mload(add(mPtr, 0x60)), p)
-            mstore(add(mPtr, 0x60), intermediate)
-
-            intermediate := mulmod(accumulator, mload(add(mPtr, 0xc0)), p)
-            accumulator := mulmod(accumulator, mload(add(mPtr, 0x40)), p)
-            mstore(add(mPtr, 0x40), intermediate)
-
-            intermediate := mulmod(accumulator, mload(add(mPtr, 0xa0)), p)
-            accumulator := mulmod(accumulator, mload(add(mPtr, 0x20)), p)
-            mstore(add(mPtr, 0x20), intermediate)
-
-            intermediate := mulmod(accumulator, mload(add(mPtr, 0x80)), p)
-            accumulator := mulmod(accumulator, mload(mPtr), p)
-            mstore(mPtr, intermediate)
+            {
+                let t0 := mulmod(accumulator, mload(add(mPtr, 0xe0)), p)
+                accumulator := mulmod(accumulator, mload(add(mPtr, 0x60)), p)
+                mstore(add(mPtr, 0x60), t0)
+            }
+            {
+                let t1 := mulmod(accumulator, mload(add(mPtr, 0xc0)), p)
+                accumulator := mulmod(accumulator, mload(add(mPtr, 0x40)), p)
+                mstore(add(mPtr, 0x40), t1)
+            }
+            {
+                let t2 := mulmod(accumulator, mload(add(mPtr, 0xa0)), p)
+                accumulator := mulmod(accumulator, mload(add(mPtr, 0x20)), p)
+                mstore(add(mPtr, 0x20), t2)
+            }
+            {
+                let t3 := mulmod(accumulator, mload(add(mPtr, 0x80)), p)
+                accumulator := mulmod(accumulator, mload(mPtr), p)
+                mstore(mPtr, t3)
+            }
 
             public_input_delta := mulmod(
                 public_input_delta_numerator,
