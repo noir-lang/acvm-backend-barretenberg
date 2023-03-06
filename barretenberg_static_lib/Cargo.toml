@@ -11,7 +11,7 @@ rust-version.workspace = true
 [dependencies]
 
 common = { path = "../common" }
-barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", branch = "kw/noir-dsl" }
+barretenberg_wrapper = { git = "https://github.com/noir-lang/aztec-connect", branch = "mv/fix-pk-write" }
 
 [dev-dependencies]
 tempfile = "*"
