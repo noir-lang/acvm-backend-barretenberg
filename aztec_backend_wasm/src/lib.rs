@@ -49,12 +49,7 @@ pub fn compute_witnesses(
     };
 
     // Serialize the witness in a way that the C++ codebase can deserialize
-    let assignments = crate::barretenberg_structures::Assignments::from_vec(
-        witness_map
-            .into_iter()
-            .map(|(_, field_val)| field_val)
-            .collect(),
-    );
+    let assignments = proof::flatten_witness_map(&circuit, witness_values);
 
     assignments.to_bytes()
 }
