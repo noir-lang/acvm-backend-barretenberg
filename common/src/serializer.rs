@@ -1,5 +1,5 @@
 // Aztec uses a `TurboFormat` object in order to bridge the gap between Rust and C++.
-// This serialiser converts the IR into the `TurboFormat` which can then be fed into the WASM file
+// This serializer converts the IR into the `TurboFormat` which can then be fed into the WASM file
 use crate::barretenberg_structures::{
     Blake2sConstraint, Constraint, ConstraintSystem, EcdsaConstraint, FixedBaseScalarMulConstraint,
     HashToFieldConstraint, LogicConstraint, MerkleMembershipConstraint, PedersenConstraint,
@@ -11,7 +11,7 @@ use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
 
 /// Converts an `IR` into the `StandardFormat` constraint system
-pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
+pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
     // Create constraint system
     let mut constraints: Vec<Constraint> = Vec::new();
     let mut range_constraints: Vec<RangeConstraint> = Vec::new();
@@ -28,7 +28,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
     for gate in circuit.opcodes.iter() {
         match gate {
             Opcode::Arithmetic(expression) => {
-                let constraint = serialise_arithmetic_gates(expression);
+                let constraint = serialize_arithmetic_gates(expression);
                 constraints.push(constraint);
             }
             Opcode::BlackBoxFuncCall(gadget_call) => {
@@ -230,7 +230,6 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         schnorr_constraints.push(constraint);
                     }
-                    BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                     BlackBoxFunc::Pedersen => {
                         let mut inputs = Vec::new();
                         for scalar in gadget_call.inputs.iter() {
@@ -335,7 +334,8 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 
                         fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                     }
-                    BlackBoxFunc::Keccak256 => todo!(),
+                    BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
+                    BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                 };
             }
             Opcode::Directive(_) => {
@@ -363,7 +363,7 @@ pub fn serialise_circuit(circuit: &Circuit) -> ConstraintSystem {
 }
 
 #[allow(non_snake_case)]
-fn serialise_arithmetic_gates(gate: &Expression) -> Constraint {
+fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut a: i32 = 0;
     let mut b: i32 = 0;
     let mut c: i32 = 0;

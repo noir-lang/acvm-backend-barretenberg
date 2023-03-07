@@ -1,3 +1,6 @@
+#![warn(unused_crate_dependencies, unused_extern_crates)]
+#![warn(unreachable_pub)]
+
 pub use barretenberg_wasm::Barretenberg;
 
 use wasm_bindgen::prelude::*;
@@ -40,18 +43,13 @@ pub fn compute_witnesses(
     // which are possible
 
     let plonk = Plonk;
-    match plonk.solve(&mut witness_map, circuit.gates) {
+    match plonk.solve(&mut witness_map, circuit.opcodes) {
         Ok(_) => {}
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
 
-    // Serialise the witness in a way that the C++ codebase can deserialise
-    let assignments = crate::barretenberg_structures::Assignments::from_vec(
-        witness_map
-            .into_iter()
-            .map(|(_, field_val)| field_val)
-            .collect(),
-    );
+    // Serialize the witness in a way that the C++ codebase can deserialize
+    let assignments = proof::flatten_witness_map(&circuit, witness_values);
 
     assignments.to_bytes()
 }
@@ -61,7 +59,7 @@ pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
     console_error_panic_hook::set_once();
 
     let circuit: Circuit = acir.into_serde().unwrap();
-    serialise_circuit(&circuit).to_bytes()
+    serialize_circuit(&circuit).to_bytes()
 }
 
 #[wasm_bindgen]

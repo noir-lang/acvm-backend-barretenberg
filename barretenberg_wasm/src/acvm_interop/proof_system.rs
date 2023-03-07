@@ -5,7 +5,8 @@ use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
 use common::barretenberg_structures::Assignments;
-use common::serialiser::serialise_circuit;
+use common::proof;
+use common::serializer::serialize_circuit;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
@@ -14,26 +15,13 @@ impl ProofSystemCompiler for Plonk {
         circuit: Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
     ) -> Vec<u8> {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        // Add witnesses in the correct order
-        // Note: The witnesses are sorted via their witness index
-        // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
-        let mut sorted_witness = Assignments::new();
-        let num_witnesses = circuit.num_vars();
-        for i in 1..num_witnesses {
-            // Get the value if it exists. If i does not, then we fill it with the zero value
-            let value = match witness_values.get(&Witness(i)) {
-                Some(value) => *value,
-                None => FieldElement::zero(),
-            };
+        let assignments = proof::flatten_witness_map(&circuit, witness_values);
 
-            sorted_witness.push(value);
-        }
-
-        composer.create_proof(sorted_witness)
+        composer.create_proof(assignments)
     }
 
     fn verify_from_cs(
@@ -42,19 +30,19 @@ impl ProofSystemCompiler for Plonk {
         public_inputs: Vec<FieldElement>,
         circuit: Circuit,
     ) -> bool {
-        let constraint_system = common::serialiser::serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(&circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        composer.verify(proof, Some(Assignments::from_vec(public_inputs)))
+        composer.verify(proof, Assignments::from_vec(public_inputs))
     }
 
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
 
-    fn get_exact_circuit_size(&self, circuit: Circuit) -> u32 {
-        let constraint_system = serialise_circuit(&circuit);
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
+        let constraint_system = serialize_circuit(circuit);
 
         let mut barretenberg = Barretenberg::new();
 
@@ -75,12 +63,12 @@ impl ProofSystemCompiler for Plonk {
             common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
             common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
             common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
-            common::acvm::acir::BlackBoxFunc::Keccak256 => todo!(),
+            common::acvm::acir::BlackBoxFunc::Keccak256 => false,
         }
     }
 
-    fn preprocess(&self, circuit: Circuit) -> (Vec<u8>, Vec<u8>) {
-        let constraint_system = serialise_circuit(&circuit);
+    fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
+        let constraint_system = serialize_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
         let proving_key = composer.compute_proving_key();
@@ -91,46 +79,37 @@ impl ProofSystemCompiler for Plonk {
 
     fn prove_with_pk(
         &self,
-        circuit: Circuit,
+        circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
-        proving_key: Vec<u8>,
+        proving_key: &[u8],
     ) -> Vec<u8> {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(circuit);
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        // Add witnesses in the correct order
-        // Note: The witnesses are sorted via their witness index
-        // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
-        let mut sorted_witness = Assignments::new();
-        let num_witnesses = circuit.num_vars();
-        for i in 1..num_witnesses {
-            // Get the value if it exists. If i does not, then we fill it with the zero value
-            let value = match witness_values.get(&Witness(i)) {
-                Some(value) => *value,
-                None => FieldElement::zero(),
-            };
+        let assignments = proof::flatten_witness_map(circuit, witness_values);
 
-            sorted_witness.push(value);
-        }
-
-        composer.create_proof_with_pk(sorted_witness, &proving_key)
+        composer.create_proof_with_pk(assignments, proving_key)
     }
 
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
-        verification_key: Vec<u8>,
+        public_inputs: BTreeMap<Witness, FieldElement>,
+        circuit: &Circuit,
+        verification_key: &[u8],
     ) -> bool {
-        let constraint_system = serialise_circuit(&circuit);
+        let constraint_system = serialize_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
+
+        // Unlike when proving, we omit any unassigned witnesses.
+        // Witness values should be ordered by their index but we skip over any indices without an assignment.
+        let flattened_public_inputs = public_inputs.into_values().collect();
 
         composer.verify_with_vk(
             proof,
-            Some(Assignments::from_vec(public_inputs)),
-            &verification_key,
+            Assignments::from_vec(flattened_public_inputs),
+            verification_key,
         )
     }
 }

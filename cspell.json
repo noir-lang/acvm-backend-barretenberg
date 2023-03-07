@@ -1,0 +1,70 @@
+{
+    "version": "0.2",
+    "ignorePaths": [
+        "target"
+    ],
+    "words": [
+        // In code
+        //
+        "bbmalloc",
+        "bbfree",
+        "bindgen",
+        "cout",
+        "fdstat",
+        "filestat",
+        "hasher",
+        "hashpath",
+        "indexjs",
+        "keccak",
+        "linearization",
+        "logstr",
+        "merkle",
+        "PAIRINGSBN",
+        "pedersen",
+        "peekable",
+        "PLONKCSat",
+        "pippenger",
+        "polynomial",
+        "POLYNOMIALEVAL",
+        "prehashed",
+        "preimage",
+        "preimages",
+        "preprocess",
+        "pubkey",
+        "QARITH",
+        "QECC",
+        "QLOGIC",
+        "QRANGE",
+        "rollups",
+        "schnorr",
+        "secp",
+        "Shleft",
+        "Shright",
+        "Spilsbury",
+        "subslice",
+        "TURBOVERIFIER",
+        "vals",
+        "wasi",
+        // In Solidity
+        //
+        "addmod",
+        "calldatacopy",
+        "calldataload",
+        "iszero",
+        "lstart",
+        "mload",
+        "mptr",
+        "mstore",
+        "mulmod",
+        "staticcall",
+        // Dependencies
+        //
+        "acir",
+        "acvm",
+        "barretenberg",
+        "indicatif",
+        "tempdir",
+        "tempfile",
+        "wasmer"
+    ]
+}
