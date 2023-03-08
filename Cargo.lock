@@ -244,9 +244,9 @@ dependencies = [
  "barretenberg_wasm",
  "common",
  "console_error_panic_hook",
- "getrandom",
  "gloo-utils",
  "js-sys",
+ "serde_json",
  "wasm-bindgen",
 ]
 
@@ -281,8 +281,6 @@ dependencies = [
  "blake2",
  "common",
  "js-sys",
- "sha2",
- "sled",
  "tempfile",
  "wasmer",
 ]
@@ -1064,10 +1062,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -2111,9 +2107,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.93"
+version = "1.0.94"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cad406b69c91885b5107daf2c29572f6c8cdb3c66826821e286c533490c0bc76"
+checksum = "1c533a59c9d8a93a09c6ab31f0fd5e5f4dd1b8fc9434804029839884765d04ea"
 dependencies = [
  "itoa",
  "ryu",
