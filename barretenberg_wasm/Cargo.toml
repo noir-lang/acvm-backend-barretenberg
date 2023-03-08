@@ -1,7 +1,10 @@
 [package]
 name = "barretenberg_wasm"
 version = "0.1.0"
-edition = "2021"
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,9 +13,8 @@ wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
 js-sys = { version = "0.3.55", optional = true }
 
-sha2 = "0.9.3"
+[dev-dependencies]
 blake2 = "0.9.1"
-sled = "0.34.6"
 tempfile = "*"
 
 [features]

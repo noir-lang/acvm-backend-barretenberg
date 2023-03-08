@@ -4,6 +4,7 @@ use common::barretenberg_structures::Assignments;
 use common::barretenberg_structures::ConstraintSystem;
 use common::barretenberg_structures::WitnessAssignments;
 use common::crs::CRS;
+use common::proof;
 use wasmer::Value;
 
 pub struct StandardComposer {
@@ -145,7 +146,7 @@ impl StandardComposer {
             proof_ptr as usize,
             proof_ptr as usize + proof_size.unwrap_i32() as usize,
         );
-        remove_public_inputs(self.constraint_system.public_inputs.len(), proof)
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &proof)
     }
 
     pub fn verify(
@@ -153,7 +154,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
     ) -> bool {
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -161,15 +162,7 @@ impl StandardComposer {
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
         //
 
-        let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
-            let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
-            }
-            proof_with_pi.extend(proof);
-            proof = proof_with_pi;
-        }
+        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
 
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
@@ -280,7 +273,7 @@ impl StandardComposer {
             proof_ptr as usize,
             proof_ptr as usize + proof_size.unwrap_i32() as usize,
         );
-        remove_public_inputs(self.constraint_system.public_inputs.len(), proof)
+        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &proof)
     }
 
     pub fn verify_with_vk(
@@ -288,7 +281,7 @@ impl StandardComposer {
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
-        public_inputs: Option<Assignments>,
+        public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
         // Prepend the public inputs to the proof.
@@ -296,16 +289,7 @@ impl StandardComposer {
         // This is non-standard however, so this Rust wrapper will strip the public inputs
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
         //
-
-        let mut proof = proof.to_vec();
-        if let Some(pi) = &public_inputs {
-            let mut proof_with_pi = Vec::new();
-            for assignment in pi.0.iter() {
-                proof_with_pi.extend(&assignment.to_be_bytes());
-            }
-            proof_with_pi.extend(proof);
-            proof = proof_with_pi;
-        }
+        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
 
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
@@ -338,14 +322,6 @@ impl StandardComposer {
             _ => panic!("Expected a 1 or a zero for the verification result"),
         }
     }
-}
-
-pub(crate) fn remove_public_inputs(num_pub_inputs: usize, proof: Vec<u8>) -> Vec<u8> {
-    // This is only for public inputs and for Barretenberg.
-    // Barretenberg only used bn254, so each element is 32 bytes.
-    // To remove the public inputs, we need to remove (num_pub_inputs * 32) bytes
-    let num_bytes_to_remove = 32 * num_pub_inputs;
-    proof[num_bytes_to_remove..].to_vec()
 }
 
 fn pow2ceil(v: u32) -> u32 {
