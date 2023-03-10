@@ -54,12 +54,12 @@ pub struct Constraint {
 impl Constraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
-        // serialise Wires
+        // serialize Wires
         buffer.extend_from_slice(&self.a.to_be_bytes());
         buffer.extend_from_slice(&self.b.to_be_bytes());
         buffer.extend_from_slice(&self.c.to_be_bytes());
 
-        // serialise selectors
+        // serialize selectors
         buffer.extend_from_slice(&self.qm.to_be_bytes());
         buffer.extend_from_slice(&self.ql.to_be_bytes());
         buffer.extend_from_slice(&self.qr.to_be_bytes());
@@ -79,7 +79,7 @@ pub struct RangeConstraint {
 impl RangeConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
-        // Serialiasing Wires
+        // Serializing Wires
         buffer.extend_from_slice(&self.a.to_be_bytes());
         buffer.extend_from_slice(&self.num_bits.to_be_bytes());
 
@@ -296,7 +296,7 @@ pub struct FixedBaseScalarMulConstraint {
 impl FixedBaseScalarMulConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
-        // Serialising Wires
+        // Serializing Wires
         buffer.extend_from_slice(&self.scalar.to_be_bytes());
         buffer.extend_from_slice(&self.pubkey_x.to_be_bytes());
         buffer.extend_from_slice(&self.pubkey_y.to_be_bytes());
@@ -336,7 +336,7 @@ impl LogicConstraint {
 
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
-        // Serialising Wires
+        // Serializing Wires
         buffer.extend_from_slice(&self.a.to_be_bytes());
         buffer.extend_from_slice(&self.b.to_be_bytes());
         buffer.extend_from_slice(&self.result.to_be_bytes());
@@ -378,77 +378,77 @@ impl ConstraintSystem {
             buffer.extend_from_slice(&pub_input.to_be_bytes());
         }
 
-        // Serialise each Logic constraint
+        // Serialize each Logic constraint
         let logic_constraints_len = self.logic_constraints.len() as u32;
         buffer.extend_from_slice(&logic_constraints_len.to_be_bytes());
         for constraint in self.logic_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Range constraint
+        // Serialize each Range constraint
         let range_constraints_len = self.range_constraints.len() as u32;
         buffer.extend_from_slice(&range_constraints_len.to_be_bytes());
         for constraint in self.range_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Sha256 constraint
+        // Serialize each Sha256 constraint
         let sha256_constraints_len = self.sha256_constraints.len() as u32;
         buffer.extend_from_slice(&sha256_constraints_len.to_be_bytes());
         for constraint in self.sha256_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Merkle Membership constraint
+        // Serialize each Merkle Membership constraint
         let merkle_membership_constraints_len = self.merkle_membership_constraints.len() as u32;
         buffer.extend_from_slice(&merkle_membership_constraints_len.to_be_bytes());
         for constraint in self.merkle_membership_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Schnorr constraint
+        // Serialize each Schnorr constraint
         let schnorr_len = self.schnorr_constraints.len() as u32;
         buffer.extend_from_slice(&schnorr_len.to_be_bytes());
         for constraint in self.schnorr_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each ECDSA constraint
+        // Serialize each ECDSA constraint
         let ecdsa_len = self.ecdsa_secp256k1_constraints.len() as u32;
         buffer.extend_from_slice(&ecdsa_len.to_be_bytes());
         for constraint in self.ecdsa_secp256k1_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Blake2s constraint
+        // Serialize each Blake2s constraint
         let blake2s_len = self.blake2s_constraints.len() as u32;
         buffer.extend_from_slice(&blake2s_len.to_be_bytes());
         for constraint in self.blake2s_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Pedersen constraint
+        // Serialize each Pedersen constraint
         let pedersen_len = self.pedersen_constraints.len() as u32;
         buffer.extend_from_slice(&pedersen_len.to_be_bytes());
         for constraint in self.pedersen_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each HashToField constraint
+        // Serialize each HashToField constraint
         let h2f_len = self.hash_to_field_constraints.len() as u32;
         buffer.extend_from_slice(&h2f_len.to_be_bytes());
         for constraint in self.hash_to_field_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each HashToField constraint
+        // Serialize each HashToField constraint
         let fixed_base_scalar_mul_len = self.fixed_base_scalar_mul_constraints.len() as u32;
         buffer.extend_from_slice(&fixed_base_scalar_mul_len.to_be_bytes());
         for constraint in self.fixed_base_scalar_mul_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialise each Arithmetic constraint
+        // Serialize each Arithmetic constraint
         let constraints_len = self.constraints.len() as u32;
         buffer.extend_from_slice(&constraints_len.to_be_bytes());
         for constraint in self.constraints.iter() {

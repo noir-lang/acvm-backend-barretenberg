@@ -1,19 +1,23 @@
 [package]
 name = "common"
 version = "0.1.0"
-edition = "2021"
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { git = "https://github.com/noir-lang/acvm", branch = "kw/add-public-outputs", features = [
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "c8afa864888b2b78af1211ca9e47136ae1b1a5a7", features = [
     "bn254",
 ] }
 
 sled = "0.34.6"
 blake2 = "0.9.1"
 dirs = "3.0"
-downloader = { version = "0.2.6", optional = true }
+downloader = { version = "0.2.7", optional = true, default-features = false, features = ["rustls-tls"] }
 indicatif = "0.15.0"
 regex = "1.4.0"
 

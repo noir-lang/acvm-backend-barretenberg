@@ -1,4 +1,4 @@
-pub use common::crs::*;
+pub(crate) use common::crs::CRS;
 
 #[test]
 fn does_not_panic() {
@@ -20,6 +20,8 @@ fn does_not_panic() {
 #[test]
 #[ignore]
 fn downloading() {
+    use common::crs::download_crs;
+
     use tempfile::tempdir;
     let dir = tempdir().unwrap();
 
