@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["common", "barretenberg_wasm", "barretenberg_static_lib"]
+members = ["common", "barretenberg-sys", "barretenberg_wasm", "barretenberg_static_lib"]
 
 exclude = ["aztec_backend_wasm"]
 

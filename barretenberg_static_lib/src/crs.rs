@@ -6,7 +6,7 @@ fn does_not_panic() {
 
     let crs = CRS::new(num_points);
 
-    let p_points = barretenberg_wrapper::pippenger::new(&crs.g1_data);
+    let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
 
     unsafe {
         Vec::from_raw_parts(
