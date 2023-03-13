@@ -5,7 +5,7 @@ use super::Barretenberg;
 impl Barretenberg {
     /// Hashes to a bn254 scalar field element using blake2s
     pub fn hash_to_field(&mut self, input: &[u8]) -> FieldElement {
-        let result_prt = barretenberg_wrapper::blake2s::hash_to_field(input);
+        let result_prt = barretenberg_sys::blake2s::hash_to_field(input);
 
         FieldElement::from_be_bytes_reduce(&result_prt)
     }
