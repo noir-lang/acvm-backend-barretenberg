@@ -271,7 +271,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#b3abf261314b5ae5bc38e75eb8b40628b4d49fe8"
+source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#dbd544318819cf710dede8ffb7b7eafa112f5aed"
 dependencies = [
  "bindgen",
  "cmake",
