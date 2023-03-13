@@ -3,4 +3,5 @@
 .DS_Store
 node_modules
 dest
-noir-example-project
+result
+barretenberg_wasm/src/barretenberg.wasm
