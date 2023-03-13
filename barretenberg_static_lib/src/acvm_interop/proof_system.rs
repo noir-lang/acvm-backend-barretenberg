@@ -39,7 +39,7 @@ impl ProofSystemCompiler for Plonk {
         let verification_key = composer.compute_verification_key(&proving_key);
 
         composer.verify_with_vk(
-            &proof,
+            proof,
             Assignments::from_vec(public_inputs),
             &verification_key,
         )
