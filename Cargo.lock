@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 name = "barretenberg_wrapper"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/aztec-connect?branch=mv/fix-pk-write#6d3e1fb34f874eeafba415bc5f8c7565ee0bb4b5"
+source = "git+https://github.com/noir-lang/aztec-connect?branch=kw/noir-dsl#dbd544318819cf710dede8ffb7b7eafa112f5aed"
 dependencies = [
  "bindgen",
  "cmake",
