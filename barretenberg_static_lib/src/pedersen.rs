@@ -5,7 +5,7 @@ use super::Barretenberg;
 
 impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
-        let result_bytes = barretenberg_wrapper::pedersen::compress_native(
+        let result_bytes = barretenberg_sys::pedersen::compress_native(
             left.to_be_bytes().as_slice().try_into().unwrap(),
             right.to_be_bytes().as_slice().try_into().unwrap(),
         );
@@ -17,7 +17,7 @@ impl Barretenberg {
         for f in inputs {
             inputs_buf.push(field_to_array(&f));
         }
-        let result = barretenberg_wrapper::pedersen::compress_many(&inputs_buf);
+        let result = barretenberg_sys::pedersen::compress_many(&inputs_buf);
         FieldElement::from_be_bytes_reduce(&result)
     }
 
@@ -26,7 +26,7 @@ impl Barretenberg {
         for f in inputs {
             inputs_buf.push(field_to_array(&f));
         }
-        let (point_x_bytes, point_y_bytes) = barretenberg_wrapper::pedersen::encrypt(&inputs_buf);
+        let (point_x_bytes, point_y_bytes) = barretenberg_sys::pedersen::encrypt(&inputs_buf);
         let point_x = FieldElement::from_be_bytes_reduce(&point_x_bytes);
         let point_y = FieldElement::from_be_bytes_reduce(&point_y_bytes);
 

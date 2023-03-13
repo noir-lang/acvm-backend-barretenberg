@@ -36,7 +36,7 @@ impl StandardComposer {
         let sc_as_bytes;
         let contract_size;
         unsafe {
-            contract_size = barretenberg_wrapper::composer::smart_contract(
+            contract_size = barretenberg_sys::composer::smart_contract(
                 self.pippenger.pointer(),
                 &self.crs.g2_data,
                 &cs_buf,
@@ -74,7 +74,7 @@ impl StandardComposer {
 
     pub fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
         unsafe {
-            barretenberg_wrapper::composer::get_exact_circuit_size(
+            barretenberg_sys::composer::get_exact_circuit_size(
                 constraint_system.to_bytes().as_slice().as_ptr(),
             )
         }
@@ -87,7 +87,7 @@ impl StandardComposer {
 
         let pk_size;
         unsafe {
-            pk_size = barretenberg_wrapper::composer::init_proving_key(&cs_buf, pk_ptr);
+            pk_size = barretenberg_sys::composer::init_proving_key(&cs_buf, pk_ptr);
         }
 
         std::mem::forget(cs_buf);
@@ -108,7 +108,7 @@ impl StandardComposer {
 
         let vk_size;
         unsafe {
-            vk_size = barretenberg_wrapper::composer::init_verification_key(
+            vk_size = barretenberg_sys::composer::init_verification_key(
                 pippenger_ptr,
                 &g2_clone,
                 &proving_key,
@@ -139,7 +139,7 @@ impl StandardComposer {
         let proof_size;
         let proving_key = proving_key.to_vec();
         unsafe {
-            proof_size = barretenberg_wrapper::composer::create_proof_with_pk(
+            proof_size = barretenberg_sys::composer::create_proof_with_pk(
                 self.pippenger.pointer(),
                 &g2_clone,
                 &proving_key,
@@ -181,7 +181,7 @@ impl StandardComposer {
 
         let verified;
         unsafe {
-            verified = barretenberg_wrapper::composer::verify_with_vk(
+            verified = barretenberg_sys::composer::verify_with_vk(
                 &self.crs.g2_data,
                 &verification_key,
                 &cs_buf,

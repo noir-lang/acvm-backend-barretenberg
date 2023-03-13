@@ -4,7 +4,7 @@ pub(crate) struct Pippenger {
 
 impl Pippenger {
     pub(crate) fn new(crs_data: &[u8]) -> Pippenger {
-        let pippenger_ptr = barretenberg_wrapper::pippenger::new(crs_data);
+        let pippenger_ptr = barretenberg_sys::pippenger::new(crs_data);
         Pippenger { pippenger_ptr }
     }
 
