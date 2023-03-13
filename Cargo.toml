@@ -5,7 +5,9 @@ members = ["common", "barretenberg-sys", "barretenberg_wasm", "barretenberg_stat
 exclude = ["aztec_backend_wasm"]
 
 [workspace.package]
-
+# Name & version provided for https://github.com/ipetkov/crane/issues/236 but we could switch to specifying in nix
+name = "aztec_backend"
+version = "0.1.0"
 authors = ["The Noir Team <kevtheappdev@gmail.com>"]
 edition = "2021"
 rust-version = "1.66"

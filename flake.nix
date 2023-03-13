@@ -1,0 +1,91 @@
+{
+  description = "Build Barretenberg wrapper";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    flake-utils.url = "github:numtide/flake-utils";
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+
+    barretenberg = {
+      url = "github:AztecProtocol/barretenberg/phated/nix-plus-fixes";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
+  };
+
+  outputs =
+    { self, nixpkgs, crane, flake-utils, rust-overlay, barretenberg, ... }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            rust-overlay.overlays.default
+            barretenberg.overlays.default
+          ];
+        };
+
+        rustToolchain = pkgs.rust-bin.stable."1.66.0".default;
+
+        craneLibScope = (crane.mkLib pkgs).overrideScope' (final: prev: {
+          # As per https://discourse.nixos.org/t/gcc11stdenv-and-clang/17734/7
+          stdenv = with pkgs;
+            if (stdenv.targetPlatform.isGnu && stdenv.targetPlatform.isAarch64) then
+              overrideCC llvmPackages.stdenv (llvmPackages.clang.override { gccForLibs = gcc11.cc; })
+            else
+              llvmPackages.stdenv;
+        });
+
+        craneLib = craneLibScope.overrideToolchain rustToolchain;
+
+        barretenberg-backend = craneLib.buildPackage {
+          src = craneLib.cleanCargoSource ./.;
+
+          doCheck = false;
+
+          nativeBuildInputs = [
+            pkgs.pkg-config
+            pkgs.llvmPackages.bintools
+          ];
+
+          # rust-bindgen needs to know the location of libclang
+          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+
+          # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
+          BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
+
+          buildInputs = [
+            pkgs.llvmPackages.openmp
+            pkgs.barretenberg
+          ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            pkgs.libiconv
+          ];
+        };
+      in rec {
+        checks = { inherit barretenberg-backend; };
+
+        packages.default = barretenberg-backend;
+
+        devShells.default = pkgs.mkShell {
+          inputsFrom = builtins.attrValues self.checks;
+
+          buildInputs = packages.default.buildInputs;
+          nativeBuildInputs = packages.default.nativeBuildInputs;
+        };
+      });
+}
