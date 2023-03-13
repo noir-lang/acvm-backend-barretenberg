@@ -262,6 +262,7 @@ version = "0.1.0"
 dependencies = [
  "blake2",
  "common",
+ "pkg-config",
  "tempfile",
  "wasmer",
 ]
