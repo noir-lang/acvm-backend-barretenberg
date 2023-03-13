@@ -4,6 +4,7 @@ use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
 use common::barretenberg_structures::Assignments;
+use common::proof;
 use common::serializer::serialize_circuit;
 use std::collections::BTreeMap;
 
@@ -17,22 +18,9 @@ impl ProofSystemCompiler for Plonk {
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        // Add witnesses in the correct order
-        // Note: The witnesses are sorted via their witness index
-        // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
-        let mut sorted_witness = Assignments::new();
-        let num_witnesses = circuit.num_vars();
-        for i in 1..num_witnesses {
-            // Get the value if it exists. If i does not, then we fill it with the zero value
-            let value = match witness_values.get(&Witness(i)) {
-                Some(value) => *value,
-                None => FieldElement::zero(),
-            };
+        let assignments = proof::flatten_witness_map(&circuit, witness_values);
 
-            sorted_witness.push(value);
-        }
-
-        composer.create_proof(sorted_witness)
+        composer.create_proof(assignments)
     }
 
     fn verify_from_cs(
@@ -95,20 +83,9 @@ impl ProofSystemCompiler for Plonk {
         let constraint_system = serialize_circuit(circuit);
         let mut composer = StandardComposer::new(constraint_system);
 
-        // Add witnesses in the correct order
-        // Note: The witnesses are sorted via their witness index
-        // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
-        let num_witnesses = circuit.num_vars();
-        let flattened_witnesses = (1..num_witnesses)
-            .map(|wit_index| {
-                // Get the value if it exists, if not then default to zero value.
-                witness_values
-                    .get(&Witness(wit_index))
-                    .map_or(FieldElement::zero(), |field| *field)
-            })
-            .collect();
+        let assignments = proof::flatten_witness_map(circuit, witness_values);
 
-        composer.create_proof_with_pk(Assignments::from_vec(flattened_witnesses), proving_key)
+        composer.create_proof_with_pk(assignments, proving_key)
     }
 
     fn verify_with_vk(
