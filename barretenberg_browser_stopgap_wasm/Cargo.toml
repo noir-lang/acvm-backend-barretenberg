@@ -1,0 +1,20 @@
+[package]
+name = "barretenberg_browser_stopgap_wasm"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+barretenberg_wasm = { path = "../barretenberg_wasm", default-features = false, features = [
+    "js",
+] }
+common = { path = "../common", default-features = false }
+console_error_panic_hook = { version = "*" }
+wasm-bindgen = { version = "*", features = ["serde-serialize"] }
+js-sys = { version = "0.3.55" }
+getrandom = { version = "0.2.4", features = ["js"] }
+gloo-utils = { version = "0.1", features = ["serde"] }

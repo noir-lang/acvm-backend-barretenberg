@@ -1,7 +1,7 @@
 [workspace]
 
 
-members = ["common", "barretenberg_wasm", "barretenberg_static_lib", "aztec_backend_wasm"]
+members = ["common", "barretenberg_wasm", "barretenberg_static_lib", "aztec_backend_wasm", "barretenberg_browser_stopgap_wasm"]
 # barretenberg_js will be phased out in the future
 
 # exclude = ["aztec_backend_wasm"]
