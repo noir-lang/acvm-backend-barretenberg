@@ -53,7 +53,15 @@
 
         craneLib = craneLibScope.overrideToolchain rustToolchain;
 
-        barretenberg-backend = craneLib.buildPackage {
+        environment = {
+          # rust-bindgen needs to know the location of libclang
+          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+
+          # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
+          BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
+        };
+
+        barretenberg-backend = craneLib.buildPackage({
           pname = "aztec_backend";
           version = "0.1.0";
 
@@ -66,29 +74,23 @@
             pkgs.llvmPackages.bintools
           ];
 
-          # rust-bindgen needs to know the location of libclang
-          LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-
-          # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
-          BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
-
           buildInputs = [
             pkgs.llvmPackages.openmp
             pkgs.barretenberg
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             pkgs.libiconv
           ];
-        };
+        } // environment);
       in rec {
         checks = { inherit barretenberg-backend; };
 
         packages.default = barretenberg-backend;
 
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShell ({
           inputsFrom = builtins.attrValues self.checks;
 
           buildInputs = packages.default.buildInputs;
           nativeBuildInputs = packages.default.nativeBuildInputs;
-        };
+        } // environment);
       });
 }
