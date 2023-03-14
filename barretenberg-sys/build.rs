@@ -38,7 +38,7 @@ fn main() {
 
     // Generate bindings from a header file and place them in a bindings.rs file
     let bindings = bindgen::Builder::default()
-        // Clang args so that we can use relative include paths
+        // Clang args so that we can compile C++ with C++20
         .clang_args(&["-std=gnu++20", "-xc++"])
         .header_contents(
             "wrapper.hpp",
