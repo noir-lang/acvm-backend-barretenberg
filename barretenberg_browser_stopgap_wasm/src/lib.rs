@@ -61,3 +61,29 @@ pub fn solve_intermediate_witness(
     };
     witness_map_to_js_map(witness_skeleton)
 }
+
+#[wasm_bindgen]
+pub fn intermediate_witness_to_assignment_bytes(
+    intermediate_witness: js_sys::Map,
+) -> js_sys::Uint8Array {
+    console_error_panic_hook::set_once();
+
+    let intermediate_witness = js_map_to_witness_map(intermediate_witness);
+
+    // Add witnesses in the correct order
+    // Note: The witnesses are sorted via their witness index
+    // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
+    let num_witnesses = intermediate_witness.len();
+    let mut sorted_witness = common::barretenberg_structures::Assignments::new();
+    for i in 1..num_witnesses {
+        let value = match intermediate_witness.get(&Witness(i as u32)) {
+            Some(value) => *value,
+            None => panic!("Missing witness element at idx {}", i),
+        };
+
+        sorted_witness.push(value);
+    }
+
+    let bytes = sorted_witness.to_bytes();
+    js_sys::Uint8Array::from(&bytes[..])
+}
