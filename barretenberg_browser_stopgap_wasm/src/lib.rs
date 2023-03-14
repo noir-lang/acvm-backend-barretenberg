@@ -87,3 +87,12 @@ pub fn intermediate_witness_to_assignment_bytes(
     let bytes = sorted_witness.to_bytes();
     js_sys::Uint8Array::from(&bytes[..])
 }
+
+#[wasm_bindgen]
+pub fn acir_to_constraints_system(circuit: js_sys::Uint8Array) -> js_sys::Uint8Array {
+    console_error_panic_hook::set_once();
+
+    let circuit = read_circuit(circuit);
+    let bytes = common::serializer::serialize_circuit(&circuit).to_bytes();
+    js_sys::Uint8Array::from(&bytes[..])
+}
