@@ -66,7 +66,7 @@ fn main() {
         .generate()
         .expect("Unable to generate bindings");
 
-    println!("cargo:rustc-link-lib=barretenberg");
+    println!("cargo:rustc-link-lib=static=barretenberg");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     bindings
