@@ -54,6 +54,9 @@
         craneLib = craneLibScope.overrideToolchain rustToolchain;
 
         barretenberg-backend = craneLib.buildPackage {
+          pname = "aztec_backend";
+          version = "0.1.0";
+
           src = craneLib.cleanCargoSource ./.;
 
           doCheck = false;
