@@ -1,4 +1,25 @@
+use bindgen::BindgenError;
+use color_eyre::{config::HookBuilder, eyre::Result};
+use pkg_config::Error;
 use std::{env, path::PathBuf};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+enum BuildError {
+    #[error("Barretenberg could not be found because {0} was set.")]
+    PkgConfigDisabled(String),
+    #[error("Failed to locate correct Barretenberg. {0}.")]
+    PkgConfigProbe(String),
+    #[error("{0}")]
+    PkgConfigGeneric(String),
+
+    #[error("Clang encountered an error during rust-bindgen: {0}.")]
+    BindgenErrorClangDiagnostic(String),
+    #[error("Encountered a rust-bindgen error: {0}.")]
+    BindgenGeneric(String),
+    #[error("Failed to write {0} with rust-bindgen.")]
+    BindgenWrite(String),
+}
 
 // These are the operating systems that are supported
 pub enum OS {
@@ -25,16 +46,32 @@ fn select_os() -> OS {
 //     }
 // }
 
-fn main() {
-    let os = select_os();
-
-    link_cpp_stdlib(&os);
-    link_lib_omp(&os);
+fn main() -> Result<()> {
+    // Register a eyre hook to display more readable failure messages to end-users
+    let (_, eyre_hook) = HookBuilder::default()
+        .display_env_section(false)
+        .into_hooks();
+    eyre_hook.install()?;
 
     pkg_config::Config::new()
         .range_version("0.1.0".."0.2.0")
         .probe("barretenberg")
-        .unwrap();
+        .map_err(|err| match err {
+            Error::EnvNoPkgConfig(val) => BuildError::PkgConfigDisabled(val),
+            Error::ProbeFailure {
+                name: _,
+                command: _,
+                ref output,
+            } => BuildError::PkgConfigProbe(
+                String::from_utf8_lossy(&output.stderr).trim().to_string(),
+            ),
+            err => BuildError::PkgConfigGeneric(format!("{err}")),
+        })?;
+
+    let os = select_os();
+
+    link_cpp_stdlib(&os);
+    link_lib_omp(&os);
 
     // Generate bindings from a header file and place them in a bindings.rs file
     let bindings = bindgen::Builder::default()
@@ -64,14 +101,20 @@ fn main() {
         .allowlist_function("construct_signature")
         .allowlist_function("verify_signature")
         .generate()
-        .expect("Unable to generate bindings");
+        .map_err(|err| match err {
+            BindgenError::ClangDiagnostic(msg) => {
+                BuildError::BindgenErrorClangDiagnostic(msg.trim().to_string())
+            }
+            err => BuildError::BindgenGeneric(format!("{err}").trim().to_string()),
+        })?;
 
     println!("cargo:rustc-link-lib=static=barretenberg");
 
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let bindgen_file = out_path.join("bindings.rs");
     bindings
-        .write_to_file(out_path.join("bindings.rs"))
-        .expect("Couldn't write bindings");
+        .write_to_file(&bindgen_file)
+        .map_err(|_| BuildError::BindgenWrite(bindgen_file.to_string_lossy().to_string()).into())
 }
 
 fn link_cpp_stdlib(os: &OS) {
