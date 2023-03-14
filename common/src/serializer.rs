@@ -341,6 +341,9 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
             Opcode::Directive(_) => {
                 // Directives are only needed by the pwg
             }
+            Opcode::Block(_, _) => {
+                // TODO: implement serialization of blocks to match BB's interface
+            }
         }
     }
 
