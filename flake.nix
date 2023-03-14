@@ -78,6 +78,7 @@
             pkgs.llvmPackages.openmp
             pkgs.barretenberg
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+            # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
             pkgs.libiconv
             pkgs.darwin.apple_sdk.frameworks.Security
           ];
