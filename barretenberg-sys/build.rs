@@ -22,7 +22,7 @@ enum BuildError {
 }
 
 // These are the operating systems that are supported
-pub enum OS {
+enum OS {
     Linux,
     Apple,
 }
