@@ -11,6 +11,7 @@ rust-version.workspace = true
 [dependencies]
 wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
+rust-embed = { version = "6.6.0", features = ["debug-embed", "interpolate-folder-path", "include-exclude"] }
 
 [build-dependencies]
 pkg-config = "0.3"
