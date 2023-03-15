@@ -12,7 +12,9 @@ fn copy_wasm(wasm_path: &String) -> Result<(), String> {
         Ok(_) => Ok(()),
         Err(err) => {
             println!("{err:?}");
-            Err(format!("Failed to copy {wasm_path} into project. Does it exist?").into())
+            Err(format!(
+                "Failed to copy {wasm_path} into project. Does it exist?"
+            ))
         }
     }
 }

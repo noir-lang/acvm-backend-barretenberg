@@ -94,7 +94,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            result = Vec::from_raw_parts(pk_addr, pk_size as usize, pk_size as usize);
+            result = Vec::from_raw_parts(pk_addr, pk_size, pk_size);
         }
         result
     }
@@ -121,7 +121,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            result = Vec::from_raw_parts(vk_addr, vk_size as usize, vk_size as usize);
+            result = Vec::from_raw_parts(vk_addr, vk_size, vk_size);
         }
         result.to_vec()
     }
@@ -156,7 +156,7 @@ impl StandardComposer {
 
         let result;
         unsafe {
-            result = Vec::from_raw_parts(proof_addr, proof_size as usize, proof_size as usize);
+            result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
         proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &result)
     }
@@ -292,7 +292,7 @@ mod test {
         // This fails because the constraint system requires public inputs,
         // but none are supplied in public_inputs. So the verifier will not
         // supply anything.
-        let case_1 = WitnessResult {
+        let _case_1 = WitnessResult {
             witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
             public_inputs: Assignments::default(),
             result: false,
@@ -310,7 +310,7 @@ mod test {
         };
 
         // Not enough public inputs
-        let case_4 = WitnessResult {
+        let _case_4 = WitnessResult {
             witness: Assignments(vec![
                 Scalar::one(),
                 Scalar::from(2_i128),
