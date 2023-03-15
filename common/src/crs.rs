@@ -14,13 +14,11 @@ const G2_END: usize = G2_START + 128 - 1;
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
         Ok(dir) => PathBuf::from(dir),
-        Err(_) => {
-            let mut transcript_dir = dirs::home_dir().unwrap();
-            transcript_dir.push(std::path::Path::new("noir_cache"));
-            transcript_dir.push(std::path::Path::new("ignition"));
-            transcript_dir.push(std::path::Path::new("transcript00.dat"));
-            transcript_dir
-        }
+        Err(_) => dirs::home_dir()
+            .unwrap()
+            .join("noir_cache")
+            .join("ignition")
+            .join("transcript00.dat"),
     }
 }
 
