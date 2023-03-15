@@ -1,8 +1,11 @@
 #![warn(unused_crate_dependencies, unused_extern_crates)]
 #![warn(unreachable_pub)]
 
-///  Import the Barretenberg WASM file
-pub static WASM: &[u8] = include_bytes!("barretenberg.wasm");
+/// Embed the Barretenberg WASM file
+#[derive(rust_embed::RustEmbed)]
+#[folder = "$BARRETENBERG_BIN_DIR"]
+#[include = "barretenberg.wasm"]
+struct WASM;
 
 pub mod acvm_interop;
 pub use acvm_interop::Plonk;
@@ -125,7 +128,7 @@ impl Default for Barretenberg {
 fn load_module() -> (Module, Store) {
     let store = Store::default();
 
-    let module = Module::new(&store, WASM).unwrap();
+    let module = Module::new(&store, WASM::get("barretenberg.wasm").unwrap().data).unwrap();
     (module, store)
 }
 

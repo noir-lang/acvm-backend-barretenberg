@@ -58,7 +58,7 @@
           LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
 
           # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
-          BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
+          BARRETENBERG_BIN_DIR = "${pkgs.pkgsCross.wasi32.barretenberg}/bin";
 
           # We fetch the transcript as a dependency and provide it to the build.
           # This is necessary because the Nix sandbox is read-only and downloading during tests would fail
