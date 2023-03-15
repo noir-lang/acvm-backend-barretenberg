@@ -66,7 +66,7 @@
           };
         };
 
-        barretenberg-backend = craneLib.buildPackage({
+        commonArgs = {
           pname = "aztec_backend";
           version = "0.1.0";
 
@@ -89,9 +89,27 @@
             pkgs.libiconv
             pkgs.darwin.apple_sdk.frameworks.Security
           ];
-        } // environment);
+        } // environment;
+
+        # Build *just* the cargo dependencies, so we can reuse
+        # all of that work (e.g. via cachix) when running in CI
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+        barretenberg-backend = craneLib.buildPackage (commonArgs // {
+          inherit cargoArtifacts;
+        });
       in rec {
-        checks = { inherit barretenberg-backend; };
+        checks = {
+          inherit barretenberg-backend;
+
+          aztec_backend_test = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+
+            cargoTestArgs = "--workspace -- --test-threads=1 --nocapture";
+
+            doCheck = true;
+          });
+        };
 
         packages.default = barretenberg-backend;
 
