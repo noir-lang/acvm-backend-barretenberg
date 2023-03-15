@@ -59,6 +59,11 @@
 
           # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
           BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
+
+          NOIR_TRANSCRIPT = pkgs.fetchurl {
+            url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/sealed/transcript00.dat";
+            sha256 = "sha256-ryR/d+vpOCxa3gM0lze2UVUKNUinj0nN3ScCfysN84k=";
+          };
         };
 
         barretenberg-backend = craneLib.buildPackage({
