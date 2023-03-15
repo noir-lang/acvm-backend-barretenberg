@@ -75,7 +75,9 @@
           doCheck = false;
 
           nativeBuildInputs = [
+            # This provides the pkg-config tool to find barretenberg & other native libraries
             pkgs.pkg-config
+            # This provides the `lld` linker to cargo
             pkgs.llvmPackages.bintools
           ];
 
