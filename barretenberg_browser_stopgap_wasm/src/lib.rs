@@ -96,3 +96,12 @@ pub fn acir_to_constraints_system(circuit: js_sys::Uint8Array) -> js_sys::Uint8A
     let bytes = common::serializer::serialize_circuit(&circuit).to_bytes();
     js_sys::Uint8Array::from(&bytes[..])
 }
+
+#[wasm_bindgen]
+pub fn public_input_length(circuit: js_sys::Uint8Array) -> js_sys::Number {
+    console_error_panic_hook::set_once();
+
+    let circuit = read_circuit(circuit);
+    let length = circuit.public_inputs.0.len() as u32;
+    js_sys::Number::from(length)
+}
