@@ -101,20 +101,24 @@
         });
       in rec {
         checks = {
-          inherit barretenberg-backend;
-
-          barretenberg-backend-test = craneLib.cargoTest (commonArgs // {
+          check = craneLib.buildPackage (commonArgs // {
             inherit cargoArtifacts;
-
-            cargoTestArgs = "--workspace -- --test-threads=1 --nocapture";
 
             doCheck = true;
           });
 
-          barretenberg-backend-clippy = craneLib.cargoClippy (commonArgs // {
+          clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
 
             cargoClippyExtraArgs = "--all-targets --workspace -- -D warnings";
+
+            doCheck = true;
+          });
+
+          test = craneLib.cargoTest (commonArgs // {
+            inherit cargoArtifacts;
+
+            cargoTestArgs = "--workspace -- --test-threads=1";
 
             doCheck = true;
           });
