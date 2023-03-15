@@ -88,9 +88,7 @@ mod tests {
 
         for test in tests {
             let got = compress_native(&test.input_left, &test.input_right);
-            let mut many_intputs: Vec<[u8; 32]> = Vec::new();
-            many_intputs.push(test.input_left);
-            many_intputs.push(test.input_right);
+            let many_intputs: Vec<[u8; 32]> = vec![test.input_left, test.input_right];
             let got_many = compress_many(&many_intputs);
             assert_eq!(hex::encode(got), test.expected_hex);
             assert_eq!(got, got_many);
@@ -102,9 +100,7 @@ mod tests {
         let f_zero = [0_u8; 32];
         let mut f_one = [0_u8; 32];
         f_one[31] = 1;
-        let mut inputs: Vec<[u8; 32]> = Vec::new();
-        inputs.push(f_zero);
-        inputs.push(f_one);
+        let inputs: Vec<[u8; 32]> = vec![f_zero, f_one];
 
         let (x, y) = encrypt(&inputs);
         let expected_x = "229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1";

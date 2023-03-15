@@ -15,7 +15,6 @@ pub mod schnorr;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hex;
 
     #[test]
     pub fn pedersen() {

@@ -346,7 +346,7 @@ mod test {
         // This fails because the constraint system requires public inputs,
         // but none are supplied in public_inputs. So the verifier will not
         // supply anything.
-        let case_1 = WitnessResult {
+        let _case_1 = WitnessResult {
             witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
             public_inputs: Assignments::default(),
             result: false,
@@ -364,7 +364,7 @@ mod test {
         };
 
         // Not enough public inputs
-        let case_4 = WitnessResult {
+        let _case_4 = WitnessResult {
             witness: Assignments(vec![
                 Scalar::one(),
                 Scalar::from(2_i128),
