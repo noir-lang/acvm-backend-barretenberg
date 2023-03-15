@@ -101,13 +101,13 @@
         });
       in rec {
         checks = {
-          check = craneLib.buildPackage (commonArgs // {
+          cargo-check = craneLib.buildPackage (commonArgs // {
             inherit cargoArtifacts;
 
             doCheck = true;
           });
 
-          clippy = craneLib.cargoClippy (commonArgs // {
+          cargo-clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
 
             cargoClippyExtraArgs = "--all-targets --workspace -- -D warnings";
@@ -115,7 +115,7 @@
             doCheck = true;
           });
 
-          test = craneLib.cargoTest (commonArgs // {
+          cargo-test = craneLib.cargoTest (commonArgs // {
             inherit cargoArtifacts;
 
             cargoTestArgs = "--workspace -- --test-threads=1";
