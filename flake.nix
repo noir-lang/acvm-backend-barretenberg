@@ -60,6 +60,8 @@
           # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
           BARRETENBERG_WASM = "${pkgs.pkgsCross.wasi32.barretenberg}/bin/barretenberg.wasm";
 
+          # We fetch the transcript as a dependency and provide it to the build.
+          # This is necessary because the Nix sandbox is read-only and downloading during tests would fail
           BARRETENBERG_TRANSCRIPT = pkgs.fetchurl {
             url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/sealed/transcript00.dat";
             sha256 = "sha256-ryR/d+vpOCxa3gM0lze2UVUKNUinj0nN3ScCfysN84k=";
@@ -91,8 +93,7 @@
           ];
         } // environment;
 
-        # Build *just* the cargo dependencies, so we can reuse
-        # all of that work (e.g. via cachix) when running in CI
+        # Build *just* the cargo dependencies, so we can reuse all of that work between runs
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
         barretenberg-backend = craneLib.buildPackage (commonArgs // {
