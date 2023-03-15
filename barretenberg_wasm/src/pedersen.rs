@@ -48,6 +48,45 @@ impl Barretenberg {
 }
 
 #[test]
+fn basic_interop() {
+    // Expected values were taken from Barretenberg by running `crypto::pedersen::compress_native`
+    // printing the result in hex to `std::cout` and copying
+    struct Test<'a> {
+        input_left: FieldElement,
+        input_right: FieldElement,
+        expected_hex: &'a str,
+    }
+
+    let tests = vec![
+        Test {
+            input_left: FieldElement::zero(),
+            input_right: FieldElement::one(),
+            expected_hex: "0x229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1",
+        },
+        Test {
+            input_left: FieldElement::one(),
+            input_right: FieldElement::one(),
+            expected_hex: "0x26425ddf29b4af6ee91008e8dbcbee975653170eee849efd75abf8301dee114e",
+        },
+        Test {
+            input_left: FieldElement::one(),
+            input_right: FieldElement::zero(),
+            expected_hex: "0x08f3cb4f0fdd7a9ef130c6d4590af6750b1475161020a198a56eced45078ccf2",
+        },
+    ];
+
+    let mut barretenberg = Barretenberg::new();
+    for test in tests {
+        let expected = FieldElement::from_hex(test.expected_hex).unwrap();
+
+        let got = barretenberg.compress_native(&test.input_left, &test.input_right);
+        let got_many = barretenberg.compress_many(vec![test.input_left, test.input_right]);
+        assert_eq!(got, expected);
+        assert_eq!(got, got_many);
+    }
+}
+
+#[test]
 fn pedersen_hash_to_point() {
     let mut barretenberg = Barretenberg::new();
     let (x, y) = barretenberg.encrypt(vec![FieldElement::zero(), FieldElement::one()]);
