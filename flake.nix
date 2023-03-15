@@ -109,6 +109,12 @@
 
             doCheck = true;
           });
+
+          barretenberg-backend-clippy = craneLib.cargoClippy (commonArgs // {
+            inherit cargoArtifacts;
+
+            doCheck = true;
+          });
         };
 
         packages.default = barretenberg-backend;
