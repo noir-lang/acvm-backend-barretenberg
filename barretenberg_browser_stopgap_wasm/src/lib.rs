@@ -105,3 +105,16 @@ pub fn public_input_length(circuit: js_sys::Uint8Array) -> js_sys::Number {
     let length = circuit.public_inputs.0.len() as u32;
     js_sys::Number::from(length)
 }
+
+#[wasm_bindgen]
+pub fn public_input_as_bytes(public_witness: js_sys::Map) -> js_sys::Uint8Array {
+    console_error_panic_hook::set_once();
+
+    let public_witness = js_map_to_witness_map(public_witness);
+    let mut buffer = Vec::new();
+    // Implicitly ordered by index
+    for assignment in public_witness.values() {
+        buffer.extend_from_slice(&assignment.to_be_bytes());
+    }
+    js_sys::Uint8Array::from(&buffer[..])
+}
