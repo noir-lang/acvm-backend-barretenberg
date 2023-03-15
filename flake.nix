@@ -113,6 +113,8 @@
           barretenberg-backend-clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
 
+            cargoClippyExtraArgs = "--all-targets --workspace -- -D warnings";
+
             doCheck = true;
           });
         };
