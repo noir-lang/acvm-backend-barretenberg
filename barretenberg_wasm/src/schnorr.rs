@@ -60,3 +60,54 @@ impl Barretenberg {
         // then the whole circuit fails.
     }
 }
+
+#[test]
+fn basic_interop() {
+    let mut barretenberg = Barretenberg::new();
+
+    // First case should pass, standard procedure for Schnorr
+    let private_key = [2; 32];
+    let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    let public_key = barretenberg.construct_public_key(private_key);
+    let signature = barretenberg.construct_signature(&message, private_key);
+    let result = barretenberg.verify_signature(public_key, signature, &message);
+    assert_eq!(result, FieldElement::one());
+
+    // Should fail, since the messages are different
+    let private_key = [2; 32];
+    let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    let public_key = barretenberg.construct_public_key(private_key);
+    let signature = barretenberg.construct_signature(&message, private_key);
+    let result = barretenberg.verify_signature(public_key, signature, &[0, 2]);
+    assert_eq!(result, FieldElement::zero());
+
+    // Should fail, since the signature is not valid
+    let private_key = [2; 32];
+    let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let signature = [1; 64];
+
+    let public_key = barretenberg.construct_public_key(private_key);
+    let result = barretenberg.verify_signature(public_key, signature, &message);
+    assert_eq!(result, FieldElement::zero());
+
+    // Should fail, since the public key does not match
+    let private_key_a = [1; 32];
+    let private_key_b = [2; 32];
+    let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    let public_key_b = barretenberg.construct_public_key(private_key_b);
+    let signature_a = barretenberg.construct_signature(&message, private_key_a);
+    let result = barretenberg.verify_signature(public_key_b, signature_a, &message);
+    assert_eq!(result, FieldElement::zero());
+
+    // Test the first case again, to check if memory is being freed and overwritten properly
+    let private_key = [2; 32];
+    let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    let public_key = barretenberg.construct_public_key(private_key);
+    let signature = barretenberg.construct_signature(&message, private_key);
+    let result = barretenberg.verify_signature(public_key, signature, &message);
+    assert_eq!(result, FieldElement::one());
+}
