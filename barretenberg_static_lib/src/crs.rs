@@ -9,11 +9,7 @@ fn does_not_panic() {
     let p_points = barretenberg_wrapper::pippenger::new(&crs.g1_data);
 
     unsafe {
-        Vec::from_raw_parts(
-            p_points as *mut u8,
-            num_points * 32 as usize,
-            num_points * 32 as usize,
-        );
+        Vec::from_raw_parts(p_points as *mut u8, num_points * 32, num_points * 32);
     }
     //TODO check that p_points memory is properly free
 }

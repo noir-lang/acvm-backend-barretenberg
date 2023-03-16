@@ -477,7 +477,7 @@ mod test {
         witness_values.extend(message);
         witness_values.push(pub_x);
         witness_values.push(pub_y);
-        witness_values.extend(&sig_as_scalars);
+        witness_values.extend(sig_as_scalars);
         witness_values.push(Scalar::zero());
 
         let case_1 = WitnessResult {
@@ -542,11 +542,7 @@ mod test {
 
         let scalar_0 = Scalar::from_hex("0x00").unwrap();
         let scalar_1 = Scalar::from_hex("0x01").unwrap();
-
-        let mut witness_values = Vec::new();
-        witness_values.push(scalar_0);
-        witness_values.push(scalar_1);
-        // witness_values.push(Scalar::zero());
+        let witness_values = vec![scalar_0, scalar_1];
 
         let case_1 = WitnessResult {
             witness: Assignments(witness_values),
