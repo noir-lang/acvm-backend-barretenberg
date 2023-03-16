@@ -129,42 +129,42 @@ fn link_lib_omp(os: &OS) {
     // We are using clang, so we need to tell the linker where to search for lomp
     match os {
         OS::Linux => {
-            let clang_path_string =
-                which_clang("clang").expect("Err: Expected to find clang installation on $PATH");
-            let clang_path = std::path::Path::new(clang_path_string.as_str());
-            let llvm_path = clang_path
-                .parent()
-                .expect("Expected to find parent directory of {clang_path_string}");
-            let llvm_lib_path = llvm_path.join("lib");
-            llvm_path
-                .try_exists()
-                .expect("Err: Clang lib path does not exist.");
-            println!(
-                "cargo:rustc-link-search={}",
-                llvm_lib_path.to_str().unwrap()
-            );
+            let mut search_paths = Vec::new();
+
+            let comp = cc::Build::new()
+                .flag("-v")
+                .flag("-print-search-dirs")
+                .get_compiler();
+            let mut cmd = comp.to_command();
+            let (out, _err) = match cmd.output() {
+                Ok(out) => (
+                    String::from_utf8(out.stdout).unwrap(),
+                    String::from_utf8(out.stderr).unwrap(),
+                ),
+                Err(_err) => {
+                    unimplemented!("Bad C compiler")
+                }
+            };
+
+            for line in out
+                .split('\n')
+                .filter_map(|l| l.strip_prefix("libraries: ="))
+            {
+                search_paths.extend(env::split_paths(line));
+            }
+            for path in search_paths {
+                if path.join("omp").exists() {
+                    println!("cargo:rustc-link-search={}", path.display());
+                    println!("cargo:rustc-link-lib=omp");
+                }
+            }
         }
         OS::Apple => {
             if let Some(brew_prefix) = find_brew_prefix() {
-                println!("cargo:rustc-link-search={brew_prefix}/opt/libomp/lib")
+                println!("cargo:rustc-link-search={brew_prefix}/opt/libomp/lib");
+                println!("cargo:rustc-link-lib=static=omp");
             }
         }
-    }
-    println!("cargo:rustc-link-lib=omp");
-}
-
-fn which_clang(clang_command: &'static str) -> Option<String> {
-    let which_clang_command = std::process::Command::new("which")
-        .arg(clang_command)
-        .output()
-        .expect("Failed to execute which clang command");
-
-    if which_clang_command.status.success() {
-        let path =
-            String::from_utf8(which_clang_command.stdout).expect("Invalid UTF-8 output from which");
-        Some(path.trim().to_owned())
-    } else {
-        None
     }
 }
 
