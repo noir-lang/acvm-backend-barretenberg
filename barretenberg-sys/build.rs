@@ -71,7 +71,7 @@ fn main() -> Result<()> {
     let os = select_os();
 
     link_cpp_stdlib(&os);
-    link_lib_omp(&os);
+    link_lib_omp(&os)?;
 
     // Generate bindings from a header file and place them in a bindings.rs file
     let bindings = bindgen::Builder::default()
@@ -125,45 +125,60 @@ fn link_cpp_stdlib(os: &OS) {
     }
 }
 
-fn link_lib_omp(os: &OS) {
+fn link_lib_omp(os: &OS) -> Result<()> {
     // We are using clang, so we need to tell the linker where to search for lomp
     match os {
         OS::Linux => {
-            let mut search_paths = Vec::new();
+            pkg_config::Config::new()
+                .probe("omp")
+                .map_err(|err| match err {
+                    Error::EnvNoPkgConfig(val) => BuildError::PkgConfigDisabled(val),
+                    Error::ProbeFailure {
+                        name: _,
+                        command: _,
+                        ref output,
+                    } => BuildError::PkgConfigProbe(
+                        String::from_utf8_lossy(&output.stderr).trim().to_string(),
+                    ),
+                    err => BuildError::PkgConfigGeneric(format!("{err}")),
+                })?;
+            // let mut search_paths = Vec::new();
 
-            let comp = cc::Build::new()
-                .flag("-v")
-                .flag("-print-search-dirs")
-                .get_compiler();
-            let mut cmd = comp.to_command();
-            let (out, _err) = match cmd.output() {
-                Ok(out) => (
-                    String::from_utf8(out.stdout).unwrap(),
-                    String::from_utf8(out.stderr).unwrap(),
-                ),
-                Err(_err) => {
-                    unimplemented!("Bad C compiler")
-                }
-            };
+            // let comp = cc::Build::new()
+            //     .flag("-v")
+            //     .flag("-print-search-dirs")
+            //     .get_compiler();
+            // let mut cmd = comp.to_command();
+            // let (out, _err) = match cmd.output() {
+            //     Ok(out) => (
+            //         String::from_utf8(out.stdout).unwrap(),
+            //         String::from_utf8(out.stderr).unwrap(),
+            //     ),
+            //     Err(_err) => {
+            //         unimplemented!("Bad C compiler")
+            //     }
+            // };
 
-            for line in out
-                .split('\n')
-                .filter_map(|l| l.strip_prefix("libraries: ="))
-            {
-                search_paths.extend(env::split_paths(line));
-            }
-            for path in search_paths {
-                if path.join("omp").exists() {
-                    println!("cargo:rustc-link-search={}", path.display());
-                    println!("cargo:rustc-link-lib=omp");
-                }
-            }
+            // for line in out
+            //     .split('\n')
+            //     .filter_map(|l| l.strip_prefix("libraries: ="))
+            // {
+            //     search_paths.extend(env::split_paths(line));
+            // }
+            // for path in search_paths {
+            //     if path.join("omp").exists() {
+            //         println!("cargo:rustc-link-search={}", path.display());
+            //     }
+            // }
+            println!("cargo:rustc-link-lib=omp");
+            Ok(())
         }
         OS::Apple => {
             if let Some(brew_prefix) = find_brew_prefix() {
                 println!("cargo:rustc-link-search={brew_prefix}/opt/libomp/lib");
-                println!("cargo:rustc-link-lib=static=omp");
             }
+            println!("cargo:rustc-link-lib=omp");
+            Ok(())
         }
     }
 }
