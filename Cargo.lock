@@ -244,6 +244,7 @@ name = "barretenberg-sys"
 version = "0.1.0"
 dependencies = [
  "bindgen",
+ "cc",
  "color-eyre",
  "hex",
  "pkg-config",
