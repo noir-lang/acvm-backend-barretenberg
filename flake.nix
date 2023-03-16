@@ -126,11 +126,24 @@
 
         packages.default = barretenberg-backend;
 
-        devShells.default = pkgs.mkShell ({
+        # llvmPackages should be aligned to selection from libbarretenberg
+        # better if we get rid of llvm targets and override them from input
+        devShells.default = pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; } ({
           inputsFrom = builtins.attrValues self.checks;
 
           buildInputs = packages.default.buildInputs;
-          nativeBuildInputs = packages.default.nativeBuildInputs;
+          nativeBuildInputs = with pkgs; packages.default.nativeBuildInputs ++ [
+            which
+            starship
+            git
+            cargo
+            rustc
+          ];
+
+          shellHook = ''
+            eval "$(starship init bash)"
+          '';
+
         } // environment);
       });
 }
