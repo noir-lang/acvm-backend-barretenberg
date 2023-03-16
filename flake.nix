@@ -91,6 +91,7 @@
           buildInputs = [
             pkgs.llvmPackages.openmp
             pkgs.barretenberg
+            pkgs.openssl
           ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
             # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
             pkgs.libiconv
