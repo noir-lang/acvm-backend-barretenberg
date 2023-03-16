@@ -49,7 +49,9 @@
               overrideCC llvmPackages.stdenv (llvmPackages.clang.override { gccForLibs = gcc11.cc; })
             else
               overrideCC llvmPackages.stdenv (wrapCCWith {
-                cc = llvmPackages.clang;
+                cc = llvmPackages.clang.override {
+                   gccForLibs = gcc11.cc;
+                };
                 bintools = llvmPackages.bintools;
               });
         });
