@@ -1,3 +1,5 @@
+use std::{env, path::PathBuf};
+
 #[allow(clippy::upper_case_acronyms)]
 pub struct CRS {
     pub g1_data: Vec<u8>,
@@ -9,12 +11,15 @@ const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_000 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
-fn transcript_location() -> std::path::PathBuf {
-    let mut transcript_dir = dirs::home_dir().unwrap();
-    transcript_dir.push(std::path::Path::new("noir_cache"));
-    transcript_dir.push(std::path::Path::new("ignition"));
-    transcript_dir.push(std::path::Path::new("transcript00.dat"));
-    transcript_dir
+fn transcript_location() -> PathBuf {
+    match env::var("BARRETENBERG_TRANSCRIPT") {
+        Ok(dir) => PathBuf::from(dir),
+        Err(_) => dirs::home_dir()
+            .unwrap()
+            .join("noir_cache")
+            .join("ignition")
+            .join("transcript00.dat"),
+    }
 }
 
 impl CRS {
@@ -44,7 +49,7 @@ impl CRS {
     }
 }
 
-fn read_crs(path: std::path::PathBuf) -> Vec<u8> {
+fn read_crs(path: PathBuf) -> Vec<u8> {
     match std::fs::read(&path) {
         Ok(bytes) => bytes,
         Err(e) => {
@@ -62,7 +67,7 @@ fn read_crs(path: std::path::PathBuf) -> Vec<u8> {
 
 // XXX: Below is the logic to download the CRS if it is not already present
 
-pub fn download_crs(mut path_to_transcript: std::path::PathBuf) {
+pub fn download_crs(mut path_to_transcript: PathBuf) {
     // Remove old crs
     if path_to_transcript.exists() {
         let _ = std::fs::remove_file(path_to_transcript.as_path());
