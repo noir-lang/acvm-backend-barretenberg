@@ -48,7 +48,10 @@
             if (stdenv.targetPlatform.isGnu && stdenv.targetPlatform.isAarch64) then
               overrideCC llvmPackages.stdenv (llvmPackages.clang.override { gccForLibs = gcc11.cc; })
             else
-              llvmPackages.stdenv;
+              overrideCC llvmPackages.stdenv (wrapCCWith {
+                cc = llvmPackages.clang;
+                bintools = llvmPackages.bintools;
+              });
         });
 
         craneLib = craneLibScope.overrideToolchain rustToolchain;
