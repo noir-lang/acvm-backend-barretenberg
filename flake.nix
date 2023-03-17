@@ -108,9 +108,7 @@
         } // environment;
 
         # Build *just* the cargo dependencies, so we can reuse all of that work between runs
-        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
-          cargoBuildCommand = "cargo build --profile release --workspace --exclude barretenberg-sys";
-        });
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
         barretenberg-backend = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
