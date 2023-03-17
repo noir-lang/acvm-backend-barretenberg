@@ -89,13 +89,13 @@
             pkgs.llvmPackages.bintools
           ];
 
-          mkDummySrc {
+          dummySrc = craneLib.mkDummySrc {
             src = ./.;
 
             extraDummyScript = ''
               cp -r ${./barretenberg-sys/.cargo} --no-target-directory $out/barretenberg-sys/.cargo
             '';
-          }
+          };
 
           buildInputs = [
             pkgs.llvmPackages.openmp
