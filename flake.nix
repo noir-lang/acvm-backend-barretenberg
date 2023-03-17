@@ -93,7 +93,7 @@
             src = ./.;
 
             extraDummyScript = ''
-              cp -r ${./barretenberg-sys/.cargo} --no-target-directory $out/barretenberg-sys/.cargo
+              cp -r ${./barretenberg-sys/.cargo} --no-target-directory $out/.cargo
             '';
           };
 
