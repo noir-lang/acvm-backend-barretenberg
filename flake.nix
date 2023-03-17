@@ -89,13 +89,13 @@
             pkgs.llvmPackages.bintools
           ];
 
-          dummySrc = craneLib.mkDummySrc {
-            src = ./.;
+          # dummySrc = craneLib.mkDummySrc {
+          #   src = ./.;
 
-            extraDummyScript = ''
-              cp -r ${./barretenberg-sys/.cargo} --no-target-directory $out/.cargo
-            '';
-          };
+          #   extraDummyScript = ''
+          #     cp -r ${./barretenberg-sys/.cargo} --no-target-directory $out/.cargo
+          #   '';
+          # };
 
           buildInputs = [
             pkgs.llvmPackages.openmp
@@ -108,7 +108,9 @@
         } // environment;
 
         # Build *just* the cargo dependencies, so we can reuse all of that work between runs
-        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+        cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+          cargoBuildCommand = "cargo build --profile release --workspace --exclude barretenberg-sys";
+        });
 
         barretenberg-backend = craneLib.buildPackage (commonArgs // {
           inherit cargoArtifacts;
