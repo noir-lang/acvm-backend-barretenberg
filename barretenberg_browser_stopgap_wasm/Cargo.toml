@@ -16,5 +16,6 @@ common = { path = "../common", default-features = false }
 console_error_panic_hook = { version = "*" }
 wasm-bindgen = { version = "*", features = ["serde-serialize"] }
 js-sys = { version = "0.3.55" }
+wasm-bindgen-futures = "0.4.34"
 getrandom = { version = "0.2.4", features = ["js"] }
 gloo-utils = { version = "0.1", features = ["serde"] }

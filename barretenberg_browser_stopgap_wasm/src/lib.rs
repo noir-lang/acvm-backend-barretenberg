@@ -2,6 +2,7 @@ use barretenberg_wasm;
 use common::acvm::{
     acir::circuit::Circuit, acir::native_types::Witness, FieldElement, PartialWitnessGenerator,
 };
+use js_sys::JsString;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 
@@ -44,9 +45,10 @@ fn read_circuit(circuit: js_sys::Uint8Array) -> Circuit {
 }
 
 #[wasm_bindgen]
-pub fn solve_intermediate_witness(
+pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
     initial_witness: js_sys::Map,
+    witness_loader: js_sys::Function,
 ) -> js_sys::Map {
     console_error_panic_hook::set_once();
 
@@ -55,10 +57,29 @@ pub fn solve_intermediate_witness(
 
     use barretenberg_wasm::Plonk;
     let plonk = Plonk;
+    // TODO: switch to `plonk.progress_solution` and then dispatch any async witness loads.
     match plonk.solve(&mut witness_skeleton, circuit.opcodes) {
         Ok(_) => {}
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
+
+    // Example dumby call to witness_loader
+    let this = JsValue::null();
+    let descriptor = JsValue::from("some data please");
+    let arb_load_future: wasm_bindgen_futures::JsFuture = witness_loader
+        .call1(&this, &descriptor)
+        .map(|js_value| js_sys::Promise::from(js_value))
+        .expect("Not a promise")
+        .into();
+    match arb_load_future.await {
+        Ok(_) => {
+            // Don't care for now, just testing the await
+        }
+        Err(err) => {
+            panic!("failed call of witness_loader: {}", JsString::from(err));
+        }
+    };
+
     witness_map_to_js_map(witness_skeleton)
 }
 
