@@ -242,11 +242,11 @@ dependencies = [
 [[package]]
 name = "barretenberg-sys"
 version = "0.1.0"
+source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=phated/impl#f20d15fe6a2481e7d4164266a78829246d0462b7"
 dependencies = [
  "bindgen",
  "cc",
  "color-eyre",
- "hex",
  "pkg-config",
  "thiserror",
 ]
