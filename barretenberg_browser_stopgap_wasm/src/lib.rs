@@ -7,26 +7,38 @@ use js_sys::JsString;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 
-fn js_value_to_field_element(js_value: JsValue) -> FieldElement {
-    let hex_str = js_value.as_string().expect("not a string");
-    FieldElement::from_hex(&hex_str).expect("bad hex str")
+type JsErrorString = JsString;
+type WitnessMap = BTreeMap<Witness, FieldElement>;
+
+fn js_value_to_field_element(js_value: JsValue) -> Result<FieldElement, JsErrorString> {
+    let hex_str = match js_value.as_string() {
+        Some(str) => str,
+        None => return Err("failed to parse field element from non-string".into()),
+    };
+    match FieldElement::from_hex(&hex_str) {
+        Some(field_element) => Ok(field_element),
+        None => Err(format!("Invalid hex string: '{}'", hex_str).into()),
+    }
 }
 
-fn js_map_to_witness_map(js_map: js_sys::Map) -> BTreeMap<Witness, FieldElement> {
+fn js_map_to_witness_map(js_map: js_sys::Map) -> Result<WitnessMap, JsErrorString> {
     let mut witness_skeleton: BTreeMap<Witness, FieldElement> = BTreeMap::new();
     for key_result in js_map.keys() {
-        let key = key_result.expect("bad key");
+        let key = match key_result {
+            Ok(key) => key,
+            Err(_) => return Err("bad key".into()),
+        };
         let idx;
         unsafe {
-            idx = key
-                .as_f64()
-                .expect("not a number")
-                .to_int_unchecked::<u32>();
+            idx = match key.as_f64() {
+                Some(value) => value.to_int_unchecked::<u32>(),
+                None => return Err("not a number".into()),
+            }
         }
-        let field_element = js_value_to_field_element(js_map.get(&key));
+        let field_element = js_value_to_field_element(js_map.get(&key))?;
         witness_skeleton.insert(Witness(idx), field_element);
     }
-    witness_skeleton
+    Ok(witness_skeleton)
 }
 
 fn witness_map_to_js_map(witness_map: BTreeMap<Witness, FieldElement>) -> js_sys::Map {
@@ -41,27 +53,35 @@ fn witness_map_to_js_map(witness_map: BTreeMap<Witness, FieldElement>) -> js_sys
     js_map
 }
 
-fn read_circuit(circuit: js_sys::Uint8Array) -> Circuit {
+fn read_circuit(circuit: js_sys::Uint8Array) -> Result<Circuit, JsErrorString> {
     let circuit: Vec<u8> = circuit.to_vec();
     match Circuit::read(&*circuit) {
-        Ok(circuit) => circuit,
-        Err(err) => panic!("Circuit read err: {}", err),
+        Ok(circuit) => Ok(circuit),
+        Err(err) => Err(format!("Circuit read err: {}", err).into()),
     }
 }
 
-async fn call_witness_loader(witness_loader: &js_sys::Function, witness: &Witness) -> FieldElement {
+fn format_js_err(err: JsValue) -> String {
+    match err.as_string() {
+        Some(str) => str,
+        None => "Unknown".to_owned(),
+    }
+}
+
+async fn call_witness_loader(
+    witness_loader: &js_sys::Function,
+    witness: &Witness,
+) -> Result<FieldElement, JsErrorString> {
     let this = JsValue::null();
     let descriptor = JsValue::from(witness.0);
-    let load_witness_future: wasm_bindgen_futures::JsFuture = witness_loader
+    let ret_js_val = witness_loader
         .call1(&this, &descriptor)
-        .map(|js_value| js_sys::Promise::from(js_value))
-        .expect("Not a promise")
-        .into();
-    match load_witness_future.await {
+        .map_err(|err| format!("Error calling witness_loader: {}", format_js_err(err)))?;
+    let ret_js_prom: js_sys::Promise = ret_js_val.into();
+    let ret_future: wasm_bindgen_futures::JsFuture = ret_js_prom.into();
+    match ret_future.await {
         Ok(js_value) => js_value_to_field_element(js_value),
-        Err(err) => {
-            panic!("failed call of witness_loader: {}", JsString::from(err));
-        }
+        Err(err) => Err(format!("Error awaiting witness_loader: {}", format_js_err(err)).into()),
     }
 }
 
@@ -70,11 +90,11 @@ pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
     initial_witness: js_sys::Map,
     witness_loader: js_sys::Function,
-) -> js_sys::Map {
+) -> Result<js_sys::Map, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let mut circuit = read_circuit(circuit);
-    let mut witness_skeleton = js_map_to_witness_map(initial_witness);
+    let mut circuit = read_circuit(circuit)?;
+    let mut witness_skeleton = js_map_to_witness_map(initial_witness)?;
     let mut blocks = Blocks::default();
 
     use barretenberg_wasm::Plonk;
@@ -83,27 +103,29 @@ pub async fn solve_intermediate_witness(
     while !finished {
         match plonk.progress_solution(&mut witness_skeleton, &mut blocks, &mut circuit.opcodes) {
             Ok(SolvingProgress::LoadCalled(witness)) => {
-                let field_element = call_witness_loader(&witness_loader, &witness).await;
+                let field_element = call_witness_loader(&witness_loader, &witness).await?;
                 witness_skeleton.insert(witness, field_element);
             }
             Ok(SolvingProgress::Finished) => {
                 // Can exit the loop
                 finished = true;
             }
-            Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
+            Err(opcode) => {
+                return Err(format!("solver came across an error with opcode {}", opcode).into())
+            }
         };
     }
 
-    witness_map_to_js_map(witness_skeleton)
+    Ok(witness_map_to_js_map(witness_skeleton))
 }
 
 #[wasm_bindgen]
 pub fn intermediate_witness_to_assignment_bytes(
     intermediate_witness: js_sys::Map,
-) -> js_sys::Uint8Array {
+) -> Result<js_sys::Uint8Array, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let intermediate_witness = js_map_to_witness_map(intermediate_witness);
+    let intermediate_witness = js_map_to_witness_map(intermediate_witness)?;
 
     // Add witnesses in the correct order
     // Note: The witnesses are sorted via their witness index
@@ -113,43 +135,47 @@ pub fn intermediate_witness_to_assignment_bytes(
     for i in 1..num_witnesses {
         let value = match intermediate_witness.get(&Witness(i as u32)) {
             Some(value) => *value,
-            None => panic!("Missing witness element at idx {}", i),
+            None => return Err(format!("Missing witness element at idx {}", i).into()),
         };
 
         sorted_witness.push(value);
     }
 
     let bytes = sorted_witness.to_bytes();
-    js_sys::Uint8Array::from(&bytes[..])
+    Ok(js_sys::Uint8Array::from(&bytes[..]))
 }
 
 #[wasm_bindgen]
-pub fn acir_to_constraints_system(circuit: js_sys::Uint8Array) -> js_sys::Uint8Array {
+pub fn acir_to_constraints_system(
+    circuit: js_sys::Uint8Array,
+) -> Result<js_sys::Uint8Array, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let circuit = read_circuit(circuit);
+    let circuit = read_circuit(circuit)?;
     let bytes = common::serializer::serialize_circuit(&circuit).to_bytes();
-    js_sys::Uint8Array::from(&bytes[..])
+    Ok(js_sys::Uint8Array::from(&bytes[..]))
 }
 
 #[wasm_bindgen]
-pub fn public_input_length(circuit: js_sys::Uint8Array) -> js_sys::Number {
+pub fn public_input_length(circuit: js_sys::Uint8Array) -> Result<js_sys::Number, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let circuit = read_circuit(circuit);
+    let circuit = read_circuit(circuit)?;
     let length = circuit.public_inputs().0.len() as u32;
-    js_sys::Number::from(length)
+    Ok(js_sys::Number::from(length))
 }
 
 #[wasm_bindgen]
-pub fn public_input_as_bytes(public_witness: js_sys::Map) -> js_sys::Uint8Array {
+pub fn public_input_as_bytes(
+    public_witness: js_sys::Map,
+) -> Result<js_sys::Uint8Array, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let public_witness = js_map_to_witness_map(public_witness);
+    let public_witness = js_map_to_witness_map(public_witness)?;
     let mut buffer = Vec::new();
     // Implicitly ordered by index
     for assignment in public_witness.values() {
         buffer.extend_from_slice(&assignment.to_be_bytes());
     }
-    js_sys::Uint8Array::from(&buffer[..])
+    Ok(js_sys::Uint8Array::from(&buffer[..]))
 }
