@@ -1,10 +1,16 @@
 use barretenberg_wasm;
 use common::acvm::{
-    acir::circuit::Circuit, acir::native_types::Witness, FieldElement, PartialWitnessGenerator,
+    acir::circuit::Circuit, acir::native_types::Witness, pwg::block::Blocks, FieldElement,
+    PartialWitnessGenerator, SolvingProgress,
 };
 use js_sys::JsString;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
+
+fn js_value_to_field_element(js_value: JsValue) -> FieldElement {
+    let hex_str = js_value.as_string().expect("not a string");
+    FieldElement::from_hex(&hex_str).expect("bad hex str")
+}
 
 fn js_map_to_witness_map(js_map: js_sys::Map) -> BTreeMap<Witness, FieldElement> {
     let mut witness_skeleton: BTreeMap<Witness, FieldElement> = BTreeMap::new();
@@ -17,8 +23,7 @@ fn js_map_to_witness_map(js_map: js_sys::Map) -> BTreeMap<Witness, FieldElement>
                 .expect("not a number")
                 .to_int_unchecked::<u32>();
         }
-        let hex_str = js_map.get(&key).as_string().expect("not a string");
-        let field_element = FieldElement::from_hex(&hex_str).expect("bad hex str");
+        let field_element = js_value_to_field_element(js_map.get(&key));
         witness_skeleton.insert(Witness(idx), field_element);
     }
     witness_skeleton
@@ -44,6 +49,22 @@ fn read_circuit(circuit: js_sys::Uint8Array) -> Circuit {
     }
 }
 
+async fn call_witness_loader(witness_loader: &js_sys::Function, witness: &Witness) -> FieldElement {
+    let this = JsValue::null();
+    let descriptor = JsValue::from(witness.0);
+    let load_witness_future: wasm_bindgen_futures::JsFuture = witness_loader
+        .call1(&this, &descriptor)
+        .map(|js_value| js_sys::Promise::from(js_value))
+        .expect("Not a promise")
+        .into();
+    match load_witness_future.await {
+        Ok(js_value) => js_value_to_field_element(js_value),
+        Err(err) => {
+            panic!("failed call of witness_loader: {}", JsString::from(err));
+        }
+    }
+}
+
 #[wasm_bindgen]
 pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
@@ -52,33 +73,26 @@ pub async fn solve_intermediate_witness(
 ) -> js_sys::Map {
     console_error_panic_hook::set_once();
 
-    let circuit = read_circuit(circuit);
+    let mut circuit = read_circuit(circuit);
     let mut witness_skeleton = js_map_to_witness_map(initial_witness);
+    let mut blocks = Blocks::default();
 
     use barretenberg_wasm::Plonk;
     let plonk = Plonk;
-    // TODO: switch to `plonk.progress_solution` and then dispatch any async witness loads.
-    match plonk.solve(&mut witness_skeleton, circuit.opcodes) {
-        Ok(_) => {}
-        Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
-    };
-
-    // Example dumby call to witness_loader
-    let this = JsValue::null();
-    let descriptor = JsValue::from("some data please");
-    let arb_load_future: wasm_bindgen_futures::JsFuture = witness_loader
-        .call1(&this, &descriptor)
-        .map(|js_value| js_sys::Promise::from(js_value))
-        .expect("Not a promise")
-        .into();
-    match arb_load_future.await {
-        Ok(_) => {
-            // Don't care for now, just testing the await
-        }
-        Err(err) => {
-            panic!("failed call of witness_loader: {}", JsString::from(err));
-        }
-    };
+    let mut finished = false;
+    while !finished {
+        match plonk.progress_solution(&mut witness_skeleton, &mut blocks, &mut circuit.opcodes) {
+            Ok(SolvingProgress::LoadCalled(witness)) => {
+                let field_element = call_witness_loader(&witness_loader, &witness).await;
+                witness_skeleton.insert(witness, field_element);
+            }
+            Ok(SolvingProgress::Finished) => {
+                // Can exit the loop
+                finished = true;
+            }
+            Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
+        };
+    }
 
     witness_map_to_js_map(witness_skeleton)
 }
@@ -123,7 +137,7 @@ pub fn public_input_length(circuit: js_sys::Uint8Array) -> js_sys::Number {
     console_error_panic_hook::set_once();
 
     let circuit = read_circuit(circuit);
-    let length = circuit.public_inputs.0.len() as u32;
+    let length = circuit.public_inputs().0.len() as u32;
     js_sys::Number::from(length)
 }
 

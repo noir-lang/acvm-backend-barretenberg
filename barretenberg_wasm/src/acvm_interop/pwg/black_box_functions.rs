@@ -1,7 +1,7 @@
 use crate::Barretenberg;
 
 use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use common::acvm::{FieldElement, OpcodeResolutionError};
+use common::acvm::{FieldElement, OpcodeResolution, OpcodeResolutionError};
 use common::black_box_functions::BarretenbergShared;
 use std::collections::BTreeMap;
 
@@ -37,7 +37,7 @@ impl BlackBoxFuncCaller {
     pub(super) fn solve_black_box_func_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         gadget_call: &BlackBoxFuncCall,
-    ) -> Result<(), OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         common::black_box_functions::solve_black_box_func_call::<Barretenberg>(
             initial_witness,
             gadget_call,

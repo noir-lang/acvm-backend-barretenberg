@@ -23,7 +23,7 @@ pub fn compute_witnesses(
 ) -> ComputedWitness {
     console_error_panic_hook::set_once();
 
-    let circuit: Circuit = JsValueSerdeExt::into_serde(&circuit).unwrap();
+    let mut circuit: Circuit = JsValueSerdeExt::into_serde(&circuit).unwrap();
 
     let mut initial_witness = Vec::new();
     for js_val in initial_js_witness {
@@ -47,7 +47,7 @@ pub fn compute_witnesses(
     use barretenberg_wasm::Plonk;
     let plonk = Plonk;
     let num_witnesses = circuit.num_vars();
-    match plonk.solve(&mut witness_map, circuit.opcodes) {
+    match plonk.solve(&mut witness_map, &mut circuit.opcodes) {
         Ok(_) => {}
         Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
     };
