@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#57ad1efdba4b8bcd887bb6857e73b3d64642b021"
+source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#4ab699b86f0390754d6c3857264df49c414031ba"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#57ad1efdba4b8bcd887bb6857e73b3d64642b021"
+source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#4ab699b86f0390754d6c3857264df49c414031ba"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,11 +29,12 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#57ad1efdba4b8bcd887bb6857e73b3d64642b021"
+source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#4ab699b86f0390754d6c3857264df49c414031ba"
 dependencies = [
  "acir",
  "acvm_stdlib",
  "blake2",
+ "crc32fast",
  "indexmap",
  "k256",
  "num-bigint",
@@ -45,7 +46,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.6.0"
-source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#57ad1efdba4b8bcd887bb6857e73b3d64642b021"
+source = "git+https://github.com/noir-lang/acvm?branch=mv/traces2#4ab699b86f0390754d6c3857264df49c414031ba"
 dependencies = [
  "acir",
 ]
