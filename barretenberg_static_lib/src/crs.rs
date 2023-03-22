@@ -21,6 +21,6 @@ fn downloading() {
     use tempfile::tempdir;
     let dir = tempdir().unwrap();
 
-    let file_path = dir.path().to_path_buf().join("transcript00.dat");
+    let file_path = dir.path().to_path_buf().join("monomial-transcript00.dat");
     download_crs(file_path);
 }

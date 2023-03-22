@@ -11,6 +11,8 @@ const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
+const TRANSCRIPT_NAME: &str = "monomial-transcript00.dat";
+
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
         Ok(dir) => PathBuf::from(dir),
@@ -18,7 +20,7 @@ fn transcript_location() -> PathBuf {
             .unwrap()
             .join("noir_cache")
             .join("ignition")
-            .join("monomial-transcript00.dat"),
+            .join(TRANSCRIPT_NAME),
     }
 }
 
@@ -58,7 +60,7 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
                 "please run again with appropriate permissions."
             );
             panic!(
-                "Could not find file transcript00.dat at location {}.\n Starting Download",
+                "Could not find transcript at location {}.\n Starting Download",
                 path.display()
             );
         }
@@ -87,6 +89,7 @@ pub fn download_crs(mut path_to_transcript: PathBuf) {
         .unwrap();
 
     let dl = downloader::Download::new(url);
+    let dl = dl.file_name(&PathBuf::from(TRANSCRIPT_NAME));
     let dl = dl.progress(SimpleReporter::create());
     let result = downloader.download(&[dl]).unwrap();
 
