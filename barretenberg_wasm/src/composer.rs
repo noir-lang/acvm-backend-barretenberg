@@ -97,7 +97,7 @@ impl StandardComposer {
         let func = barretenberg
             .instance
             .exports
-            .get_function("get_exact_circuit_size")
+            .get_function("c_get_exact_circuit_size")
             .unwrap();
 
         let params: Vec<_> = vec![cs_ptr.clone()];
@@ -120,7 +120,7 @@ impl StandardComposer {
 
         let pk_size = self
             .barretenberg
-            .call_multiple("init_proving_key", vec![&cs_ptr, &Value::I32(0)])
+            .call_multiple("c_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
             .value();
 
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
@@ -140,7 +140,7 @@ impl StandardComposer {
         let vk_size = self
             .barretenberg
             .call_multiple(
-                "init_verification_key",
+                "c_init_verification_key",
                 vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
             )
             .value();
