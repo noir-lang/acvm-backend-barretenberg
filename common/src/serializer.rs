@@ -341,13 +341,15 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
             Opcode::Directive(_) | Opcode::Block { .. } => {
                 // Directives and Blocks are only needed by the pwg
             }
+            Opcode::ROM(_) => todo!(),
+            Opcode::RAM(_) => todo!(),
         }
     }
 
     // Create constraint system
     ConstraintSystem {
         var_num: circuit.current_witness_index + 1, // number of witnesses is the witness index + 1;
-        public_inputs: circuit.public_inputs.indices(),
+        public_inputs: circuit.public_inputs().indices(),
         logic_constraints,
         range_constraints,
         sha256_constraints,
