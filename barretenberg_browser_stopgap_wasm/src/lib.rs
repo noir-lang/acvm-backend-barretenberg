@@ -1,7 +1,9 @@
 use barretenberg_wasm;
 use common::acvm::{
-    acir::circuit::Circuit, acir::native_types::Witness, pwg::block::Blocks, FieldElement,
-    PartialWitnessGenerator, SolvingProgress,
+    acir::circuit::{opcodes::OracleData, Circuit, Opcode},
+    acir::native_types::Witness,
+    pwg::block::Blocks,
+    FieldElement, PartialWitnessGenerator,
 };
 use js_sys::JsString;
 use std::collections::BTreeMap;
@@ -22,7 +24,7 @@ fn js_value_to_field_element(js_value: JsValue) -> Result<FieldElement, JsErrorS
 }
 
 fn js_map_to_witness_map(js_map: js_sys::Map) -> Result<WitnessMap, JsErrorString> {
-    let mut witness_skeleton: BTreeMap<Witness, FieldElement> = BTreeMap::new();
+    let mut witness_assignments: BTreeMap<Witness, FieldElement> = BTreeMap::new();
     for key_result in js_map.keys() {
         let key = match key_result {
             Ok(key) => key,
@@ -36,18 +38,20 @@ fn js_map_to_witness_map(js_map: js_sys::Map) -> Result<WitnessMap, JsErrorStrin
             }
         }
         let field_element = js_value_to_field_element(js_map.get(&key))?;
-        witness_skeleton.insert(Witness(idx), field_element);
+        witness_assignments.insert(Witness(idx), field_element);
     }
-    Ok(witness_skeleton)
+    Ok(witness_assignments)
+}
+
+fn field_element_to_js_string(field_element: &FieldElement) -> JsString {
+    format!("0x{}", field_element.to_hex()).into()
 }
 
 fn witness_map_to_js_map(witness_map: BTreeMap<Witness, FieldElement>) -> js_sys::Map {
     let js_map = js_sys::Map::new();
     for (witness, field_value) in witness_map.iter() {
         let js_idx = js_sys::Number::from(witness.0);
-        let mut hex_str = "0x".to_owned();
-        hex_str.push_str(&field_value.to_hex());
-        let js_hex_str = js_sys::JsString::from(hex_str);
+        let js_hex_str = field_element_to_js_string(field_value);
         js_map.set(&js_idx, &js_hex_str);
     }
     js_map
@@ -68,55 +72,66 @@ fn format_js_err(err: JsValue) -> String {
     }
 }
 
-async fn call_witness_loader(
-    witness_loader: &js_sys::Function,
-    witness: &Witness,
-) -> Result<FieldElement, JsErrorString> {
+async fn resolve_oracle(
+    oracle_resolver: &js_sys::Function,
+    mut oracle_data: OracleData,
+) -> Result<OracleData, JsErrorString> {
     let this = JsValue::null();
-    let descriptor = JsValue::from(witness.0);
-    let ret_js_val = witness_loader
-        .call1(&this, &descriptor)
-        .map_err(|err| format!("Error calling witness_loader: {}", format_js_err(err)))?;
+    let name = JsValue::from(oracle_data.name.clone());
+    let inputs = js_sys::Array::default();
+    for input_value in &oracle_data.input_values {
+        let hex_js_string = field_element_to_js_string(input_value);
+        inputs.push(&JsValue::from(hex_js_string));
+    }
+
+    let ret_js_val = oracle_resolver
+        .call2(&this, &name, &inputs)
+        .map_err(|err| format!("Error calling oracle_resolver: {}", format_js_err(err)))?;
     let ret_js_prom: js_sys::Promise = ret_js_val.into();
     let ret_future: wasm_bindgen_futures::JsFuture = ret_js_prom.into();
-    match ret_future.await {
-        Ok(js_value) => js_value_to_field_element(js_value),
-        Err(err) => Err(format!("Error awaiting witness_loader: {}", format_js_err(err)).into()),
+    let js_resolution = ret_future
+        .await
+        .map_err(|err| format!("Error awaiting oracle_resolver: {}", format_js_err(err)))?;
+    let js_arr = js_sys::Array::from(&js_resolution);
+    for elem in js_arr.iter() {
+        oracle_data
+            .output_values
+            .push(js_value_to_field_element(elem)?)
     }
+    Ok(oracle_data)
 }
 
 #[wasm_bindgen]
 pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
     initial_witness: js_sys::Map,
-    witness_loader: js_sys::Function,
+    oracle_resolver: js_sys::Function,
 ) -> Result<js_sys::Map, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let mut circuit = read_circuit(circuit)?;
-    let mut witness_skeleton = js_map_to_witness_map(initial_witness)?;
+    let mut opcodes_to_solve = read_circuit(circuit)?.opcodes;
+    let mut witness_assignments = js_map_to_witness_map(initial_witness)?;
     let mut blocks = Blocks::default();
 
     use barretenberg_wasm::Plonk;
     let plonk = Plonk;
-    let mut finished = false;
-    while !finished {
-        match plonk.progress_solution(&mut witness_skeleton, &mut blocks, &mut circuit.opcodes) {
-            Ok(SolvingProgress::LoadCalled(witness)) => {
-                let field_element = call_witness_loader(&witness_loader, &witness).await?;
-                witness_skeleton.insert(witness, field_element);
-            }
-            Ok(SolvingProgress::Finished) => {
-                // Can exit the loop
-                finished = true;
-            }
-            Err(opcode) => {
-                return Err(format!("solver came across an error with opcode {}", opcode).into())
-            }
-        };
+    while !opcodes_to_solve.is_empty() {
+        let (unresolved_opcodes, oracles) = plonk
+            .solve(&mut witness_assignments, &mut blocks, opcodes_to_solve)
+            .map_err(|err| JsString::from(format!("solver opcode resolution error: {}", err)))?;
+        let oracle_futures: Vec<_> = oracles
+            .into_iter()
+            .map(|oracle| resolve_oracle(&oracle_resolver, oracle))
+            .collect();
+        opcodes_to_solve = Vec::new();
+        for oracle_future in oracle_futures {
+            let filled_oracle = oracle_future.await?;
+            opcodes_to_solve.push(Opcode::Oracle(filled_oracle));
+        }
+        opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
     }
 
-    Ok(witness_map_to_js_map(witness_skeleton))
+    Ok(witness_map_to_js_map(witness_assignments))
 }
 
 #[wasm_bindgen]
