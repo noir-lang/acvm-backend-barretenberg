@@ -8,7 +8,7 @@ pub struct CRS {
 }
 
 const G1_START: usize = 28;
-const G2_START: usize = 28 + (5_040_000 * 64);
+const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
 fn transcript_location() -> PathBuf {
@@ -18,7 +18,7 @@ fn transcript_location() -> PathBuf {
             .unwrap()
             .join("noir_cache")
             .join("ignition")
-            .join("transcript00.dat"),
+            .join("monomial-transcript00.dat"),
     }
 }
 
@@ -79,7 +79,7 @@ pub fn download_crs(mut path_to_transcript: PathBuf) {
         std::fs::create_dir_all(&path_to_transcript).unwrap();
     }
 
-    let url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/sealed/transcript00.dat";
+    let url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
     use downloader::Downloader;
     let mut downloader = Downloader::builder()
         .download_folder(path_to_transcript.as_path())
