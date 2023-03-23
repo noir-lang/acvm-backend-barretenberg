@@ -341,8 +341,11 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
             Opcode::Directive(_) => {
                 // Directives are only needed by the pwg
             }
-            Opcode::Block(_, _) => {
+            Opcode::Block(_) => {
                 // TODO: implement serialization of blocks to match BB's interface
+            }
+            Opcode::ROM(_) | Opcode::RAM(_) | Opcode::Oracle(_) => {
+                todo!("Unimplemented")
             }
         }
     }
@@ -350,7 +353,7 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
     // Create constraint system
     ConstraintSystem {
         var_num: circuit.current_witness_index + 1, // number of witnesses is the witness index + 1;
-        public_inputs: circuit.public_inputs.indices(),
+        public_inputs: circuit.public_inputs().indices(),
         logic_constraints,
         range_constraints,
         sha256_constraints,
