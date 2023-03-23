@@ -53,7 +53,7 @@ async fn resolve_oracle(
     Ok(oracle_data)
 }
 
-#[wasm_bindgen(js_name = solveIntermeditateWitness)]
+#[wasm_bindgen(js_name = solveIntermediateWitness)]
 pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
     initial_witness: js_sys::Map,
