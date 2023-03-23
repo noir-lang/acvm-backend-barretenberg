@@ -1,4 +1,4 @@
-# Browser Stopgap wasm
+# Aztec Backend wasm
 
 Exposes functions for:
 
@@ -19,7 +19,7 @@ In order to build the wasm package, the following must be installed:
 The wasm package can be built using the command below:
 
 ```bash
-./build-barretenberg-browser-stopgap-wasm
+./build-aztec-backend-wasm
 ```
 
 Using `wasm-pack` directly isn't recommended as it doesn't generate a complete `package.json` file, resulting in files being omitted from the published package.

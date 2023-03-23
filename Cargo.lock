@@ -238,10 +238,11 @@ dependencies = [
  "barretenberg_wasm",
  "common",
  "console_error_panic_hook",
+ "getrandom",
  "gloo-utils",
  "js-sys",
- "serde_json",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
 ]
 
 [[package]]
@@ -257,20 +258,6 @@ dependencies = [
  "miniz_oxide",
  "object 0.30.3",
  "rustc-demangle",
-]
-
-[[package]]
-name = "barretenberg_browser_stopgap_wasm"
-version = "0.1.0"
-dependencies = [
- "barretenberg_wasm",
- "common",
- "console_error_panic_hook",
- "getrandom",
- "gloo-utils",
- "js-sys",
- "wasm-bindgen",
- "wasm-bindgen-futures",
 ]
 
 [[package]]
