@@ -241,11 +241,12 @@ dependencies = [
 [[package]]
 name = "barretenberg-sys"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=phated/impl#f20d15fe6a2481e7d4164266a78829246d0462b7"
+source = "git+https://github.com/noir-lang/barretenberg-sys.git#4c2e04219b308cb1b21a4c36ad0119fa45cfb05c"
 dependencies = [
  "bindgen",
  "cc",
  "color-eyre",
+ "link-cplusplus",
  "pkg-config",
  "thiserror",
 ]
@@ -1367,6 +1368,15 @@ checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
 dependencies = [
  "cfg-if",
  "winapi",
+]
+
+[[package]]
+name = "link-cplusplus"
+version = "1.0.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecd207c9c713c34f95a097a5b029ac2ce6010530c7b49d7fea24d977dede04f5"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
