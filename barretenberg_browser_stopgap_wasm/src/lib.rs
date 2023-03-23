@@ -76,6 +76,7 @@ async fn resolve_oracle(
     oracle_resolver: &js_sys::Function,
     mut oracle_data: OracleData,
 ) -> Result<OracleData, JsErrorString> {
+    // Prepare to call
     let this = JsValue::null();
     let name = JsValue::from(oracle_data.name.clone());
     let inputs = js_sys::Array::default();
@@ -84,6 +85,7 @@ async fn resolve_oracle(
         inputs.push(&JsValue::from(hex_js_string));
     }
 
+    // Call and await
     let ret_js_val = oracle_resolver
         .call2(&this, &name, &inputs)
         .map_err(|err| format!("Error calling oracle_resolver: {}", format_js_err(err)))?;
@@ -92,8 +94,16 @@ async fn resolve_oracle(
     let js_resolution = ret_future
         .await
         .map_err(|err| format!("Error awaiting oracle_resolver: {}", format_js_err(err)))?;
+    if !js_resolution.is_array() {
+        return Err("oracle_resolver must return a Promise<string[]>".into());
+    }
+
+    // Handle and apply result
     let js_arr = js_sys::Array::from(&js_resolution);
     for elem in js_arr.iter() {
+        if !elem.is_string() {
+            return Err("Non-string element in oracle_resolver return".into());
+        }
         oracle_data
             .output_values
             .push(js_value_to_field_element(elem)?)
