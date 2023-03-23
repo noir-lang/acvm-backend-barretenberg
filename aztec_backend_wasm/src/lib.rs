@@ -53,7 +53,7 @@ async fn resolve_oracle(
     Ok(oracle_data)
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = solveIntermeditateWitness)]
 pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
     initial_witness: js_sys::Map,
@@ -86,7 +86,7 @@ pub async fn solve_intermediate_witness(
     Ok(witness_map_to_js_map(witness_assignments))
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = intermediateWitnessToAssignmentBytes)]
 pub fn intermediate_witness_to_assignment_bytes(
     intermediate_witness: js_sys::Map,
 ) -> Result<js_sys::Uint8Array, JsErrorString> {
@@ -112,7 +112,7 @@ pub fn intermediate_witness_to_assignment_bytes(
     Ok(js_sys::Uint8Array::from(&bytes[..]))
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = acirToConstraintsSystem)]
 pub fn acir_to_constraints_system(
     circuit: js_sys::Uint8Array,
 ) -> Result<js_sys::Uint8Array, JsErrorString> {
@@ -123,7 +123,7 @@ pub fn acir_to_constraints_system(
     Ok(js_sys::Uint8Array::from(&bytes[..]))
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = publicInputLength)]
 pub fn public_input_length(circuit: js_sys::Uint8Array) -> Result<js_sys::Number, JsErrorString> {
     console_error_panic_hook::set_once();
 
@@ -132,7 +132,7 @@ pub fn public_input_length(circuit: js_sys::Uint8Array) -> Result<js_sys::Number
     Ok(js_sys::Number::from(length))
 }
 
-#[wasm_bindgen]
+#[wasm_bindgen(js_name = publicInputAsBytes)]
 pub fn public_input_as_bytes(
     public_witness: js_sys::Map,
 ) -> Result<js_sys::Uint8Array, JsErrorString> {
