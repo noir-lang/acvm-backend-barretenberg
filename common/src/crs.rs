@@ -11,12 +11,16 @@ const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_000 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
+const BACKEND_IDENTIFIER: &str = "aztec_barretenberg_turboplonk";
+
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
         Ok(dir) => PathBuf::from(dir),
         Err(_) => dirs::home_dir()
             .unwrap()
-            .join("noir_cache")
+            .join(".nargo")
+            .join("backends")
+            .join(BACKEND_IDENTIFIER)
             .join("ignition")
             .join("transcript00.dat"),
     }
