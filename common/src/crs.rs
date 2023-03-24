@@ -106,6 +106,7 @@ struct SimpleReporterPrivate {
     started: std::time::Instant,
     progress_bar: indicatif::ProgressBar,
 }
+
 #[cfg(feature = "std")]
 struct SimpleReporter {
     private: std::sync::Mutex<Option<SimpleReporterPrivate>>,
