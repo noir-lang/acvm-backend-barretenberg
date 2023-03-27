@@ -10,42 +10,6 @@ use common::serializer::serialize_circuit;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
-    fn prove_with_meta(
-        &self,
-        circuit: Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
-    ) -> Vec<u8> {
-        let constraint_system = serialize_circuit(&circuit);
-
-        let mut composer = StandardComposer::new(constraint_system);
-
-        let proving_key = composer.compute_proving_key();
-
-        let assignments = proof::flatten_witness_map(&circuit, witness_values);
-
-        composer.create_proof_with_pk(assignments, &proving_key)
-    }
-
-    fn verify_from_cs(
-        &self,
-        proof: &[u8],
-        public_inputs: Vec<FieldElement>,
-        circuit: Circuit,
-    ) -> bool {
-        let constraint_system = serialize_circuit(&circuit);
-
-        let mut composer = StandardComposer::new(constraint_system);
-
-        let proving_key = composer.compute_proving_key();
-        let verification_key = composer.compute_verification_key(&proving_key);
-
-        composer.verify_with_vk(
-            proof,
-            Assignments::from_vec(public_inputs),
-            &verification_key,
-        )
-    }
-
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
