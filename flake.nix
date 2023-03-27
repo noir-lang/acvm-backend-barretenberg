@@ -20,7 +20,7 @@
     };
 
     barretenberg = {
-      url = "github:AztecProtocol/barretenberg";
+      url = "github:AztecProtocol/barretenberg/mv/move-to-ultra";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

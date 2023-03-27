@@ -51,8 +51,31 @@ impl StandardComposer {
         // // So in C+ the first line is duplicated and then truncated
         // let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
         // common::contract::turbo_verifier::create(&verification_method)
-        
+
+        // pub fn smart_contract(&mut self, verification_key: &[u8]) -> String {
+        // let mut contract_ptr: *mut u8 = std::ptr::null_mut();
+        // let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
+        // let verification_key = verification_key.to_vec();
+        // let sc_as_bytes;
+        // let contract_size;
+        // unsafe {
+        //     contract_size = barretenberg_sys::composer::get_solidity_verifier(
+        //         &self.crs.g2_data,
+        //         &verification_key,
+        //         p_contract_ptr,
+        //     );
+        //     assert!(contract_size > 0);
+        //     sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size as usize)
+        // }
+        // TODO to check
+        // XXX: We truncate the first 40 bytes, due to it being mangled
+        // For some reason, the first line is partially mangled
+        // So in C+ the first line is duplicated and then truncated
+        // let verifier_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
+        // println!("{verifier_library}");
+        // verifier_library
         String::new()
+        // common::contract::turbo_verifier::create(&verification_method)
     }
 
     // XXX: There seems to be a bug in the C++ code
@@ -574,6 +597,7 @@ mod test {
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
             let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
+            // sc.smart_contract(&verification_key);
             assert_eq!(verified, test_case.result);
         }
     }
