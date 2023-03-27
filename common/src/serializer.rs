@@ -338,10 +338,10 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
                     BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                 };
             }
-            Opcode::Directive(_) => {
-                // Directives are only needed by the pwg
+            Opcode::Directive(_) | Opcode::Oracle(_) => {
+                // Directives & Oracles are only needed by the pwg
             }
-            Opcode::Block(_) | Opcode::RAM(_) | Opcode::ROM(_) | Opcode::Oracle(_) => {
+            Opcode::Block(_) | Opcode::RAM(_) | Opcode::ROM(_) => {
                 // TODO: implement serialization to match BB's interface
             }
         }
