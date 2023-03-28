@@ -30,27 +30,29 @@ impl StandardComposer {
     // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
     // Since it's already done in C++, we are just re-exporting for now
     pub fn smart_contract(&mut self) -> String {
-        let mut contract_ptr: *mut u8 = std::ptr::null_mut();
-        let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
-        let cs_buf = self.constraint_system.to_bytes();
-        let sc_as_bytes;
-        let contract_size;
-        unsafe {
-            contract_size = barretenberg_sys::composer::smart_contract(
-                self.pippenger.pointer(),
-                &self.crs.g2_data,
-                &cs_buf,
-                p_contract_ptr,
-            );
-            assert!(contract_size > 0);
-            sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size as usize)
-        }
-        // TODO to check
-        // XXX: We truncate the first 40 bytes, due to it being mangled
-        // For some reason, the first line is partially mangled
-        // So in C+ the first line is duplicated and then truncated
-        let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
-        common::contract::turbo_verifier::create(&verification_method)
+        // let mut contract_ptr: *mut u8 = std::ptr::null_mut();
+        // let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
+        // let cs_buf = self.constraint_system.to_bytes();
+        // let sc_as_bytes;
+        // let contract_size;
+        // unsafe {
+        //     contract_size = barretenberg_sys::composer::get_solidity_verifier(
+        //         self.pippenger.pointer(),
+        //         &self.crs.g2_data,
+        //         &cs_buf,
+        //         p_contract_ptr,
+        //     );
+        //     assert!(contract_size > 0);
+        //     sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size as usize)
+        // }
+        // // TODO to check
+        // // XXX: We truncate the first 40 bytes, due to it being mangled
+        // // For some reason, the first line is partially mangled
+        // // So in C+ the first line is duplicated and then truncated
+        // let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
+        // common::contract::turbo_verifier::create(&verification_method)
+        
+        String::new()
     }
 
     // XXX: There seems to be a bug in the C++ code
