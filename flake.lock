@@ -10,16 +10,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1679932437,
-        "narHash": "sha256-DPsFGZoJzxdsqMcN65IHtPMktw1qd3anogsg1NNu4WU=",
+        "lastModified": 1680020591,
+        "narHash": "sha256-sZoROGEXFDsFLRAkkmmk93yiCgNY6f4/M+VmW/HxZ5A=",
         "owner": "AztecProtocol",
         "repo": "barretenberg",
-        "rev": "2cca246b85a1814426e3e2dfd1013aabced6c5fd",
+        "rev": "f031dd295cf47c29260965b14d28375c84d48b3f",
         "type": "github"
       },
       "original": {
         "owner": "AztecProtocol",
-        "ref": "mv/move-to-ultra",
+        "ref": "mv/ultra-range-dbg",
         "repo": "barretenberg",
         "type": "github"
       }

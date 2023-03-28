@@ -97,7 +97,7 @@ impl StandardComposer {
         let func = barretenberg
             .instance
             .exports
-            .get_function("c_get_exact_circuit_size")
+            .get_function("acir_proofs_get_exact_circuit_size")
             .unwrap();
 
         let params: Vec<_> = vec![cs_ptr.clone()];
@@ -109,7 +109,7 @@ impl StandardComposer {
                 u32_val
             }
             Err(_) => {
-                unreachable!("failed on get_exact_circuit_size call");
+                unreachable!("failed on acir_proofs_get_exact_circuit_size call");
             }
         }
     }
@@ -120,7 +120,10 @@ impl StandardComposer {
 
         let pk_size = self
             .barretenberg
-            .call_multiple("c_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
+            .call_multiple(
+                "acir_proofs_init_proving_key",
+                vec![&cs_ptr, &Value::I32(0)],
+            )
             .value();
 
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
@@ -140,7 +143,7 @@ impl StandardComposer {
         let vk_size = self
             .barretenberg
             .call_multiple(
-                "c_init_verification_key",
+                "acir_proofs_init_verification_key",
                 vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
             )
             .value();
@@ -172,7 +175,7 @@ impl StandardComposer {
         let proof_size = self
             .barretenberg
             .call_multiple(
-                "new_proof",
+                "acir_proofs_new_proof",
                 vec![
                     &self.pippenger.pointer(),
                     &g2_ptr,
@@ -221,7 +224,7 @@ impl StandardComposer {
         let verified = self
             .barretenberg
             .call_multiple(
-                "verify_proof",
+                "acir_proofs_verify_proof",
                 vec![
                     &g2_ptr,
                     &vk_ptr,

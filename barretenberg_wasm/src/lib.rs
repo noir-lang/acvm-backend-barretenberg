@@ -93,7 +93,6 @@ impl Barretenberg {
 
         let params: Vec<_> = params.into_iter().cloned().collect();
         let func = self.instance.exports.get_function(name).unwrap();
-        dbg!(func.clone());
         let option_value = func.call(&params).unwrap().first().cloned();
 
         WASMValue(option_value)

@@ -11,7 +11,7 @@ rust-version.workspace = true
 [dependencies]
 
 common = { path = "../common" }
-barretenberg-sys = { git = 'https://github.com/noir-lang/barretenberg-sys.git' }
+barretenberg-sys = { git = 'https://github.com/noir-lang/barretenberg-sys.git', branch = "mv/ultra" }
 
 [dev-dependencies]
 tempfile = "*"
