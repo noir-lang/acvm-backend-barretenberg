@@ -97,7 +97,7 @@ impl StandardComposer {
         let func = barretenberg
             .instance
             .exports
-            .get_function("standard_example__get_exact_circuit_size")
+            .get_function("turbo_get_exact_circuit_size")
             .unwrap();
 
         let params: Vec<_> = vec![cs_ptr.clone()];
@@ -109,7 +109,7 @@ impl StandardComposer {
                 u32_val
             }
             Err(_) => {
-                unreachable!("failed on standard_example__get_exact_circuit_size call");
+                unreachable!("failed on turbo_get_exact_circuit_size call");
             }
         }
     }
@@ -120,7 +120,7 @@ impl StandardComposer {
 
         let pk_size = self
             .barretenberg
-            .call_multiple("c_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
+            .call_multiple("turbo_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
             .value();
 
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
@@ -140,7 +140,7 @@ impl StandardComposer {
         let vk_size = self
             .barretenberg
             .call_multiple(
-                "c_init_verification_key",
+                "turbo_init_verification_key",
                 vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
             )
             .value();
@@ -172,7 +172,7 @@ impl StandardComposer {
         let proof_size = self
             .barretenberg
             .call_multiple(
-                "c_new_proof",
+                "turbo_new_proof",
                 vec![
                     &self.pippenger.pointer(),
                     &g2_ptr,
@@ -221,7 +221,7 @@ impl StandardComposer {
         let verified = self
             .barretenberg
             .call_multiple(
-                "c_verify_proof",
+                "turbo_verify_proof",
                 vec![
                     &g2_ptr,
                     &vk_ptr,

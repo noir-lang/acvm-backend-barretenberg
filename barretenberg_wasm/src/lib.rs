@@ -5,7 +5,7 @@
 #[derive(rust_embed::RustEmbed)]
 #[folder = "$BARRETENBERG_BIN_DIR"]
 #[include = "barretenberg.wasm"]
-struct WASM;
+struct Wasm;
 
 pub mod acvm_interop;
 pub use acvm_interop::Plonk;
@@ -128,14 +128,19 @@ impl Default for Barretenberg {
 fn load_module() -> (Module, Store) {
     let store = Store::default();
 
-    let module = Module::new(&store, WASM::get("barretenberg.wasm").unwrap().data).unwrap();
+    let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
     (module, store)
 }
 
 fn instance_load() -> (Instance, Memory) {
     let (module, store) = load_module();
 
-    let log_env = Function::new_native(&store, logstr);
+    let logstr = Function::new_native(&store, logstr);
+    let set_data = Function::new_native(&store, set_data);
+    let get_data = Function::new_native(&store, get_data);
+    let env_load_verifier_crs = Function::new_native(&store, env_load_verifier_crs);
+    let env_load_prover_crs = Function::new_native(&store, env_load_prover_crs);
+
     // Add all of the wasi host functions.
     // We don't use any of them, so they have dummy implementations.
     let signature = FunctionType::new(vec![Type::I32, Type::I64, Type::I32], vec![Type::I32]);
@@ -207,7 +212,11 @@ fn instance_load() -> (Instance, Memory) {
 
     let custom_imports = imports! {
         "env" => {
-            "logstr" => log_env,
+            "logstr" => logstr,
+            "set_data" => set_data,
+            "get_data" => get_data,
+            "env_load_verifier_crs" => env_load_verifier_crs,
+            "env_load_prover_crs" => env_load_prover_crs,
             "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
@@ -224,6 +233,7 @@ fn instance_load() -> (Instance, Memory) {
             "fd_write" => fd_write,
             "environ_sizes_get" => environ_sizes_get,
             "environ_get" => environ_get,
+            "fd_prestat_get" => Function::new_native(&store, fd_prestat_get),
         },
     };
 
@@ -264,6 +274,31 @@ fn logstr(ptr: i32) {
 
     // // Print it!
     // println!("[WASM LOG] {}", string);
+}
+
+#[allow(unused_variables)]
+fn fd_prestat_get(a: i32, b: i32) -> i32 {
+    unimplemented!("fd_prestat_get not implemented")
+}
+
+#[allow(unused_variables)]
+fn set_data(a: i32, b: i32, c: i32) {
+    unimplemented!("set_data not implemented")
+}
+
+#[allow(unused_variables)]
+fn get_data(a: i32, b: i32) -> i32 {
+    unimplemented!("get_data not implemented")
+}
+
+#[allow(unused_variables)]
+fn env_load_verifier_crs() -> i32 {
+    unimplemented!("env_load_verifier_crs not implemented")
+}
+
+#[allow(unused_variables)]
+fn env_load_prover_crs(a: i32) -> i32 {
+    unimplemented!("env_load_prover_crs not implemented")
 }
 
 #[test]
