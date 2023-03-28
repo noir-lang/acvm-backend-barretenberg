@@ -10,7 +10,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { version = "0.8.0", features = ["bn254"], git = "https://github.com/noir-lang/acvm", rev = "671a09d6e00332d22aaecea3a41d99182b48bd37" }
+acvm = { version = "0.8.0", features = ["bn254"], git = "https://github.com/noir-lang/acvm", rev = "71c0f5d3061349b7142cdc33e4d019c4eac269d1" }
 
 sled = "0.34.6"
 blake2 = "0.9.1"
