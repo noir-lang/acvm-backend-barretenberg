@@ -344,6 +344,9 @@ pub fn serialize_circuit(circuit: &Circuit) -> ConstraintSystem {
             Opcode::Block(_) | Opcode::RAM(_) | Opcode::ROM(_) => {
                 // TODO: implement serialization to match BB's interface
             }
+            Opcode::Brillig(_) => {
+                todo!()
+            }
         }
     }
 
