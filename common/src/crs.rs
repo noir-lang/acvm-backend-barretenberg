@@ -26,7 +26,9 @@ fn transcript_location() -> PathBuf {
 
 impl CRS {
     pub fn new(num_points: usize) -> CRS {
-        let g1_end = G1_START + (num_points * 64) - 1;
+        // UltraPlonk requires a CRS equal to circuit size plus one!
+        // We need to bump our polynomial degrees by 1 to handle zero knowledge
+        let g1_end = G1_START + ((num_points + 1) * 64) - 1;
 
         // If the CRS does not exist, then download it from S3
         if !transcript_location().exists() {

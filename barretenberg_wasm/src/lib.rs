@@ -20,7 +20,8 @@ pub mod schnorr;
 pub use common::crs;
 use std::cell::Cell;
 use wasmer::{
-    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
+    imports, Function, FunctionType, Instance, LazyInit, Memory, MemoryType, Module, Store, Type,
+    Value,
 };
 
 /// Barretenberg is the low level struct which calls the WASM file
@@ -28,6 +29,11 @@ use wasmer::{
 pub struct Barretenberg {
     memory: Memory,
     instance: Instance,
+}
+
+#[derive(wasmer::WasmerEnv, Clone)]
+struct Env {
+    memory: Memory,
 }
 
 /// A wrapper around the return value from a WASM call
@@ -135,7 +141,6 @@ fn load_module() -> (Module, Store) {
 fn instance_load() -> (Instance, Memory) {
     let (module, store) = load_module();
 
-    let logstr = Function::new_native(&store, logstr);
     let set_data = Function::new_native(&store, set_data);
     let get_data = Function::new_native(&store, get_data);
     let env_load_verifier_crs = Function::new_native(&store, env_load_verifier_crs);
@@ -210,6 +215,14 @@ fn instance_load() -> (Instance, Memory) {
     let mem_type = MemoryType::new(130, None, false);
     let memory = Memory::new(&store, mem_type).unwrap();
 
+    let logstr = Function::new_native_with_env(
+        &store,
+        Env {
+            memory: memory.clone(),
+        },
+        logstr,
+    );
+
     let custom_imports = imports! {
         "env" => {
             "logstr" => logstr,
@@ -249,31 +262,33 @@ impl Barretenberg {
     }
 }
 #[allow(unused_variables)]
-fn logstr(ptr: i32) {
+fn logstr(env: &Env, ptr: i32) {
+    // println!("LOGSTR")
     // println!("[No logs]")
     // let memory = my_env.memory.get_ref().unwrap();
 
-    // let mut ptr_end = 0;
-    // let byte_view = memory.uint8view();
+    let mut ptr_end = 0;
+    let byte_view = env.memory.uint8view();
 
-    // for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-    //     if cell != 0 {
-    //         ptr_end = i;
-    //     } else {
-    //         break;
-    //     }
-    // }
+    for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+        if cell != &Cell::new(0) {
+            ptr_end = i;
+        } else {
+            break;
+        }
+    }
 
-    // let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
-    //     .into_iter()
-    //     .cloned()
-    //     .collect();
+    let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
+        .into_iter()
+        .cloned()
+        .map(|chr| chr.get())
+        .collect();
 
-    // // Convert the subslice to a `&str`.
-    // let string = std::str::from_utf8(&str_vec).unwrap();
+    // Convert the subslice to a `&str`.
+    let string = std::str::from_utf8(&str_vec).unwrap();
 
-    // // Print it!
-    // println!("[WASM LOG] {}", string);
+    // Print it!
+    println!("{string}");
 }
 
 #[allow(unused_variables)]

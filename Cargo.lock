@@ -242,7 +242,7 @@ dependencies = [
 [[package]]
 name = "barretenberg-sys"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=mv/ultra#1390e3ee5cbd68016472724c1e26ea024ea392c3"
+source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=mv/ultra#418d4854b536a3785c2d07ff63ad558416f6d985"
 dependencies = [
  "bindgen",
  "cc",
