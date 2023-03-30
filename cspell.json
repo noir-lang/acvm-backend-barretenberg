@@ -45,6 +45,7 @@
         "TURBOVERIFIER",
         "vals",
         "wasi",
+        "prestat",
         // In Solidity
         //
         "addmod",

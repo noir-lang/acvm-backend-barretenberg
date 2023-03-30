@@ -20,8 +20,7 @@ pub mod schnorr;
 pub use common::crs;
 use std::cell::Cell;
 use wasmer::{
-    imports, Function, FunctionType, Instance, LazyInit, Memory, MemoryType, Module, Store, Type,
-    Value,
+    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
 };
 
 /// Barretenberg is the low level struct which calls the WASM file
