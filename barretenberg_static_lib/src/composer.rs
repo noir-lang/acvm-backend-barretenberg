@@ -290,27 +290,27 @@ mod test {
             public_inputs: Assignments::default(),
             result: true,
         };
-        // let case_2 = WitnessResult {
-        //     witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
-        //     public_inputs: Assignments::default(),
-        //     result: true,
-        // };
-        // let case_3 = WitnessResult {
-        //     witness: Assignments(vec![10_i128.into(), (-3_i128).into(), 7_i128.into()]),
-        //     public_inputs: Assignments::default(),
-        //     result: true,
-        // };
-        // let case_4 = WitnessResult {
-        //     witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::one()]),
-        //     public_inputs: Assignments::default(),
-        //     result: false,
-        // };
-        // let case_5 = WitnessResult {
-        //     witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
-        //     public_inputs: Assignments::default(),
-        //     result: false,
-        // };
-        let test_cases = vec![case_1];
+        let case_2 = WitnessResult {
+            witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+        let case_3 = WitnessResult {
+            witness: Assignments(vec![10_i128.into(), (-3_i128).into(), 7_i128.into()]),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+        let case_4 = WitnessResult {
+            witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::one()]),
+            public_inputs: Assignments::default(),
+            result: false,
+        };
+        let case_5 = WitnessResult {
+            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
+            public_inputs: Assignments::default(),
+            result: false,
+        };
+        let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
         test_composer_with_pk_vk(constraint_system, test_cases);
     }
