@@ -25,5 +25,5 @@ jobs:
         run: cargo install wasm-pack
 
       - name: Build wasm crate
-        working-directory: ./aztec_backend
+        working-directory: ./aztec_backend_wasm
         run: ./build-wasm
