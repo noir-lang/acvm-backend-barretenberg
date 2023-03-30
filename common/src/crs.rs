@@ -7,6 +7,7 @@ pub struct CRS {
     pub num_points: usize,
 }
 
+// TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;

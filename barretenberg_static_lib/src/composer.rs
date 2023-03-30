@@ -607,6 +607,8 @@ mod test {
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
 
+    // TODO: Add logic constaint test (copy from C++)
+
     #[derive(Clone, Debug)]
     struct WitnessResult {
         witness: WitnessAssignments,

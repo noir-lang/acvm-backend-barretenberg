@@ -262,10 +262,6 @@ impl Barretenberg {
 }
 #[allow(unused_variables)]
 fn logstr(env: &Env, ptr: i32) {
-    // println!("LOGSTR")
-    // println!("[No logs]")
-    // let memory = my_env.memory.get_ref().unwrap();
-
     let mut ptr_end = 0;
     let byte_view = env.memory.uint8view();
 
