@@ -22,8 +22,8 @@ impl ProofSystemCompiler for Plonk {
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
         match opcode {
             common::acvm::acir::BlackBoxFunc::AES => false,
-            common::acvm::acir::BlackBoxFunc::AND => false,
-            common::acvm::acir::BlackBoxFunc::XOR => false,
+            common::acvm::acir::BlackBoxFunc::AND => true,
+            common::acvm::acir::BlackBoxFunc::XOR => true,
             common::acvm::acir::BlackBoxFunc::RANGE => true,
             common::acvm::acir::BlackBoxFunc::SHA256 => true,
             common::acvm::acir::BlackBoxFunc::Blake2s => true,
