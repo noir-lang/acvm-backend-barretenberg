@@ -11,7 +11,6 @@ pub struct StandardComposer {
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
         let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
-        println!("{:?}", circuit_size);
 
         let crs = CRS::new(circuit_size as usize + 1);
 
@@ -116,8 +115,6 @@ impl StandardComposer {
         unsafe {
             pk_size = barretenberg_sys::composer::init_proving_key(&cs_buf, pk_ptr);
         }
-        println!("{pk_ptr:?}");
-        println!("{pk_size:?}");
 
         std::mem::forget(cs_buf);
 
@@ -624,13 +621,10 @@ mod test {
         let mut sc = StandardComposer::new(constraint_system);
 
         let proving_key = sc.compute_proving_key();
-        println!("{:x?}", &proving_key[0..200]);
         let verification_key = sc.compute_verification_key(&proving_key);
-        println!("{:x?}", &verification_key);
 
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
-            println!("{:?}", proof);
             let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
             // sc.smart_contract(&verification_key);
             assert_eq!(verified, test_case.result);

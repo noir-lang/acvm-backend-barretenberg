@@ -18,7 +18,6 @@ impl StandardComposer {
 
         let circuit_size =
             StandardComposer::get_circuit_size(&mut barretenberg, &constraint_system);
-        println!("{:?}", circuit_size);
 
         let crs = CRS::new(circuit_size as usize);
 
@@ -143,9 +142,7 @@ impl StandardComposer {
             .value();
 
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
-        println!("{pk_ptr:?}");
         let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
-        println!("{pk_ptr:?}");
 
         self.barretenberg.slice_memory(
             pk_ptr as usize,
@@ -670,13 +667,10 @@ mod test {
         let mut sc = StandardComposer::new(constraint_system);
 
         let proving_key = sc.compute_proving_key();
-        println!("{:x?}", &proving_key[0..200]);
         let verification_key = sc.compute_verification_key(&proving_key);
-        println!("{:x?}", &verification_key);
 
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
-            println!("{:?}", proof);
             let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }
