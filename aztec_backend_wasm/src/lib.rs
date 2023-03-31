@@ -42,6 +42,15 @@ async fn resolve_oracle(
 
     // Handle and apply result
     let js_arr = js_sys::Array::from(&js_resolution);
+    let ouput_len = js_arr.length() as usize;
+    let expected_output_len = oracle_data.outputs.len();
+    if ouput_len != expected_output_len {
+        return Err(format!(
+            "Expected oracle output of {} elements, but instead received {}",
+            expected_output_len, ouput_len
+        )
+        .into());
+    }
     for elem in js_arr.iter() {
         if !elem.is_string() {
             return Err("Non-string element in oracle_resolver return".into());
