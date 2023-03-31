@@ -46,8 +46,8 @@ async fn resolve_oracle(
     let expected_output_len = oracle_data.outputs.len();
     if ouput_len != expected_output_len {
         return Err(format!(
-            "Expected oracle output of {} elements, but instead received {}",
-            expected_output_len, ouput_len
+            "Expected output from oracle '{}' of {} elements, but instead received {}",
+            oracle_data.name, expected_output_len, ouput_len
         )
         .into());
     }
