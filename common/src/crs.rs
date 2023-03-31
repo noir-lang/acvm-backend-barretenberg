@@ -1,12 +1,5 @@
 use std::{env, path::PathBuf};
 
-#[allow(clippy::upper_case_acronyms)]
-pub struct CRS {
-    pub g1_data: Vec<u8>,
-    pub g2_data: Vec<u8>,
-    pub num_points: usize,
-}
-
 // TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
@@ -23,6 +16,13 @@ fn transcript_location() -> PathBuf {
             .join("ignition")
             .join(TRANSCRIPT_NAME),
     }
+}
+
+#[allow(clippy::upper_case_acronyms)]
+pub struct CRS {
+    pub g1_data: Vec<u8>,
+    pub g2_data: Vec<u8>,
+    pub num_points: usize,
 }
 
 impl CRS {
@@ -51,6 +51,32 @@ impl CRS {
             g2_data,
             num_points,
         }
+    }
+}
+
+// TODO(blaine): Come up with a better abstraction for the CRS so we don't need to read the
+// file everytime we need the G2
+pub struct G2 {
+    pub data: Vec<u8>,
+}
+
+impl G2 {
+    pub fn new() -> G2 {
+        // If the CRS does not exist, then download it from S3
+        if !transcript_location().exists() {
+            download_crs(transcript_location());
+        }
+
+        // Read CRS, if it's incomplete, download it
+        let mut crs = read_crs(transcript_location());
+        if crs.len() < G2_END + 1 {
+            download_crs(transcript_location());
+            crs = read_crs(transcript_location());
+        }
+
+        let data = crs[G2_START..=G2_END].to_vec();
+
+        G2 { data }
     }
 }
 
