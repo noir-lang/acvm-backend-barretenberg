@@ -52,15 +52,15 @@
       rec {
         packages.default = craneLib.mkCargoDerivation {
           pname = "aztec_backend";
-          # name = "aztec_backend";
-          version = "0.8.0";
+          
+          # version = "0.8.0";
           inherit cargoArtifacts src;
 
           WASM_PACK_VAR = wasm_pack;
           buildPhaseCargoCommand = ''
             echo "WASM_PACK = $WASM_PACK_VAR"
-            wasm-pack build --dev --scope noir-lang --target nodejs --out-dir nodejs aztec_backend_wasm 
-            wasm-pack build --dev --scope noir-lang --target web --out-dir web aztec_backend_wasm
+            wasm-pack build --scope noir-lang --target nodejs --out-dir nodejs aztec_backend_wasm 
+            wasm-pack build --scope noir-lang --target web --out-dir web aztec_backend_wasm
           '';
 
           installPhaseCommand = ''
