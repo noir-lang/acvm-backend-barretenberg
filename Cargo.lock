@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.8.0"
-source = "git+https://github.com/noir-lang/acvm?branch=joss/log-more#9dfcdce194e501c893c1bd1cf996d56ecda89521"
+source = "git+https://github.com/noir-lang/acvm?rev=7043b62d84503fa288ebde4d82cbede01d5490d9#7043b62d84503fa288ebde4d82cbede01d5490d9"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.8.0"
-source = "git+https://github.com/noir-lang/acvm?branch=joss/log-more#9dfcdce194e501c893c1bd1cf996d56ecda89521"
+source = "git+https://github.com/noir-lang/acvm?rev=7043b62d84503fa288ebde4d82cbede01d5490d9#7043b62d84503fa288ebde4d82cbede01d5490d9"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,7 +29,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.8.0"
-source = "git+https://github.com/noir-lang/acvm?branch=joss/log-more#9dfcdce194e501c893c1bd1cf996d56ecda89521"
+source = "git+https://github.com/noir-lang/acvm?rev=7043b62d84503fa288ebde4d82cbede01d5490d9#7043b62d84503fa288ebde4d82cbede01d5490d9"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -46,7 +46,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.8.0"
-source = "git+https://github.com/noir-lang/acvm?branch=joss/log-more#9dfcdce194e501c893c1bd1cf996d56ecda89521"
+source = "git+https://github.com/noir-lang/acvm?rev=7043b62d84503fa288ebde4d82cbede01d5490d9#7043b62d84503fa288ebde4d82cbede01d5490d9"
 dependencies = [
  "acir",
 ]
