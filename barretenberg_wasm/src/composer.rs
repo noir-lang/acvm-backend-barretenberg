@@ -35,36 +35,6 @@ impl StandardComposer {
 impl StandardComposer {
     const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-    // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
-    // Since it's already done in C++, we are just re-exporting for now
-    pub fn smart_contract(&mut self) -> String {
-        let cs_buf = self.constraint_system.to_bytes();
-        let cs_ptr = self.barretenberg.allocate(&cs_buf);
-
-        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
-
-        let contract_size = self
-            .barretenberg
-            .call_multiple(
-                "composer__smart_contract",
-                vec![&self.pippenger.pointer(), &g2_ptr, &cs_ptr, &Value::I32(0)],
-            )
-            .value();
-        let contract_ptr = self.barretenberg.slice_memory(0, 4);
-        let contract_ptr = u32::from_le_bytes(contract_ptr[0..4].try_into().unwrap());
-
-        let sc_as_bytes = self.barretenberg.slice_memory(
-            contract_ptr as usize,
-            contract_ptr as usize + contract_size.unwrap_i32() as usize,
-        );
-
-        // XXX: We truncate the first 40 bytes, due to it being mangled
-        // For some reason, the first line is partially mangled
-        // So in C+ the first line is duplicated and then truncated
-        let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
-        common::contract::turbo_verifier::create(&verification_method)
-    }
-
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
     // for certain circuit sizes.
