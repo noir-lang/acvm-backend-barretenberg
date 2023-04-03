@@ -331,9 +331,7 @@ mod test {
             public_inputs: Assignments(vec![Scalar::one(), 3_i128.into()]),
             result: false,
         };
-        let test_cases = vec![
-            /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
-        ];
+        let test_cases = vec![case_1, case_2, case_3, case_4, case_5, case_6];
 
         test_composer_with_pk_vk(constraint_system, test_cases);
     }
