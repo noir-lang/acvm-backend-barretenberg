@@ -22,7 +22,7 @@ impl SmartContract for Plonk {
                 &verification_key,
                 p_contract_ptr,
             );
-            sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size as usize)
+            sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size)
         }
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
