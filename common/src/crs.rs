@@ -80,6 +80,12 @@ impl G2 {
     }
 }
 
+impl Default for G2 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn read_crs(path: PathBuf) -> Vec<u8> {
     match std::fs::read(&path) {
         Ok(bytes) => bytes,

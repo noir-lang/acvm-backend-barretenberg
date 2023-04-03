@@ -274,7 +274,7 @@ fn logstr(env: &Env, ptr: i32) {
     }
 
     let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
-        .into_iter()
+        .iter()
         .cloned()
         .map(|chr| chr.get())
         .collect();
