@@ -59,6 +59,10 @@
         };
       };
 
+      solidityFilter = path: _type: builtins.match ".*sol$" path != null;
+      sourceFilter = path: type:
+        (solidityFilter path type) || (craneLib.filterCargoSources path type);
+
       commonArgs = {
         pname = "barretenberg-backend";
         version = "0.1.0";
@@ -71,7 +75,10 @@
           else
             llvmPackages.stdenv;
 
-        src = craneLib.cleanCargoSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          src = craneLib.path ./.;
+          filter = sourceFilter;
+        };
 
         doCheck = false;
 
