@@ -52,24 +52,21 @@
       rec {
         packages.default = craneLib.mkCargoDerivation {
           pname = "aztec_backend";
-          
+          # version taken from Cargo.toml
           # version = "0.8.0";
           inherit cargoArtifacts src;
 
-          WASM_PACK_VAR = wasm_pack;
           buildPhaseCargoCommand = ''
-            echo "WASM_PACK = $WASM_PACK_VAR"
             wasm-pack build --scope noir-lang --target nodejs --out-dir nodejs aztec_backend_wasm 
             wasm-pack build --scope noir-lang --target web --out-dir web aztec_backend_wasm
           '';
 
           installPhaseCommand = ''
-            # Install whatever is needed
             mkdir -p $out/nodejs
             mkdir -p $out/web
             find aztec_backend_wasm/nodejs -type f \( -name "*.js" -o -name "*.ts" -o -name "*.wasm" \) -exec cp {} $out/nodejs \;
             find aztec_backend_wasm/web -type f \( -name "*.js" -o -name "*.ts" -o -name "*.wasm" \) -exec cp {} $out/web \;
-            jq '{ name: .name, version: .version, main: ("nodejs/" + .module), module: ("web/" + .module), files: [ "nodejs", "web", "package.json"], types: ("web/" + .types), repository: { "type" : "git", "url" : "https://github.com/noir-lang/aztec-backend.git" } }' aztec_backend_wasm/web/package.json > $out/package.json;
+            jq '{ name: "@noir-lang/backend-utils", version: .version, main: ("nodejs/" + .module), module: ("web/" + .module), files: [ "nodejs", "web", "package.json"], types: ("web/" + .types), repository: { "type" : "git", "url" : "https://github.com/noir-lang/backend-utils.git" } }' aztec_backend_wasm/web/package.json > $out/package.json;
           '';
 
           nativeBuildInputs = with pkgs; [
