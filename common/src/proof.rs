@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 
-use acvm::{
-    acir::{circuit::Circuit, native_types::Witness},
-    FieldElement,
-};
+use acvm::{acir::native_types::Witness, FieldElement};
 
 use crate::barretenberg_structures::Assignments;
 
@@ -30,17 +27,22 @@ pub fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<
 
 /// Flatten a witness map into a vector of witness assignments.
 pub fn flatten_witness_map(
-    circuit: &Circuit,
-    witness_values: BTreeMap<Witness, FieldElement>,
+    witness_map: BTreeMap<Witness, FieldElement>,
+    num_witnesses: u32,
 ) -> Assignments {
-    let num_witnesses = circuit.num_vars();
+    let last_witness_index = witness_map
+        .keys()
+        .last()
+        .expect("witness map should not be empty")
+        .0;
+    assert!(num_witnesses >= last_witness_index);
 
     // Note: The witnesses are sorted via their witness index
     // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
     let witness_assignments = (1..num_witnesses)
         .map(|witness_index| {
             // Get the value if it exists. If i does not, then we fill it with the zero value
-            witness_values
+            witness_map
                 .get(&Witness(witness_index))
                 .map_or(FieldElement::zero(), |field| *field)
         })

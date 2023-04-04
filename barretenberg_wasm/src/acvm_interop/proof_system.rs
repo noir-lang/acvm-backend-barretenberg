@@ -60,7 +60,7 @@ impl ProofSystemCompiler for Plonk {
 
         let mut composer = StandardComposer::new(constraint_system);
 
-        let assignments = proof::flatten_witness_map(circuit, witness_values);
+        let assignments = proof::flatten_witness_map(witness_values, circuit.num_vars());
 
         composer.create_proof_with_pk(assignments, proving_key)
     }
