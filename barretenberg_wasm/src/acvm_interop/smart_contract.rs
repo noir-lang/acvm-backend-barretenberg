@@ -10,6 +10,7 @@ use super::Plonk;
 
 impl SmartContract for Plonk {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
+        // TODO: Don't create an entire new wasm instance for one function call
         let mut barretenberg = Barretenberg::new();
         let g2 = G2::new();
 

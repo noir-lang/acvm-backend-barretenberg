@@ -18,7 +18,7 @@ fn main() -> Result<(), String> {
                 println!("cargo:rustc-env=BARRETENBERG_BIN_DIR={bindir}");
                 Ok(())
             } else {
-                Err("Unable to locate barretenberg.wasm - Please set the BARRETENBERG_WASM env var to the full path".into())
+                Err("Unable to locate barretenberg.wasm - Please set the BARRETENBERG_BIN_DIR env var to the directory where it exists".into())
             }
         }
     }

@@ -56,13 +56,17 @@
         BARRETENBERG_TRANSCRIPT = pkgs.barretenberg-transcript00;
       };
 
+      # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
+      # source filter to include .sol files in addition to usual rust/cargo source files
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;
       sourceFilter = path: type:
         (solidityFilter path type) || (craneLib.filterCargoSources path type);
 
       commonArgs = {
-        pname = "barretenberg-backend";
-        version = "0.1.0";
+        # TODO: Rename repository
+        pname = "acvm-backend-barretenberg";
+        # TODO: Add release-please
+        version = "0.0.0";
 
         # As per https://discourse.nixos.org/t/gcc11stdenv-and-clang/17734/7 since it seems that aarch64-linux uses
         # gcc9 instead of gcc11 for the C++ stdlib, while all other targets we support provide the correct libstdc++
@@ -99,7 +103,7 @@
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-      barretenberg-backend = craneLib.buildPackage (commonArgs // {
+      acvm-backend-barretenberg = craneLib.buildPackage (commonArgs // {
         inherit cargoArtifacts;
       });
     in
@@ -122,7 +126,7 @@
         });
       };
 
-      packages.default = barretenberg-backend;
+      packages.default = acvm-backend-barretenberg;
 
       # llvmPackages should be aligned to selection from libbarretenberg
       # better if we get rid of llvm targets and override them from input
