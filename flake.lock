@@ -10,16 +10,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1680715936,
-        "narHash": "sha256-zAzeLYyCwRDI239TcoKz8yWQfv7JYMAxbCoTe7oPwDE=",
+        "lastModified": 1680724970,
+        "narHash": "sha256-Uhy8TYfqMNnidiB13ADXkJ3AmRR3YViVzUlW7Jkynw4=",
         "owner": "AztecProtocol",
         "repo": "barretenberg",
-        "rev": "e7b02d0624f64e77bd5aa4c9498cc899004b0f30",
+        "rev": "4a069923f4a869f8c2315e6d3f738db6e66dcdfa",
         "type": "github"
       },
       "original": {
         "owner": "AztecProtocol",
-        "ref": "phated/nix-bb-wasm",
         "repo": "barretenberg",
         "type": "github"
       }
@@ -95,11 +94,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1680588688,
-        "narHash": "sha256-SW95w50Pdw3nivgTuCebtbbPqaCTp9ctnFMNj24vdck=",
+        "lastModified": 1680665430,
+        "narHash": "sha256-MTVhTukwza1Jlq2gECITZPFnhROmylP2uv3O3cSqQCE=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "3e01f83884b8ed7cbafa784727fb343f1876d56f",
+        "rev": "5233fd2ba76a3accb5aaa999c00509a11fd0793c",
         "type": "github"
       },
       "original": {
