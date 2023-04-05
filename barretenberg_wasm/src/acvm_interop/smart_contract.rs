@@ -1,14 +1,12 @@
 use common::acvm::acir::circuit::Circuit;
 use common::acvm::SmartContract;
 use common::crs::G2;
+use common::ULTRA_VERIFIER_CONTRACT;
 use wasmer::Value;
 
 use crate::Barretenberg;
 
 use super::Plonk;
-
-/// Embed the Solidity verifier file
-const CONTRACT: &str = include_str!("contract.sol");
 
 impl SmartContract for Plonk {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
@@ -33,7 +31,7 @@ impl SmartContract for Plonk {
         );
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
-        format!("{CONTRACT}{verification_key_library}")
+        format!("{ULTRA_VERIFIER_CONTRACT}{verification_key_library}")
     }
 
     fn eth_contract_from_cs(&self, _circuit: Circuit) -> String {

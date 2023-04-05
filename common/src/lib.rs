@@ -3,7 +3,6 @@
 
 pub mod barretenberg_structures;
 pub mod black_box_functions;
-pub mod contract;
 
 #[cfg(feature = "std")]
 pub mod crs;
@@ -14,3 +13,6 @@ pub mod proof;
 
 // Re-export acvm
 pub use acvm;
+
+/// Embed the Solidity verifier file
+pub const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
