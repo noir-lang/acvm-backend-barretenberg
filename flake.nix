@@ -20,7 +20,7 @@
     };
 
     barretenberg = {
-      url = "github:AztecProtocol/barretenberg/mv/ultra-range-dbg";
+      url = "github:AztecProtocol/barretenberg/phated/nix-bb-wasm";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -48,15 +48,12 @@
         # rust-bindgen needs to know the location of libclang
         LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
 
-        # We set the environment variable because requiring 2 versions of bb collide when pkg-config searches for it
-        BARRETENBERG_BIN_DIR = "${pkgs.pkgsCross.wasi32.barretenberg}/bin";
+        # We set the environment variable because barretenberg must be compiled in a special way for wasm
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
 
-        # We fetch the transcript as a dependency and provide it to the build.
+        # We provide `barretenberg-transcript00` from the overlay to the build.
         # This is necessary because the Nix sandbox is read-only and downloading during tests would fail
-        BARRETENBERG_TRANSCRIPT = pkgs.fetchurl {
-          url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
-          sha256 = "sha256-D5SzlCb1pX0aF3QmJPfTFwoy4Z1sXhbyAigUOdvkhpU=";
-        };
+        BARRETENBERG_TRANSCRIPT = pkgs.barretenberg-transcript00;
       };
 
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;

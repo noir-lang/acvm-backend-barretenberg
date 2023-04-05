@@ -19,9 +19,7 @@ pub mod schnorr;
 
 pub use common::crs;
 use std::cell::Cell;
-use wasmer::{
-    imports, Function, FunctionType, Instance, Memory, MemoryType, Module, Store, Type, Value,
-};
+use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
@@ -140,118 +138,38 @@ fn load_module() -> (Module, Store) {
 fn instance_load() -> (Instance, Memory) {
     let (module, store) = load_module();
 
-    let set_data = Function::new_native(&store, set_data);
-    let get_data = Function::new_native(&store, get_data);
-    let env_load_verifier_crs = Function::new_native(&store, env_load_verifier_crs);
-    let env_load_prover_crs = Function::new_native(&store, env_load_prover_crs);
-
-    // Add all of the wasi host functions.
-    // We don't use any of them, so they have dummy implementations.
-    let signature = FunctionType::new(vec![Type::I32, Type::I64, Type::I32], vec![Type::I32]);
-    let clock_time_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(
-        vec![Type::I32, Type::I32, Type::I32, Type::I32],
-        vec![Type::I32],
-    );
-    let fd_read = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32], vec![Type::I32]);
-    let fd_close = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32], vec![]);
-    let proc_exit = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
-    let fd_fdstat_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
-    let random_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(
-        vec![Type::I32, Type::I64, Type::I32, Type::I32],
-        vec![Type::I32],
-    );
-    let fd_seek = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(
-        vec![Type::I32, Type::I32, Type::I32, Type::I32],
-        vec![Type::I32],
-    );
-    let fd_write = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
-    let environ_sizes_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
-    let environ_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(
-        vec![
-            Type::I32,
-            Type::I32,
-            Type::I32,
-            Type::I32,
-            Type::I32,
-            Type::I64,
-            Type::I64,
-            Type::I32,
-            Type::I32,
-        ],
-        vec![Type::I32],
-    );
-    let path_open = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(
-        vec![Type::I32, Type::I32, Type::I32, Type::I32, Type::I32],
-        vec![Type::I32],
-    );
-    let path_filestat_get = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
-    let signature = FunctionType::new(vec![Type::I32, Type::I32], vec![Type::I32]);
-    let fd_fdstat_set_flags = Function::new(&store, &signature, |_| Ok(vec![Value::I32(0)]));
-
     let mem_type = MemoryType::new(130, None, false);
     let memory = Memory::new(&store, mem_type).unwrap();
 
-    let logstr = Function::new_native_with_env(
-        &store,
-        Env {
-            memory: memory.clone(),
-        },
-        logstr,
-    );
-
     let custom_imports = imports! {
         "env" => {
-            "logstr" => logstr,
-            "set_data" => set_data,
-            "get_data" => get_data,
-            "env_load_verifier_crs" => env_load_verifier_crs,
-            "env_load_prover_crs" => env_load_prover_crs,
+            "logstr" => Function::new_native_with_env(
+                &store,
+                Env {
+                    memory: memory.clone(),
+                },
+                logstr,
+            ),
+            "set_data" => Function::new_native(&store, set_data),
+            "get_data" => Function::new_native(&store, get_data),
+            "env_load_verifier_crs" => Function::new_native(&store, env_load_verifier_crs),
+            "env_load_prover_crs" => Function::new_native(&store, env_load_prover_crs),
             "memory" => memory.clone(),
         },
         "wasi_snapshot_preview1" => {
-            "clock_time_get" => clock_time_get,
-            "fd_read" => fd_read,
-            "fd_close" => fd_close,
-            "proc_exit" => proc_exit,
-            "fd_fdstat_get" => fd_fdstat_get,
-            "path_filestat_get" => path_filestat_get,
-            "fd_fdstat_set_flags" => fd_fdstat_set_flags,
-            "random_get" => random_get,
-            "fd_seek" => fd_seek,
-            "path_open" => path_open,
-            "fd_write" => fd_write,
-            "environ_sizes_get" => environ_sizes_get,
-            "environ_get" => environ_get,
-            "fd_prestat_get" => Function::new_native(&store, fd_prestat_get),
+            "fd_read" => Function::new_native(&store, fd_read),
+            "fd_close" => Function::new_native(&store, fd_close),
+            "proc_exit" =>  Function::new_native(&store, proc_exit),
+            "fd_fdstat_get" => Function::new_native(&store, fd_fdstat_get),
+            "random_get" => Function::new_native(&store, random_get),
+            "fd_seek" => Function::new_native(&store, fd_seek),
+            "fd_write" => Function::new_native(&store, fd_write),
+            "environ_sizes_get" => Function::new_native(&store, environ_sizes_get),
+            "environ_get" => Function::new_native(&store, environ_get),
         },
     };
 
-    // let res_import = import_object.chain_back(custom_imports);
-    let res_import = custom_imports;
-    (Instance::new(&module, &res_import).unwrap(), memory)
+    (Instance::new(&module, &custom_imports).unwrap(), memory)
 }
 
 impl Barretenberg {
@@ -260,7 +178,7 @@ impl Barretenberg {
         Barretenberg { memory, instance }
     }
 }
-#[allow(unused_variables)]
+
 fn logstr(env: &Env, ptr: i32) {
     let mut ptr_end = 0;
     let byte_view = env.memory.uint8view();
@@ -286,29 +204,58 @@ fn logstr(env: &Env, ptr: i32) {
     println!("{string}");
 }
 
-#[allow(unused_variables)]
-fn fd_prestat_get(a: i32, b: i32) -> i32 {
-    unimplemented!("fd_prestat_get not implemented")
+// TODO: This should actually be creating random data, right?
+// Probably duplicate https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
+fn random_get(_: i32, _: i32) -> i32 {
+    0 as i32
 }
 
-#[allow(unused_variables)]
-fn set_data(a: i32, b: i32, c: i32) {
-    unimplemented!("set_data not implemented")
+fn proc_exit(_: i32) {
+    unimplemented!("proc_exit is not implemented")
 }
 
-#[allow(unused_variables)]
-fn get_data(a: i32, b: i32) -> i32 {
-    unimplemented!("get_data not implemented")
+fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
+    unimplemented!("fd_write is not implemented")
 }
 
-#[allow(unused_variables)]
+fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
+    unimplemented!("fd_seek is not implemented")
+}
+
+fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
+    unimplemented!("fd_read is not implemented")
+}
+
+fn fd_fdstat_get(_: i32, _: i32) -> i32 {
+    unimplemented!("fd_fdstat_get is not implemented")
+}
+
+fn fd_close(_: i32) -> i32 {
+    unimplemented!("fd_close is not implemented")
+}
+
+fn environ_sizes_get(_: i32, _: i32) -> i32 {
+    unimplemented!("environ_sizes_get is not implemented")
+}
+
+fn environ_get(_: i32, _: i32) -> i32 {
+    unimplemented!("environ_get is not implemented")
+}
+
+fn set_data(_: i32, _: i32, _: i32) {
+    unimplemented!("set_data is not implemented")
+}
+
+fn get_data(_: i32, _: i32) -> i32 {
+    unimplemented!("get_data is not implemented")
+}
+
 fn env_load_verifier_crs() -> i32 {
-    unimplemented!("env_load_verifier_crs not implemented")
+    unimplemented!("env_load_verifier_crs is not implemented")
 }
 
-#[allow(unused_variables)]
-fn env_load_prover_crs(a: i32) -> i32 {
-    unimplemented!("env_load_prover_crs not implemented")
+fn env_load_prover_crs(_: i32) -> i32 {
+    unimplemented!("env_load_prover_crs is not implemented")
 }
 
 #[test]
