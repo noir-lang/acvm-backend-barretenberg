@@ -207,7 +207,7 @@ fn logstr(env: &Env, ptr: i32) {
 // TODO: This should actually be creating random data, right?
 // Probably duplicate https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
 fn random_get(_: i32, _: i32) -> i32 {
-    0 as i32
+    0_i32
 }
 
 fn proc_exit(_: i32) {
