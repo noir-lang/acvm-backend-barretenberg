@@ -6,7 +6,7 @@ fn does_not_panic() {
 
     let crs = CRS::new(num_points);
 
-    let p_points = barretenberg_wrapper::pippenger::new(&crs.g1_data);
+    let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
 
     unsafe {
         Vec::from_raw_parts(p_points as *mut u8, num_points * 32, num_points * 32);
@@ -21,6 +21,6 @@ fn downloading() {
     use tempfile::tempdir;
     let dir = tempdir().unwrap();
 
-    let file_path = dir.path().to_path_buf().join("transcript00.dat");
+    let file_path = dir.path().to_path_buf().join("monomial-transcript00.dat");
     download_crs(file_path);
 }

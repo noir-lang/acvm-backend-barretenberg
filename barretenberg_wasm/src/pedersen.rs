@@ -11,7 +11,7 @@ impl Barretenberg {
         let rhs_ptr = self.allocate(&right.to_be_bytes()); // 32..64
         let result_ptr = Value::I32(64); // 64..96
         self.call_multiple(
-            "pedersen__compress_fields",
+            "pedersen_plookup_compress_fields",
             vec![&lhs_ptr, &rhs_ptr, &result_ptr],
         );
 
@@ -22,7 +22,10 @@ impl Barretenberg {
         let input_buf = Assignments(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
 
-        self.call_multiple("pedersen__compress", vec![&input_ptr, &Value::I32(0)]);
+        self.call_multiple(
+            "pedersen_plookup_compress",
+            vec![&input_ptr, &Value::I32(0)],
+        );
 
         let result_bytes = self.slice_memory(0, 32);
         FieldElement::from_be_bytes_reduce(&result_bytes)
@@ -33,7 +36,7 @@ impl Barretenberg {
         let input_ptr = self.allocate(&input_buf);
 
         let result_ptr = Value::I32(32);
-        self.call_multiple("pedersen__commit", vec![&input_ptr, &result_ptr]);
+        self.call_multiple("pedersen_plookup_commit", vec![&input_ptr, &result_ptr]);
 
         let result_bytes = self.slice_memory(32, 96);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(32);
@@ -61,17 +64,17 @@ fn basic_interop() {
         Test {
             input_left: FieldElement::zero(),
             input_right: FieldElement::one(),
-            expected_hex: "0x229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1",
+            expected_hex: "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
         },
         Test {
             input_left: FieldElement::one(),
             input_right: FieldElement::one(),
-            expected_hex: "0x26425ddf29b4af6ee91008e8dbcbee975653170eee849efd75abf8301dee114e",
+            expected_hex: "0x1044a769e185fcdf077c8289a6bf87c5c77ff9561cab69d39fadd90a07ee4af4",
         },
         Test {
             input_left: FieldElement::one(),
             input_right: FieldElement::zero(),
-            expected_hex: "0x08f3cb4f0fdd7a9ef130c6d4590af6750b1475161020a198a56eced45078ccf2",
+            expected_hex: "0x17d213c8fe83e89a2f3190933d437a3e231124e0383e6dc6a7b6e6358833e427",
         },
     ];
 
@@ -91,11 +94,11 @@ fn pedersen_hash_to_point() {
     let mut barretenberg = Barretenberg::new();
     let (x, y) = barretenberg.encrypt(vec![FieldElement::zero(), FieldElement::one()]);
     let expected_x = FieldElement::from_hex(
-        "0x229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1",
+        "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
     )
     .unwrap();
     let expected_y = FieldElement::from_hex(
-        "0x296b4b4605e586a91caa3202baad557628a8c56d0a1d6dff1a7ca35aed3029d5",
+        "0x0ecf9d98be4597a88c46a7e0fa8836b57a7dcb41ee30f8d8787b11cc259c83fa",
     )
     .unwrap();
 

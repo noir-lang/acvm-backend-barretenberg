@@ -17,7 +17,6 @@ blake2 = "0.9.1"
 dirs = { version = "3.0", optional = true }
 downloader = { version = "0.2.7", optional = true, default-features = false, features = ["rustls-tls"] }
 indicatif = { version = "0.15.0", optional = true }
-regex = "1.4.0"
 
 [features]
 # This feature flag is here because we cannot compile

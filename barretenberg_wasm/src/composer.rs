@@ -35,36 +35,6 @@ impl StandardComposer {
 impl StandardComposer {
     const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-    // XXX: This does not belong here. Ideally, the Rust code should generate the SC code
-    // Since it's already done in C++, we are just re-exporting for now
-    pub fn smart_contract(&mut self) -> String {
-        let cs_buf = self.constraint_system.to_bytes();
-        let cs_ptr = self.barretenberg.allocate(&cs_buf);
-
-        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
-
-        let contract_size = self
-            .barretenberg
-            .call_multiple(
-                "composer__smart_contract",
-                vec![&self.pippenger.pointer(), &g2_ptr, &cs_ptr, &Value::I32(0)],
-            )
-            .value();
-        let contract_ptr = self.barretenberg.slice_memory(0, 4);
-        let contract_ptr = u32::from_le_bytes(contract_ptr[0..4].try_into().unwrap());
-
-        let sc_as_bytes = self.barretenberg.slice_memory(
-            contract_ptr as usize,
-            contract_ptr as usize + contract_size.unwrap_i32() as usize,
-        );
-
-        // XXX: We truncate the first 40 bytes, due to it being mangled
-        // For some reason, the first line is partially mangled
-        // So in C+ the first line is duplicated and then truncated
-        let verification_method: String = sc_as_bytes[40..].iter().map(|b| *b as char).collect();
-        common::contract::turbo_verifier::create(&verification_method)
-    }
-
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
     // for certain circuit sizes.
@@ -79,12 +49,27 @@ impl StandardComposer {
         barretenberg: &mut Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
-        let num_gates = StandardComposer::get_exact_circuit_size(barretenberg, constraint_system);
-        pow2ceil(
-            num_gates
-                + constraint_system.public_inputs.len() as u32
-                + StandardComposer::NUM_RESERVED_GATES,
-        )
+        let cs_buf = constraint_system.to_bytes();
+        let cs_ptr = barretenberg.allocate(&cs_buf);
+
+        let func = barretenberg
+            .instance
+            .exports
+            .get_function("acir_proofs_get_total_circuit_size")
+            .unwrap();
+
+        let params: Vec<_> = vec![cs_ptr.clone()];
+        match func.call(&params) {
+            Ok(vals) => {
+                let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
+                let u32_val = u32::from_be_bytes(i32_bytes);
+                barretenberg.free(cs_ptr);
+                pow2ceil(u32_val + StandardComposer::NUM_RESERVED_GATES)
+            }
+            Err(_) => {
+                unreachable!("failed on acir_proofs_get_total_circuit_size call");
+            }
+        }
     }
 
     pub fn get_exact_circuit_size(
@@ -97,7 +82,7 @@ impl StandardComposer {
         let func = barretenberg
             .instance
             .exports
-            .get_function("standard_example__get_exact_circuit_size")
+            .get_function("acir_proofs_get_exact_circuit_size")
             .unwrap();
 
         let params: Vec<_> = vec![cs_ptr.clone()];
@@ -109,7 +94,7 @@ impl StandardComposer {
                 u32_val
             }
             Err(_) => {
-                unreachable!("failed on standard_example__get_exact_circuit_size call");
+                unreachable!("failed on acir_proofs_get_exact_circuit_size call");
             }
         }
     }
@@ -120,7 +105,10 @@ impl StandardComposer {
 
         let pk_size = self
             .barretenberg
-            .call_multiple("c_init_proving_key", vec![&cs_ptr, &Value::I32(0)])
+            .call_multiple(
+                "acir_proofs_init_proving_key",
+                vec![&cs_ptr, &Value::I32(0)],
+            )
             .value();
 
         let pk_ptr = self.barretenberg.slice_memory(0, 4);
@@ -140,7 +128,7 @@ impl StandardComposer {
         let vk_size = self
             .barretenberg
             .call_multiple(
-                "c_init_verification_key",
+                "acir_proofs_init_verification_key",
                 vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
             )
             .value();
@@ -172,7 +160,7 @@ impl StandardComposer {
         let proof_size = self
             .barretenberg
             .call_multiple(
-                "c_new_proof",
+                "acir_proofs_new_proof",
                 vec![
                     &self.pippenger.pointer(),
                     &g2_ptr,
@@ -221,7 +209,7 @@ impl StandardComposer {
         let verified = self
             .barretenberg
             .call_multiple(
-                "c_verify_proof",
+                "acir_proofs_verify_proof",
                 vec![
                     &g2_ptr,
                     &vk_ptr,
@@ -255,6 +243,34 @@ mod test {
 
     use super::*;
     use common::barretenberg_structures::{Constraint, PedersenConstraint, Scalar};
+
+    #[test]
+    fn test_no_constraints_no_pub_inputs() {
+        let constraint_system = ConstraintSystem {
+            var_num: 0,
+            public_inputs: vec![],
+            logic_constraints: vec![],
+            range_constraints: vec![],
+            sha256_constraints: vec![],
+            merkle_membership_constraints: vec![],
+            schnorr_constraints: vec![],
+            blake2s_constraints: vec![],
+            pedersen_constraints: vec![],
+            hash_to_field_constraints: vec![],
+            constraints: vec![],
+            ecdsa_secp256k1_constraints: vec![],
+            fixed_base_scalar_mul_constraints: vec![],
+        };
+
+        let case_1 = WitnessResult {
+            witness: Assignments(vec![]),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+        let test_cases = vec![case_1];
+
+        test_composer_with_pk_vk(constraint_system, test_cases);
+    }
 
     #[test]
     fn test_a_single_constraint_no_pub_inputs() {
@@ -346,7 +362,7 @@ mod test {
         // This fails because the constraint system requires public inputs,
         // but none are supplied in public_inputs. So the verifier will not
         // supply anything.
-        let case_1 = WitnessResult {
+        let _case_1 = WitnessResult {
             witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
             public_inputs: Assignments::default(),
             result: false,
@@ -364,7 +380,7 @@ mod test {
         };
 
         // Not enough public inputs
-        let case_4 = WitnessResult {
+        let _case_4 = WitnessResult {
             witness: Assignments(vec![
                 Scalar::one(),
                 Scalar::from(2_i128),
@@ -560,7 +576,7 @@ mod test {
             qr: Scalar::zero(),
             qo: Scalar::zero(),
             qc: -Scalar::from_hex(
-                "0x229fb88be21cec523e9223a21324f2e305aea8bff9cdbcb3d0c6bba384666ea1",
+                "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
             )
             .unwrap(),
         };
@@ -573,7 +589,7 @@ mod test {
             qr: Scalar::zero(),
             qo: Scalar::zero(),
             qc: -Scalar::from_hex(
-                "0x296b4b4605e586a91caa3202baad557628a8c56d0a1d6dff1a7ca35aed3029d5",
+                "0x0ecf9d98be4597a88c46a7e0fa8836b57a7dcb41ee30f8d8787b11cc259c83fa",
             )
             .unwrap(),
         };
