@@ -242,7 +242,8 @@ dependencies = [
 [[package]]
 name = "barretenberg-sys"
 version = "0.1.0"
-source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=mv/ultra#b094861b75c8e5da98064fd118a9921744b1fcc1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70a7cbc8eeb6dbbea6d4d3f3db55b786d5c52ad6c88e999a328e1ce6aedd605e"
 dependencies = [
  "bindgen",
  "cc",
