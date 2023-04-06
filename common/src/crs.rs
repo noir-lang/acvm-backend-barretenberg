@@ -6,7 +6,7 @@ const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
 const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
-const TRANSCRIPT_NAME: &str = "monomial-transcript00.dat";
+const TRANSCRIPT_NAME: &str = "transcript00.dat";
 
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
