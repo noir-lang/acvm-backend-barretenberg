@@ -5,15 +5,17 @@ const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
-const TRANSCRIPT_NAME: &str = "monomial-transcript00.dat";
+const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
+const TRANSCRIPT_NAME: &str = "transcript00.dat";
 
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
         Ok(dir) => PathBuf::from(dir),
         Err(_) => dirs::home_dir()
             .unwrap()
-            .join("noir_cache")
-            .join("ignition")
+            .join(".nargo")
+            .join("backends")
+            .join(BACKEND_IDENTIFIER)
             .join(TRANSCRIPT_NAME),
     }
 }
