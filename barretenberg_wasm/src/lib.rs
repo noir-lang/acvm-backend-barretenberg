@@ -204,8 +204,7 @@ fn logstr(env: &Env, ptr: i32) {
     println!("{string}");
 }
 
-// TODO: This should actually be creating random data, right?
-// Probably duplicate https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
+// TODO: Implement randomization function https://github.com/noir-lang/aztec_backend/issues/101
 fn random_get(_: i32, _: i32) -> i32 {
     0_i32
 }
