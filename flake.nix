@@ -1,5 +1,5 @@
 {
-  description = "Build Barretenberg wrapper";
+  description = "Build the Barretenberg acvm backend";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
