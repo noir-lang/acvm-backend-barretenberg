@@ -16,7 +16,6 @@ fn transcript_location() -> PathBuf {
             .join(".nargo")
             .join("backends")
             .join(BACKEND_IDENTIFIER)
-            .join("ignition")
             .join(TRANSCRIPT_NAME),
     }
 }
