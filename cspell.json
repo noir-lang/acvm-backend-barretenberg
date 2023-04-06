@@ -45,6 +45,8 @@
         "TURBOVERIFIER",
         "vals",
         "wasi",
+        "subarray",
+        "ESUCCESS",
         // In Solidity
         //
         "addmod",
@@ -65,6 +67,7 @@
         "indicatif",
         "tempdir",
         "tempfile",
-        "wasmer"
+        "wasmer",
+        "getrandom"
     ]
 }

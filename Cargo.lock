@@ -277,6 +277,7 @@ version = "0.1.0"
 dependencies = [
  "blake2",
  "common",
+ "getrandom",
  "pkg-config",
  "rust-embed",
  "tempfile",

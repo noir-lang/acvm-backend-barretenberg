@@ -161,7 +161,13 @@ fn instance_load() -> (Instance, Memory) {
             "fd_close" => Function::new_native(&store, fd_close),
             "proc_exit" =>  Function::new_native(&store, proc_exit),
             "fd_fdstat_get" => Function::new_native(&store, fd_fdstat_get),
-            "random_get" => Function::new_native(&store, random_get),
+            "random_get" => Function::new_native_with_env(
+                &store,
+                Env {
+                    memory: memory.clone(),
+                },
+                random_get
+            ),
             "fd_seek" => Function::new_native(&store, fd_seek),
             "fd_write" => Function::new_native(&store, fd_write),
             "environ_sizes_get" => Function::new_native(&store, environ_sizes_get),
@@ -204,9 +210,22 @@ fn logstr(env: &Env, ptr: i32) {
     println!("{string}");
 }
 
-// TODO: Implement randomization function https://github.com/noir-lang/aztec_backend/issues/101
-fn random_get(_: i32, _: i32) -> i32 {
-    0_i32
+// Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
+fn random_get(env: &Env, buf: i32, buf_len: i32) -> i32 {
+    let mut u8_buffer = vec![0; buf_len as usize];
+    let res = getrandom::getrandom(&mut u8_buffer);
+    match res {
+        Ok(()) => {
+            unsafe {
+                env.memory
+                    .uint8view()
+                    .subarray(buf as u32, buf as u32 + buf_len as u32)
+                    .copy_from(&u8_buffer);
+            }
+            0_i32 // __WASI_ESUCCESS
+        }
+        Err(_) => 29_i32, // __WASI_EIO
+    }
 }
 
 fn proc_exit(_: i32) {
