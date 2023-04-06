@@ -1,17 +1,12 @@
 use std::{env, path::PathBuf};
 
-#[allow(clippy::upper_case_acronyms)]
-pub struct CRS {
-    pub g1_data: Vec<u8>,
-    pub g2_data: Vec<u8>,
-    pub num_points: usize,
-}
-
+// TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
-const G2_START: usize = 28 + (5_040_000 * 64);
+const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
 const BACKEND_IDENTIFIER: &str = "aztec_barretenberg_turboplonk";
+const TRANSCRIPT_NAME: &str = "monomial-transcript00.dat";
 
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
@@ -22,13 +17,22 @@ fn transcript_location() -> PathBuf {
             .join("backends")
             .join(BACKEND_IDENTIFIER)
             .join("ignition")
-            .join("transcript00.dat"),
+            .join(TRANSCRIPT_NAME),
     }
+}
+
+#[allow(clippy::upper_case_acronyms)]
+pub struct CRS {
+    pub g1_data: Vec<u8>,
+    pub g2_data: Vec<u8>,
+    pub num_points: usize,
 }
 
 impl CRS {
     pub fn new(num_points: usize) -> CRS {
-        let g1_end = G1_START + (num_points * 64) - 1;
+        // UltraPlonk requires a CRS equal to circuit size plus one!
+        // We need to bump our polynomial degrees by 1 to handle zero knowledge
+        let g1_end = G1_START + ((num_points + 1) * 64) - 1;
 
         // If the CRS does not exist, then download it from S3
         if !transcript_location().exists() {
@@ -53,6 +57,38 @@ impl CRS {
     }
 }
 
+// TODO(blaine): Come up with a better abstraction for the CRS so we don't need to read the
+// file everytime we need the G2
+pub struct G2 {
+    pub data: Vec<u8>,
+}
+
+impl G2 {
+    pub fn new() -> G2 {
+        // If the CRS does not exist, then download it from S3
+        if !transcript_location().exists() {
+            download_crs(transcript_location());
+        }
+
+        // Read CRS, if it's incomplete, download it
+        let mut crs = read_crs(transcript_location());
+        if crs.len() < G2_END + 1 {
+            download_crs(transcript_location());
+            crs = read_crs(transcript_location());
+        }
+
+        let data = crs[G2_START..=G2_END].to_vec();
+
+        G2 { data }
+    }
+}
+
+impl Default for G2 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 fn read_crs(path: PathBuf) -> Vec<u8> {
     match std::fs::read(&path) {
         Ok(bytes) => bytes,
@@ -62,7 +98,7 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
                 "please run again with appropriate permissions."
             );
             panic!(
-                "Could not find file transcript00.dat at location {}.\n Starting Download",
+                "Could not find transcript at location {}.\n Starting Download",
                 path.display()
             );
         }
@@ -83,7 +119,7 @@ pub fn download_crs(mut path_to_transcript: PathBuf) {
         std::fs::create_dir_all(&path_to_transcript).unwrap();
     }
 
-    let url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/sealed/transcript00.dat";
+    let url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
     use downloader::Downloader;
     let mut downloader = Downloader::builder()
         .download_folder(path_to_transcript.as_path())
@@ -91,6 +127,7 @@ pub fn download_crs(mut path_to_transcript: PathBuf) {
         .unwrap();
 
     let dl = downloader::Download::new(url);
+    let dl = dl.file_name(&PathBuf::from(TRANSCRIPT_NAME));
     let dl = dl.progress(SimpleReporter::create());
     let result = downloader.download(&[dl]).unwrap();
 
@@ -163,7 +200,7 @@ impl downloader::progress::Reporter for SimpleReporter {
 
 //     let crs = CRS::new(num_points);
 
-//     let p_points = barretenberg_wrapper::pippenger::new(&crs.g1_data);
+//     let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
 
 //     unsafe {
 //         Vec::from_raw_parts(

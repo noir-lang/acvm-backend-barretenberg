@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use acvm::{
     acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness, BlackBoxFunc},
     pwg::{self, witness_to_value},
-    FieldElement, OpcodeResolutionError,
+    FieldElement, OpcodeResolution, OpcodeResolutionError,
 };
 use blake2::{Blake2s, Digest};
 
@@ -27,7 +27,7 @@ pub trait BarretenbergShared: PathHasher {
 pub fn solve_black_box_func_call<B: BarretenbergShared>(
     initial_witness: &mut BTreeMap<Witness, FieldElement>,
     gadget_call: &BlackBoxFuncCall,
-) -> Result<(), OpcodeResolutionError> {
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
     match gadget_call.name {
         BlackBoxFunc::SHA256 => pwg::hash::sha256(initial_witness, gadget_call),
         BlackBoxFunc::Blake2s => pwg::hash::blake2s(initial_witness, gadget_call),
@@ -157,5 +157,6 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
         }
         BlackBoxFunc::RANGE => acvm::pwg::range::solve_range_opcode(initial_witness, gadget_call)?,
     }
-    Ok(())
+
+    Ok(OpcodeResolution::Solved)
 }

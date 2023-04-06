@@ -1,6 +1,6 @@
 use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use common::acvm::FieldElement;
-use common::acvm::PartialWitnessGenerator;
+use common::acvm::{FieldElement, OpcodeResolution};
+use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 use std::collections::BTreeMap;
 
 mod black_box_functions;
@@ -13,7 +13,7 @@ impl PartialWitnessGenerator for Plonk {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<(), common::acvm::OpcodeResolutionError> {
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         BlackBoxFuncCaller::solve_black_box_func_call(initial_witness, func_call)
     }
 }

@@ -5,13 +5,13 @@ use super::Barretenberg;
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
-        let (s, e) = barretenberg_wrapper::schnorr::construct_signature(message, private_key);
+        let (s, e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
         let sig_bytes: [u8; 64] = [s, e].concat().try_into().unwrap();
         sig_bytes
     }
 
     pub fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
-        barretenberg_wrapper::schnorr::construct_public_key(&private_key)
+        barretenberg_sys::schnorr::construct_public_key(&private_key)
     }
 
     pub fn verify_signature(
@@ -20,7 +20,7 @@ impl Barretenberg {
         sig: [u8; 64],
         message: &[u8],
     ) -> FieldElement {
-        let r: bool = barretenberg_wrapper::schnorr::verify_signature(
+        let r: bool = barretenberg_sys::schnorr::verify_signature(
             pub_key,
             sig[0..32].try_into().unwrap(),
             sig[32..64].try_into().unwrap(),
