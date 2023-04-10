@@ -200,7 +200,7 @@ mod tests {
         }
     }
 
-    // This test uses `update_leaf` directly rather than `update_message` 
+    // This test uses `update_leaf` directly rather than `update_message`
     #[test]
     fn simple_shield() {
         use tempfile::tempdir;
