@@ -1,4 +1,3 @@
-use common::acvm::acir::circuit::Circuit;
 use common::acvm::SmartContract;
 use common::crs::G2;
 use common::ULTRA_VERIFIER_CONTRACT;
