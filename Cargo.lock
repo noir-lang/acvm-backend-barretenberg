@@ -267,6 +267,7 @@ name = "barretenberg_static_lib"
 version = "0.1.0"
 dependencies = [
  "barretenberg-sys",
+ "blake2",
  "common",
  "tempfile",
 ]
