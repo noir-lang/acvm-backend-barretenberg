@@ -222,7 +222,7 @@ mod tests {
         let leaf = note_commitment_x;
 
         let index = FieldElement::try_from_str("0").unwrap();
-        let index_as_usize: usize = 0 as usize;
+        let index_as_usize: usize = 0_usize;
         let mut index_bits = index.bits();
         index_bits.reverse();
 
