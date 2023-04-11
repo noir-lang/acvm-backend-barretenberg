@@ -23,7 +23,6 @@ tempfile = "*"
 
 [features]
 default = [
-    # "acvm/bn254",
     "common/std",
     "wasmer/sys-default",
     "wasmer/cranelift",
@@ -32,7 +31,6 @@ default = [
     "wasmer/default-universal",
 ]
 js = [
-
-    # "acvm/bn254", 
+    "getrandom/js",
     "wasmer/js-default",
 ]
