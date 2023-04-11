@@ -1,4 +1,3 @@
-use common::acvm::acir::circuit::Circuit;
 use common::acvm::SmartContract;
 use common::crs::G2;
 use common::ULTRA_VERIFIER_CONTRACT;
@@ -33,10 +32,6 @@ impl SmartContract for Plonk {
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         format!("{ULTRA_VERIFIER_CONTRACT}{verification_key_library}")
-    }
-
-    fn eth_contract_from_cs(&self, _circuit: Circuit) -> String {
-        unimplemented!("use `eth_contract_from_vk`");
     }
 }
 

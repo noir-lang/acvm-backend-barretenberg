@@ -11,6 +11,7 @@ use super::Plonk;
 
 impl PartialWitnessGenerator for Plonk {
     fn solve_black_box_function_call(
+        &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
