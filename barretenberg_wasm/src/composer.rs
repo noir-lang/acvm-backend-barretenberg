@@ -3,16 +3,19 @@ use super::Barretenberg;
 use common::barretenberg_structures::*;
 use common::crs::CRS;
 use common::proof;
+use wasm_bindgen::prelude::wasm_bindgen;
 use wasmer::Value;
 
+#[wasm_bindgen]
 pub struct StandardComposer {
     barretenberg: Barretenberg,
     pippenger: Pippenger,
     crs: CRS,
     constraint_system: ConstraintSystem,
 }
-
+#[wasm_bindgen]
 impl StandardComposer {
+    #[wasm_bindgen(constructor)]
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
         let mut barretenberg = Barretenberg::new();
 
@@ -32,9 +35,10 @@ impl StandardComposer {
     }
 }
 
-impl StandardComposer {
-    const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
+const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
+#[wasm_bindgen]
+impl StandardComposer {
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
     // for certain circuit sizes.
@@ -45,7 +49,7 @@ impl StandardComposer {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    pub fn get_circuit_size(
+    fn get_circuit_size(
         barretenberg: &mut Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
@@ -64,7 +68,7 @@ impl StandardComposer {
                 let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
                 let u32_val = u32::from_be_bytes(i32_bytes);
                 barretenberg.free(cs_ptr);
-                pow2ceil(u32_val + StandardComposer::NUM_RESERVED_GATES)
+                pow2ceil(u32_val + NUM_RESERVED_GATES)
             }
             Err(_) => {
                 unreachable!("failed on acir_proofs_get_total_circuit_size call");

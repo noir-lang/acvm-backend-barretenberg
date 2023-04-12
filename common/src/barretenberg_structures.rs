@@ -1,8 +1,18 @@
 pub use acvm::FieldElement as Scalar;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 #[derive(Debug, Clone)]
-pub struct Assignments(pub Vec<Scalar>);
+#[wasm_bindgen]
+pub struct Assignments(Vec<Scalar>);
 pub type WitnessAssignments = Assignments;
+
+#[wasm_bindgen]
+impl Assignments {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Assignments {
+        Assignments(vec![])
+    }
+}
 
 impl Assignments {
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -28,8 +38,24 @@ impl Assignments {
     pub fn push(&mut self, value: Scalar) {
         self.0.push(value);
     }
-    pub fn new() -> Assignments {
-        Assignments(vec![])
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl IntoIterator for Assignments {
+    type Item = Scalar;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl From<Vec<Scalar>> for Assignments {
+    fn from(w: Vec<Scalar>) -> Assignments {
+        Assignments(w)
     }
 }
 
@@ -348,24 +374,41 @@ impl LogicConstraint {
 }
 
 #[derive(Clone, Hash, Debug)]
+#[wasm_bindgen]
 pub struct ConstraintSystem {
     pub var_num: u32,
+    #[wasm_bindgen(skip)]
     pub public_inputs: Vec<u32>,
-
+    #[wasm_bindgen(skip)]
     pub logic_constraints: Vec<LogicConstraint>,
+    #[wasm_bindgen(skip)]
     pub range_constraints: Vec<RangeConstraint>,
+    #[wasm_bindgen(skip)]
     pub sha256_constraints: Vec<Sha256Constraint>,
+    #[wasm_bindgen(skip)]
     pub merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
+    #[wasm_bindgen(skip)]
     pub schnorr_constraints: Vec<SchnorrConstraint>,
+    #[wasm_bindgen(skip)]
     pub ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
+    #[wasm_bindgen(skip)]
     pub blake2s_constraints: Vec<Blake2sConstraint>,
+    #[wasm_bindgen(skip)]
     pub pedersen_constraints: Vec<PedersenConstraint>,
+    #[wasm_bindgen(skip)]
     pub hash_to_field_constraints: Vec<HashToFieldConstraint>,
+    #[wasm_bindgen(skip)]
     pub fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
+    #[wasm_bindgen(skip)]
     pub constraints: Vec<Constraint>,
 }
 
+#[wasm_bindgen]
 impl ConstraintSystem {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 
@@ -456,5 +499,25 @@ impl ConstraintSystem {
         }
 
         buffer
+    }
+}
+
+impl Default for ConstraintSystem {
+    fn default() -> Self {
+        ConstraintSystem {
+            var_num: 0,
+            public_inputs: vec![],
+            logic_constraints: vec![],
+            range_constraints: vec![],
+            sha256_constraints: vec![],
+            merkle_membership_constraints: vec![],
+            schnorr_constraints: vec![],
+            blake2s_constraints: vec![],
+            pedersen_constraints: vec![],
+            hash_to_field_constraints: vec![],
+            constraints: vec![],
+            ecdsa_secp256k1_constraints: vec![],
+            fixed_base_scalar_mul_constraints: vec![],
+        }
     }
 }

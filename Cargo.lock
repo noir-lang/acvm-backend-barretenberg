@@ -279,9 +279,11 @@ dependencies = [
  "blake2",
  "common",
  "getrandom",
+ "js-sys",
  "pkg-config",
  "rust-embed",
  "tempfile",
+ "wasm-bindgen",
  "wasmer",
 ]
 
@@ -477,6 +479,7 @@ dependencies = [
  "downloader",
  "indicatif",
  "sled",
+ "wasm-bindgen",
 ]
 
 [[package]]

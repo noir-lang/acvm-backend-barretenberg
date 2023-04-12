@@ -19,7 +19,7 @@ impl Barretenberg {
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
     pub fn compress_many(&mut self, inputs: Vec<FieldElement>) -> FieldElement {
-        let input_buf = Assignments(inputs).to_bytes();
+        let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
 
         self.call_multiple(
@@ -32,7 +32,7 @@ impl Barretenberg {
     }
 
     pub fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
-        let input_buf = Assignments(inputs).to_bytes();
+        let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
 
         let result_ptr = Value::I32(32);

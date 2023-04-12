@@ -19,18 +19,59 @@ pub mod schnorr;
 
 pub use common::crs;
 use std::cell::Cell;
-use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
+use wasm_bindgen::prelude::wasm_bindgen;
+use wasmer::{
+    imports, Function, HostEnvInitError, Instance, LazyInit, Memory, MemoryType, Module, Store,
+    Value, WasmerEnv,
+};
 
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
+#[wasm_bindgen]
 pub struct Barretenberg {
     memory: Memory,
     instance: Instance,
 }
 
-#[derive(wasmer::WasmerEnv, Clone)]
+#[derive(WasmerEnv, Clone)]
 struct Env {
     memory: Memory,
+}
+
+struct RandomEnv {
+    memory: LazyInit<Memory>,
+}
+
+#[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+}
+
+impl WasmerEnv for RandomEnv {
+    fn init_with_instance(&mut self, instance: &Instance) -> Result<(), HostEnvInitError> {
+        unsafe {
+            log("init_with_instance");
+        }
+        for (i, cell) in instance.exports.iter() {
+            unsafe {
+                log(format!("export {i}").as_str());
+            }
+        }
+        // let memory: Memory = match instance.exports.iter("memory") {
+        //     Ok(mem) => mem,
+        //     Err(err) => {
+        //         unsafe {
+        //             log(format!("{err:?}").as_str());
+        //         }
+        //         unimplemented!()
+        //     }
+        // };
+        // self.memory.initialize(memory.clone());
+        Ok(())
+    }
 }
 
 /// A wrapper around the return value from a WASM call
@@ -95,8 +136,22 @@ impl Barretenberg {
         // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
         let params: Vec<_> = params.into_iter().cloned().collect();
+        unsafe {
+            log(format!("call multiple: {name}").as_str());
+        }
         let func = self.instance.exports.get_function(name).unwrap();
-        let option_value = func.call(&params).unwrap().first().cloned();
+        unsafe {
+            log("got func");
+        }
+        let option_value = match func.call(&params) {
+            Ok(val) => val.first().cloned(),
+            Err(err) => {
+                unsafe {
+                    log(format!("{err:?}").as_str());
+                }
+                unimplemented!()
+            }
+        };
 
         WASMValue(option_value)
     }
@@ -141,6 +196,14 @@ fn instance_load() -> (Instance, Memory) {
     let mem_type = MemoryType::new(130, None, false);
     let memory = Memory::new(&store, mem_type).unwrap();
 
+    // let logstr_env = Env {
+    //     memory: memory.clone(),
+    // };
+
+    // let mut random_get_env = RandomEnv {
+    //     memory: LazyInit::new(),
+    // };
+
     let custom_imports = imports! {
         "env" => {
             "logstr" => Function::new_native_with_env(
@@ -175,6 +238,12 @@ fn instance_load() -> (Instance, Memory) {
         },
     };
 
+    // let instance = ;
+
+    // let mut memory = instance.exports.get_memory("memory").unwrap();
+    // logstr_env.memory.initialize(memory.clone());
+    // random_get_env.memory.initialize(memory.clone());
+
     (Instance::new(&module, &custom_imports).unwrap(), memory)
 }
 
@@ -189,6 +258,16 @@ fn logstr(env: &Env, ptr: i32) {
     let mut ptr_end = 0;
     let byte_view = env.memory.uint8view();
 
+    #[cfg(feature = "js")]
+    for (i, cell) in byte_view.to_vec()[ptr as usize..].iter().enumerate() {
+        if cell != &0_u8 {
+            ptr_end = i;
+        } else {
+            break;
+        }
+    }
+
+    #[cfg(not(feature = "js"))]
     for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
         if cell != &Cell::new(0) {
             ptr_end = i;
@@ -197,6 +276,14 @@ fn logstr(env: &Env, ptr: i32) {
         }
     }
 
+    #[cfg(feature = "js")]
+    let str_vec: Vec<_> = byte_view.to_vec()[ptr as usize..=(ptr + ptr_end as i32) as usize]
+        .iter()
+        .cloned()
+        .map(|chr| chr)
+        .collect();
+
+    #[cfg(not(feature = "js"))]
     let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
         .iter()
         .cloned()
@@ -212,16 +299,15 @@ fn logstr(env: &Env, ptr: i32) {
 
 // Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
 fn random_get(env: &Env, buf: i32, buf_len: i32) -> i32 {
+    // let byte_view = env.memory.get_ref().unwrap().uint8view();
     let mut u8_buffer = vec![0; buf_len as usize];
     let res = getrandom::getrandom(&mut u8_buffer);
     match res {
         Ok(()) => {
-            unsafe {
-                env.memory
-                    .uint8view()
-                    .subarray(buf as u32, buf as u32 + buf_len as u32)
-                    .copy_from(&u8_buffer);
-            }
+            // unsafe {
+            // .subarray(buf as u32, buf as u32 + buf_len as u32)
+            // .copy_from(&u8_buffer);
+            // }
             0_i32 // __WASI_ESUCCESS
         }
         Err(_) => 29_i32, // __WASI_EIO

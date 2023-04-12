@@ -17,9 +17,11 @@ blake2 = "0.9.1"
 dirs = { version = "3.0", optional = true }
 downloader = { version = "0.2.7", optional = true, default-features = false, features = ["rustls-tls"] }
 indicatif = { version = "0.15.0", optional = true }
+wasm-bindgen = { version = "0.2.83", features = ["serde-serialize"], optional = true }
 
 [features]
 # This feature flag is here because we cannot compile
 # the downloader dependency with the wasm32 target
 default = ["std"]
 std = ["dep:downloader", "dep:dirs", "dep:indicatif"]
+js = ["dep:wasm-bindgen"]
