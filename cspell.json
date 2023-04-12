@@ -47,6 +47,7 @@
         "wasi",
         "subarray",
         "ESUCCESS",
+        "clippy",
         // In Solidity
         //
         "addmod",
