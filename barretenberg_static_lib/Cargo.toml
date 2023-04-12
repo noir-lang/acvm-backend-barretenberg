@@ -11,7 +11,7 @@ rust-version.workspace = true
 [dependencies]
 
 common = { path = "../common" }
-barretenberg-sys = "0.1.0"
+barretenberg-sys = "0.1.1"
 
 [dev-dependencies]
 blake2 = "0.9.1"
