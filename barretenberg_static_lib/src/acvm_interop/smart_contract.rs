@@ -23,7 +23,7 @@ impl SmartContract for Plonk {
         }
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
-        format!("{ULTRA_VERIFIER_CONTRACT}{verification_key_library}")
+        format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")
     }
 }
 

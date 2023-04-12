@@ -1,6 +1,3 @@
-// SPDX-License-Identifier: Apache-2.0
-// Copyright 2022 Aztec
-pragma solidity >=0.8.4;
 // gas cost at 5000 optimizer runs 0.8.10: 287,589 (includes 21,000 base cost)
 
 /**
@@ -309,7 +306,7 @@ abstract contract BaseUltraVerifier {
      * @param _publicInputs - An array of the public inputs
      * @return True if proof is valid, reverts otherwise
      */
-    function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external returns (bool) {
+    function verify(bytes calldata _proof, bytes32[] calldata _publicInputs) external view returns (bool) {
         loadVerificationKey(N_LOC, OMEGA_INVERSE_LOC);
 
         assembly {
@@ -2551,11 +2548,11 @@ abstract contract BaseUltraVerifier {
 }
 
 contract UltraVerifier is BaseUltraVerifier {
-    function getVerificationKeyHash() public pure override(BASE) returns (bytes32) {
+    function getVerificationKeyHash() public pure override(BaseUltraVerifier) returns (bytes32) {
         return UltraVerificationKey.verificationKeyHash();
     }
 
-    function loadVerificationKey(uint256 vk, uint256 _omegaInverseLoc) internal pure virtual override(BASE) {
+    function loadVerificationKey(uint256 vk, uint256 _omegaInverseLoc) internal pure virtual override(BaseUltraVerifier) {
         UltraVerificationKey.loadVerificationKey(vk, _omegaInverseLoc);
     }
 }
