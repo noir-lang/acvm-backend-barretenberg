@@ -137,9 +137,9 @@ pub mod download {
     }
 
     pub fn read_crs(path: PathBuf) -> Vec<u8> {
-        // include_bytes!("/Users/phated/.nargo/backends/acvm-backend-barretenberg/transcript00.dat")
-        //     .to_vec()
-        vec![]
+        include_bytes!("/Users/phated/.nargo/backends/acvm-backend-barretenberg/transcript00.dat")
+            .to_vec()
+        // vec![]
     }
 
     pub fn transcript_location() -> PathBuf {
