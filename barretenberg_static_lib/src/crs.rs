@@ -22,5 +22,6 @@ fn downloading() {
     let dir = tempdir().unwrap();
 
     let file_path = dir.path().to_path_buf().join("transcript00.dat");
-    download_crs(file_path);
+    let res = download_crs(file_path);
+    assert_eq!(res, Ok(()));
 }
