@@ -1,9 +1,8 @@
 use barretenberg_wasm;
 use common::acvm::{
-    acir::circuit::{opcodes::OracleData, Opcode},
-    acir::native_types::Witness,
-    pwg::block::Blocks,
-    PartialWitnessGenerator,
+    acir::brillig_bytecode, acir::circuit::opcodes::Brillig, acir::circuit::Opcode,
+    acir::native_types::Witness, pwg::block::Blocks, PartialWitnessGenerator, UnresolvedBrillig,
+    UnresolvedData,
 };
 use js_sys::JsString;
 use js_transforms::{
@@ -16,8 +15,10 @@ mod js_transforms;
 
 async fn resolve_oracle(
     oracle_resolver: &js_sys::Function,
-    mut oracle_data: OracleData,
-) -> Result<OracleData, JsErrorString> {
+    mut unresolved_brillig: UnresolvedBrillig,
+) -> Result<Brillig, JsErrorString> {
+    let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
+
     // Prepare to call
     let this = JsValue::null();
     let name = JsValue::from(oracle_data.name.clone());
@@ -42,15 +43,16 @@ async fn resolve_oracle(
 
     // Handle and apply result
     let js_arr = js_sys::Array::from(&js_resolution);
-    let ouput_len = js_arr.length() as usize;
-    let expected_output_len = oracle_data.outputs.len();
-    if ouput_len != expected_output_len {
-        return Err(format!(
-            "Expected output from oracle '{}' of {} elements, but instead received {}",
-            oracle_data.name, expected_output_len, ouput_len
-        )
-        .into());
-    }
+    // TODO: re-enable length check once the opcode supports it again
+    // let ouput_len = js_arr.length() as usize;
+    // let expected_output_len = oracle_data.outputs.len();
+    // if ouput_len != expected_output_len {
+    //     return Err(format!(
+    //         "Expected output from oracle '{}' of {} elements, but instead received {}",
+    //         oracle_data.name, expected_output_len, ouput_len
+    //     )
+    //     .into());
+    // }
     for elem in js_arr.iter() {
         if !elem.is_string() {
             return Err("Non-string element in oracle_resolver return".into());
@@ -59,7 +61,12 @@ async fn resolve_oracle(
             .output_values
             .push(js_value_to_field_element(elem)?)
     }
-    Ok(oracle_data)
+
+    // Insert updated brillig oracle into bytecode
+    unresolved_brillig.brillig.bytecode[unresolved_brillig.oracle_wait_info.program_counter] =
+        brillig_bytecode::Opcode::Oracle(oracle_data);
+
+    Ok(unresolved_brillig.brillig)
 }
 
 #[wasm_bindgen]
@@ -77,17 +84,21 @@ pub async fn solve_intermediate_witness(
     use barretenberg_wasm::Plonk;
     let plonk = Plonk;
     while !opcodes_to_solve.is_empty() {
-        let (unresolved_opcodes, oracles) = plonk
+        let UnresolvedData {
+            mut unresolved_opcodes,
+            unresolved_brilligs,
+            ..
+        } = plonk
             .solve(&mut witness_assignments, &mut blocks, opcodes_to_solve)
             .map_err(|err| JsString::from(format!("solver opcode resolution error: {}", err)))?;
-        let oracle_futures: Vec<_> = oracles
+        let brillig_futures: Vec<_> = unresolved_brilligs
             .into_iter()
-            .map(|oracle| resolve_oracle(&oracle_resolver, oracle))
+            .map(|unresolved_brillig| resolve_oracle(&oracle_resolver, unresolved_brillig))
             .collect();
         opcodes_to_solve = Vec::new();
-        for oracle_future in oracle_futures {
-            let filled_oracle = oracle_future.await?;
-            opcodes_to_solve.push(Opcode::Oracle(filled_oracle));
+        for brillig_future in brillig_futures {
+            let filled_brillig = brillig_future.await?;
+            unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
         }
         opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
     }

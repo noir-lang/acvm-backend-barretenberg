@@ -4,11 +4,11 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b76c54a3b9f737aef1188d44aa825aabf7eded7b7b9787f1cd8cf9099d485e9"
+version = "0.8.0"
+source = "git+https://github.com/noir-lang/acvm?rev=6e1b9f71ac7101c71a548363c75d1d1e96736503#6e1b9f71ac7101c71a548363c75d1d1e96736503"
 dependencies = [
  "acir_field",
+ "brillig_bytecode",
  "flate2",
  "rmp-serde",
  "serde",
@@ -16,9 +16,8 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af00a72bc396a01827421225c6063ec9037553b6a7396d645ca07245471bb8e5"
+version = "0.8.0"
+source = "git+https://github.com/noir-lang/acvm?rev=6e1b9f71ac7101c71a548363c75d1d1e96736503#6e1b9f71ac7101c71a548363c75d1d1e96736503"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,9 +29,8 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "28fcd9df61907de622111ec096070c3f1e89bfad43287e87c656d5841f8ad9ab"
+version = "0.8.0"
+source = "git+https://github.com/noir-lang/acvm?rev=6e1b9f71ac7101c71a548363c75d1d1e96736503#6e1b9f71ac7101c71a548363c75d1d1e96736503"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -48,9 +46,8 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3603a86990c4c0df1aaed6b957d09124659a92ba97f896e05393e1755baa6ab1"
+version = "0.8.0"
+source = "git+https://github.com/noir-lang/acvm?rev=6e1b9f71ac7101c71a548363c75d1d1e96736503#6e1b9f71ac7101c71a548363c75d1d1e96736503"
 dependencies = [
  "acir",
 ]
@@ -359,6 +356,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4152116fd6e9dadb291ae18fc1ec3575ed6d84c29642d97890f4b4a3417297e4"
 dependencies = [
  "generic-array",
+]
+
+[[package]]
+name = "brillig_bytecode"
+version = "0.1.0"
+source = "git+https://github.com/noir-lang/acvm?rev=6e1b9f71ac7101c71a548363c75d1d1e96736503#6e1b9f71ac7101c71a548363c75d1d1e96736503"
+dependencies = [
+ "acir_field",
+ "serde",
 ]
 
 [[package]]
