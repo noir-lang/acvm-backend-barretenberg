@@ -13,7 +13,8 @@ impl PartialWitnessGenerator for Plonk {
     fn solve_black_box_function_call(
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         func_call: &BlackBoxFuncCall,
-    ) -> Result<(), common::acvm::OpcodeResolutionError> {
-        BlackBoxFuncCaller::solve_black_box_func_call(initial_witness, func_call)
+    ) -> Result<common::acvm::OpcodeResolution, common::acvm::OpcodeResolutionError> {
+        BlackBoxFuncCaller::solve_black_box_func_call(initial_witness, func_call)?;
+        Ok(common::acvm::OpcodeResolution::Solved)
     }
 }
