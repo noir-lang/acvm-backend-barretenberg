@@ -13,11 +13,39 @@ use wasm_bindgen::prelude::*;
 
 mod js_transforms;
 
+#[wasm_bindgen]
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    // The `console.log` is quite polymorphic, so we can bind it with multiple
+    // signatures. Note that we need to use `js_name` to ensure we always call
+    // `log` in JS.
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
+    // Multiple arguments too!
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+}
+
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
 async fn resolve_oracle(
     oracle_resolver: &js_sys::Function,
     mut unresolved_brillig: UnresolvedBrillig,
 ) -> Result<Brillig, JsErrorString> {
     let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
+
+    console_log!("oracle name: {}", &oracle_data.name);
+    console_log!(
+        "program counter: {}",
+        unresolved_brillig.oracle_wait_info.program_counter
+    );
 
     // Prepare to call
     let this = JsValue::null();
@@ -97,7 +125,9 @@ pub async fn solve_intermediate_witness(
             .collect();
         opcodes_to_solve = Vec::new();
         for brillig_future in brillig_futures {
+            console_log!("start await");
             let filled_brillig = brillig_future.await?;
+            console_log!("end await");
             unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
         }
         opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
