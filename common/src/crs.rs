@@ -142,7 +142,7 @@ async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
     ))?;
 
     // Indicatif setup
-    use indicatif::{ProgressBar, ProgressStyle};
+    use indicatif::{HumanBytes, ProgressBar, ProgressStyle};
     let pb = ProgressBar::new(total_size).with_style(
         ProgressStyle::default_bar()
             .template("[{elapsed_precise}] {bar:40.cyan/blue} {bytes:>7}/{total_bytes:7} {msg}")
@@ -160,7 +160,10 @@ async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
     })?;
     let mut stream = res.bytes_stream();
 
-    println!("\nDownloading the Ignite SRS (340MB)\n");
+    println!(
+        "\nDownloading the Ignite SRS ({})\n",
+        HumanBytes(total_size)
+    );
     while let Some(item) = stream.next().await {
         let chunk = item.map_err(|_| "Error while downloading file".to_string())?;
         file.write_all(&chunk)
