@@ -3,6 +3,7 @@ use common::acvm::FieldElement;
 use super::Barretenberg;
 
 impl Barretenberg {
+    #[allow(dead_code)]
     /// Hashes to a bn254 scalar field element using blake2s
     pub(crate) fn hash_to_field(&mut self, input: &[u8]) -> FieldElement {
         cfg_if::cfg_if! {

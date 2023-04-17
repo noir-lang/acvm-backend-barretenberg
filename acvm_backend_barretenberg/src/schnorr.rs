@@ -3,6 +3,7 @@ use common::acvm::FieldElement;
 use super::Barretenberg;
 
 impl Barretenberg {
+    #[allow(dead_code)]
     pub(crate) fn construct_signature(
         &mut self,
         message: &[u8],
@@ -36,6 +37,7 @@ impl Barretenberg {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {

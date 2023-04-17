@@ -31,6 +31,7 @@ impl Barretenberg {
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn compress_many(&mut self, inputs: Vec<FieldElement>) -> FieldElement {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
