@@ -263,7 +263,7 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![]),
+            witness: vec![].into(),
             public_inputs: Assignments::default(),
             result: true,
         };
@@ -302,27 +302,27 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
+            witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
+            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
             public_inputs: Assignments::default(),
             result: true,
         };
         let case_3 = WitnessResult {
-            witness: Assignments(vec![10_i128.into(), (-3_i128).into(), 7_i128.into()]),
+            witness: vec![10_i128.into(), (-3_i128).into(), 7_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: true,
         };
         let case_4 = WitnessResult {
-            witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::one()]),
+            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
             public_inputs: Assignments::default(),
             result: false,
         };
         let case_5 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
+            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: false,
         };
@@ -363,42 +363,38 @@ mod test {
         // but none are supplied in public_inputs. So the verifier will not
         // supply anything.
         let _case_1 = WitnessResult {
-            witness: Assignments(vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()]),
+            witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: false,
         };
         let case_2 = WitnessResult {
-            witness: Assignments(vec![Scalar::zero(), Scalar::zero(), Scalar::zero()]),
-            public_inputs: Assignments(vec![Scalar::zero(), Scalar::zero()]),
+            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
+            public_inputs: vec![Scalar::zero(), Scalar::zero()].into(),
             result: true,
         };
 
         let case_3 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 6_i128.into()]),
-            public_inputs: Assignments(vec![Scalar::one(), 3_i128.into()]),
+            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
+            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
             result: false,
         };
 
         // Not enough public inputs
         let _case_4 = WitnessResult {
-            witness: Assignments(vec![
-                Scalar::one(),
-                Scalar::from(2_i128),
-                Scalar::from(6_i128),
-            ]),
-            public_inputs: Assignments(vec![Scalar::one()]),
+            witness: vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)].into(),
+            public_inputs: vec![Scalar::one()].into(),
             result: false,
         };
 
         let case_5 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
-            public_inputs: Assignments(vec![Scalar::one(), 2_i128.into()]),
+            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
+            public_inputs: vec![Scalar::one(), 2_i128.into()].into(),
             result: true,
         };
 
         let case_6 = WitnessResult {
-            witness: Assignments(vec![Scalar::one(), 2_i128.into(), 3_i128.into()]),
-            public_inputs: Assignments(vec![Scalar::one(), 3_i128.into()]),
+            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
+            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
             result: false,
         };
         let test_cases = vec![
@@ -448,23 +444,13 @@ mod test {
         };
 
         let case_1 = WitnessResult {
-            witness: Assignments(vec![
-                1_i128.into(),
-                1_i128.into(),
-                2_i128.into(),
-                3_i128.into(),
-            ]),
-            public_inputs: Assignments(vec![Scalar::one()]),
+            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()].into(),
+            public_inputs: vec![Scalar::one()].into(),
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: Assignments(vec![
-                1_i128.into(),
-                1_i128.into(),
-                2_i128.into(),
-                13_i128.into(),
-            ]),
-            public_inputs: Assignments(vec![Scalar::one()]),
+            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()].into(),
+            public_inputs: vec![Scalar::one()].into(),
             result: false,
         };
 
@@ -551,7 +537,7 @@ mod test {
         witness_values.push(Scalar::zero());
 
         let case_1 = WitnessResult {
-            witness: Assignments(witness_values),
+            witness: witness_values.into(),
             public_inputs: Assignments::default(),
             result: true,
         };
@@ -615,7 +601,7 @@ mod test {
         let witness_values = vec![scalar_0, scalar_1];
 
         let case_1 = WitnessResult {
-            witness: Assignments(witness_values),
+            witness: witness_values.into(),
             public_inputs: Assignments::default(),
             result: true,
         };
