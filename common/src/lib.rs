@@ -7,7 +7,6 @@ pub mod black_box_functions;
 #[cfg(feature = "std")]
 pub mod crs;
 pub mod merkle;
-pub mod serializer;
 
 pub mod proof;
 

@@ -5,7 +5,6 @@ use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
 use common::barretenberg_structures::Assignments;
 use common::proof;
-use common::serializer::serialize_circuit;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Plonk {
@@ -14,18 +13,16 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        let constraint_system = serialize_circuit(circuit);
-
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
-                StandardComposer::get_exact_circuit_size(&constraint_system)
+                StandardComposer::get_exact_circuit_size(&circuit.into())
 
             } else {
                 use crate::Barretenberg;
 
                 let mut barretenberg = Barretenberg::new();
 
-                StandardComposer::get_exact_circuit_size(&mut barretenberg, &constraint_system)
+                StandardComposer::get_exact_circuit_size(&mut barretenberg, &circuit.into())
             }
         }
     }
@@ -49,8 +46,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let constraint_system = serialize_circuit(circuit);
-        let mut composer = StandardComposer::new(constraint_system);
+        let mut composer = StandardComposer::new(circuit.into());
 
         let proving_key = composer.compute_proving_key();
         let verification_key = composer.compute_verification_key(&proving_key);
@@ -64,8 +60,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let constraint_system = serialize_circuit(circuit);
-        let mut composer = StandardComposer::new(constraint_system);
+        let mut composer = StandardComposer::new(circuit.into());
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
@@ -79,8 +74,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let constraint_system = serialize_circuit(circuit);
-        let mut composer = StandardComposer::new(constraint_system);
+        let mut composer = StandardComposer::new(circuit.into());
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
