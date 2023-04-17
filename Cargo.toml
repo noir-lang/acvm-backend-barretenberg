@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["common", "barretenberg_wasm", "barretenberg_static_lib", "aztec_backend_wasm"]
+members = ["common", "acvm_backend_barretenberg", "aztec_backend_wasm"]
 
 [workspace.package]
 authors = ["The Noir Team <team@noir-lang.org>"]

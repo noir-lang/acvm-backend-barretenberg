@@ -47,6 +47,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "acvm-backend-barretenberg"
+version = "0.1.0"
+dependencies = [
+ "barretenberg-sys",
+ "blake2",
+ "cfg-if",
+ "common",
+ "getrandom",
+ "pkg-config",
+ "rust-embed",
+ "tempfile",
+ "wasmer",
+]
+
+[[package]]
 name = "acvm_stdlib"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -260,29 +275,6 @@ dependencies = [
  "link-cplusplus",
  "pkg-config",
  "thiserror",
-]
-
-[[package]]
-name = "barretenberg_static_lib"
-version = "0.1.0"
-dependencies = [
- "barretenberg-sys",
- "blake2",
- "common",
- "tempfile",
-]
-
-[[package]]
-name = "barretenberg_wasm"
-version = "0.1.0"
-dependencies = [
- "blake2",
- "common",
- "getrandom",
- "pkg-config",
- "rust-embed",
- "tempfile",
- "wasmer",
 ]
 
 [[package]]

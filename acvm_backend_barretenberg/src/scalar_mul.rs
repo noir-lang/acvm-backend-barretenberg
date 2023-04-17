@@ -1,15 +1,25 @@
 use common::acvm::FieldElement;
-use wasmer::Value;
 
 use super::Barretenberg;
 
 impl Barretenberg {
-    pub fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
-        let lhs_ptr = self.allocate(&input.to_be_bytes()); // 0..32
-        let result_ptr = Value::I32(32);
-        self.call_multiple("compute_public_key", vec![&lhs_ptr, &result_ptr]);
+    pub(crate) fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "native")] {
+                use super::field_to_array;
 
-        let result_bytes = self.slice_memory(32, 96);
+                let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input));
+            } else {
+                use wasmer::Value;
+
+                let lhs_ptr = self.allocate(&input.to_be_bytes()); // 0..32
+                let result_ptr = Value::I32(32);
+                self.call_multiple("compute_public_key", vec![&lhs_ptr, &result_ptr]);
+
+                let result_bytes = self.slice_memory(32, 96);
+            }
+        }
+
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(32);
         assert!(pubkey_x_bytes.len() == 32);
         assert!(pubkey_y_bytes.len() == 32);

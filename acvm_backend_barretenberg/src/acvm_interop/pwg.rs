@@ -4,7 +4,7 @@ use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 use std::collections::BTreeMap;
 
 mod black_box_functions;
-pub mod merkle;
+mod merkle;
 
 use self::black_box_functions::BlackBoxFuncCaller;
 use super::Plonk;

@@ -1,6 +1,5 @@
 use super::Plonk;
 use crate::composer::StandardComposer;
-use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
@@ -17,9 +16,18 @@ impl ProofSystemCompiler for Plonk {
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
         let constraint_system = serialize_circuit(circuit);
 
-        let mut barretenberg = Barretenberg::new();
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "native")] {
+                StandardComposer::get_exact_circuit_size(&constraint_system)
 
-        StandardComposer::get_exact_circuit_size(&mut barretenberg, &constraint_system)
+            } else {
+                use crate::Barretenberg;
+
+                let mut barretenberg = Barretenberg::new();
+
+                StandardComposer::get_exact_circuit_size(&mut barretenberg, &constraint_system)
+            }
+        }
     }
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
@@ -57,7 +65,6 @@ impl ProofSystemCompiler for Plonk {
         proving_key: &[u8],
     ) -> Vec<u8> {
         let constraint_system = serialize_circuit(circuit);
-
         let mut composer = StandardComposer::new(constraint_system);
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
