@@ -41,12 +41,6 @@ async fn resolve_oracle(
 ) -> Result<Brillig, JsErrorString> {
     let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
 
-    console_log!("oracle name: {}", &oracle_data.name);
-    console_log!(
-        "program counter: {}",
-        unresolved_brillig.oracle_wait_info.program_counter
-    );
-
     // Prepare to call
     let this = JsValue::null();
     let name = JsValue::from(oracle_data.name.clone());
@@ -125,9 +119,7 @@ pub async fn solve_intermediate_witness(
             .collect();
         opcodes_to_solve = Vec::new();
         for brillig_future in brillig_futures {
-            console_log!("start await");
             let filled_brillig = brillig_future.await?;
-            console_log!("end await");
             unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
         }
         opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
