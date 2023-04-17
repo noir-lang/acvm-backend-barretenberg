@@ -296,16 +296,15 @@ cfg_if::cfg_if! {
         fn env_load_prover_crs(_: i32) -> i32 {
             unimplemented!("env_load_prover_crs is not implemented")
         }
-
-        #[test]
-        fn smoke() {
-            let mut b = Barretenberg::new();
-            let (x, y) = b.encrypt(vec![
-                common::acvm::FieldElement::zero(),
-                common::acvm::FieldElement::one(),
-            ]);
-            dbg!(x.to_hex(), y.to_hex());
-        }
-
     }
+}
+
+#[test]
+fn smoke() {
+    let mut b = Barretenberg::new();
+    let (x, y) = b.encrypt(vec![
+        common::acvm::FieldElement::zero(),
+        common::acvm::FieldElement::one(),
+    ]);
+    dbg!(x.to_hex(), y.to_hex());
 }
