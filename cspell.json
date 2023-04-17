@@ -35,6 +35,7 @@
         "QECC",
         "QLOGIC",
         "QRANGE",
+        "reqwest",
         "rollups",
         "schnorr",
         "secp",

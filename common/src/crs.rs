@@ -1,4 +1,6 @@
-use std::{env, path::PathBuf};
+use std::{env, fs::File, io::Write, path::PathBuf};
+
+use futures_util::StreamExt;
 
 // TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
@@ -7,6 +9,8 @@ const G2_END: usize = G2_START + 128 - 1;
 
 const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
 const TRANSCRIPT_NAME: &str = "transcript00.dat";
+const TRANSCRIPT_URL: &str =
+    "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
 
 fn transcript_location() -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
@@ -35,13 +39,13 @@ impl CRS {
 
         // If the CRS does not exist, then download it from S3
         if !transcript_location().exists() {
-            download_crs(transcript_location());
+            download_crs(transcript_location()).unwrap();
         }
 
         // Read CRS, if it's incomplete, download it
         let mut crs = read_crs(transcript_location());
         if crs.len() < G2_END + 1 {
-            download_crs(transcript_location());
+            download_crs(transcript_location()).unwrap();
             crs = read_crs(transcript_location());
         }
 
@@ -66,13 +70,13 @@ impl G2 {
     pub fn new() -> G2 {
         // If the CRS does not exist, then download it from S3
         if !transcript_location().exists() {
-            download_crs(transcript_location());
+            download_crs(transcript_location()).unwrap();
         }
 
         // Read CRS, if it's incomplete, download it
         let mut crs = read_crs(transcript_location());
         if crs.len() < G2_END + 1 {
-            download_crs(transcript_location());
+            download_crs(transcript_location()).unwrap();
             crs = read_crs(transcript_location());
         }
 
@@ -106,91 +110,71 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
 
 // XXX: Below is the logic to download the CRS if it is not already present
 
-pub fn download_crs(mut path_to_transcript: PathBuf) {
+pub fn download_crs(path_to_transcript: PathBuf) -> Result<(), String> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(download_crs_async(path_to_transcript))
+}
+
+async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
     // Remove old crs
     if path_to_transcript.exists() {
         let _ = std::fs::remove_file(path_to_transcript.as_path());
     }
+
     // Pop off the transcript component to get just the directory
-    path_to_transcript.pop();
+    let transcript_dir = path_to_transcript
+        .parent()
+        .expect("transcript file should have parent");
 
-    if !path_to_transcript.exists() {
-        std::fs::create_dir_all(&path_to_transcript).unwrap();
+    if !transcript_dir.exists() {
+        std::fs::create_dir_all(transcript_dir).unwrap();
     }
 
-    let url = "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
-    use downloader::Downloader;
-    let mut downloader = Downloader::builder()
-        .download_folder(path_to_transcript.as_path())
-        .build()
-        .unwrap();
+    let res = reqwest::get(TRANSCRIPT_URL)
+        .await
+        .map_err(|err| format!("Failed to GET from '{}' ({})", TRANSCRIPT_URL, err))?;
+    let total_size = res.content_length().ok_or(format!(
+        "Failed to get content length from '{}'",
+        TRANSCRIPT_URL
+    ))?;
 
-    let dl = downloader::Download::new(url);
-    let dl = dl.file_name(&PathBuf::from(TRANSCRIPT_NAME));
-    let dl = dl.progress(SimpleReporter::create());
-    let result = downloader.download(&[dl]).unwrap();
+    // Indicatif setup
+    use indicatif::{HumanBytes, ProgressBar, ProgressStyle};
+    let pb = ProgressBar::new(total_size).with_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}] {bar:40.cyan/blue} {bytes:>7}/{total_bytes:7} {msg}")
+            .unwrap()
+            .progress_chars("##-"),
+    );
 
-    for r in result {
-        match r {
-            Err(e) => println!("Error: {e}"),
-            Ok(s) => println!("\nSRS is located at : {:?}", &s.file_name),
-        };
+    // download chunks
+    let mut file = File::create(path_to_transcript.clone()).map_err(|err| {
+        format!(
+            "Failed to create file '{}' ({})",
+            path_to_transcript.display(),
+            err
+        )
+    })?;
+    let mut stream = res.bytes_stream();
+
+    println!(
+        "\nDownloading the Ignite SRS ({})\n",
+        HumanBytes(total_size)
+    );
+    while let Some(item) = stream.next().await {
+        let chunk = item.map_err(|_| "Error while downloading file".to_string())?;
+        file.write_all(&chunk)
+            .map_err(|_| "Error while writing to file".to_string())?;
+        pb.inc(chunk.len() as u64);
     }
-}
-// Taken from https://github.com/hunger/downloader/blob/main/examples/download.rs
-struct SimpleReporterPrivate {
-    started: std::time::Instant,
-    progress_bar: indicatif::ProgressBar,
-}
-struct SimpleReporter {
-    private: std::sync::Mutex<Option<SimpleReporterPrivate>>,
-}
+    pb.finish_with_message("Downloaded the SRS successfully!\n");
 
-impl SimpleReporter {
-    fn create() -> std::sync::Arc<Self> {
-        std::sync::Arc::new(Self {
-            private: std::sync::Mutex::new(None),
-        })
-    }
-}
+    println!("SRS is located at: {:?}", &path_to_transcript);
 
-impl downloader::progress::Reporter for SimpleReporter {
-    fn setup(&self, max_progress: Option<u64>, _message: &str) {
-        let bar = indicatif::ProgressBar::new(max_progress.unwrap());
-        bar.set_style(
-            indicatif::ProgressStyle::default_bar()
-                .template("[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}")
-                .progress_chars("##-"),
-        );
-
-        let private = SimpleReporterPrivate {
-            started: std::time::Instant::now(),
-            progress_bar: bar,
-        };
-        println!("\nDownloading the Ignite SRS (340MB)\n");
-
-        let mut guard = self.private.lock().unwrap();
-        *guard = Some(private);
-    }
-
-    fn progress(&self, current: u64) {
-        if let Some(p) = self.private.lock().unwrap().as_mut() {
-            p.progress_bar.set_position(current);
-        }
-    }
-
-    fn set_message(&self, _message: &str) {}
-
-    fn done(&self) {
-        let mut guard = self.private.lock().unwrap();
-        let p = guard.as_mut().unwrap();
-        p.progress_bar.finish();
-        println!("Downloaded the SRS successfully!");
-        println!(
-            "Time Elapsed: {}",
-            indicatif::HumanDuration(p.started.elapsed())
-        );
-    }
+    Ok(())
 }
 
 // #[test]

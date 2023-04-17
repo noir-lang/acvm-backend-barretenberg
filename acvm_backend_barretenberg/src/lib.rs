@@ -4,6 +4,8 @@
 mod acvm_interop;
 mod blake2s;
 mod composer;
+#[cfg(all(feature = "native", test))]
+mod crs;
 mod pedersen;
 mod pippenger;
 mod scalar_mul;
