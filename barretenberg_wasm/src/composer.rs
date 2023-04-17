@@ -52,11 +52,11 @@ impl StandardComposer {
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = barretenberg.allocate(&cs_buf);
 
-        let result_bytes = barretenberg
+        let circuit_size = barretenberg
             .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-            .into_i32()
-            .to_be_bytes();
-        let circuit_size = u32::from_be_bytes(result_bytes);
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
         barretenberg.free(cs_ptr);
 
@@ -70,11 +70,11 @@ impl StandardComposer {
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = barretenberg.allocate(&cs_buf);
 
-        let result_bytes = barretenberg
+        let circuit_size = barretenberg
             .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-            .into_i32()
-            .to_be_bytes();
-        let circuit_size = u32::from_be_bytes(result_bytes);
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
         barretenberg.free(cs_ptr);
 
