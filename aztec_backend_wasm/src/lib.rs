@@ -108,6 +108,10 @@ fn resolve_oracle_cheat(
         _ => return Err("orcale not found".into()),
     };
 
+    // Insert updated brillig oracle into bytecode
+    unresolved_brillig.brillig.bytecode[unresolved_brillig.oracle_wait_info.program_counter] =
+        brillig_bytecode::Opcode::Oracle(oracle_data);
+
     Ok(unresolved_brillig.brillig)
 }
 
