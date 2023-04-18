@@ -4,7 +4,6 @@ use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
-use common::barretenberg_structures::Assignments;
 use common::proof;
 use std::collections::BTreeMap;
 
@@ -70,12 +69,8 @@ impl ProofSystemCompiler for Plonk {
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
-        let flattened_public_inputs = public_inputs.into_values().collect();
+        let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
 
-        composer.verify_with_vk(
-            proof,
-            Assignments::from_vec(flattened_public_inputs),
-            verification_key,
-        )
+        composer.verify_with_vk(proof, flattened_public_inputs.into(), verification_key)
     }
 }
