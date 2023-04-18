@@ -183,16 +183,15 @@ mod tests {
                 hash_path_ref.push(hash);
             }
             let hash_path_ref = hash_path_ref.iter().collect();
-            let result = common::merkle::check_membership::<Barretenberg>(
+            let is_leaf_in_tree = common::merkle::check_membership::<Barretenberg>(
                 hash_path_ref,
                 &root,
                 &index,
                 &leaf,
             );
-            let is_leaf_in_true = result == FieldElement::one();
 
-            assert!(
-                is_leaf_in_true == test_vector.result,
+            assert_eq!(
+                is_leaf_in_tree, test_vector.result,
                 "{}",
                 test_vector.error_msg
             );
