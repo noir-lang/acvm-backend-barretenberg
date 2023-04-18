@@ -5,8 +5,15 @@ use acvm::acir::BlackBoxFunc;
 pub use acvm::FieldElement as Scalar;
 
 #[derive(Debug, Clone)]
-pub struct Assignments(pub Vec<Scalar>);
+pub struct Assignments(Vec<Scalar>);
 pub type WitnessAssignments = Assignments;
+
+// This is a separate impl so the constructor can get the wasm_bindgen macro in the future
+impl Assignments {
+    pub fn new() -> Assignments {
+        Assignments(vec![])
+    }
+}
 
 impl Assignments {
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -32,8 +39,24 @@ impl Assignments {
     pub fn push(&mut self, value: Scalar) {
         self.0.push(value);
     }
-    pub fn new() -> Assignments {
-        Assignments(vec![])
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl IntoIterator for Assignments {
+    type Item = Scalar;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl From<Vec<Scalar>> for Assignments {
+    fn from(w: Vec<Scalar>) -> Assignments {
+        Assignments(w)
     }
 }
 

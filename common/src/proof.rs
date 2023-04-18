@@ -16,12 +16,11 @@ pub fn remove_public_inputs(num_pub_inputs: usize, proof: &[u8]) -> Vec<u8> {
 }
 
 pub fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> {
-    if public_inputs.0.is_empty() {
+    if public_inputs.is_empty() {
         return proof;
     }
 
     let public_inputs_bytes = public_inputs
-        .0
         .into_iter()
         .flat_map(|assignment| assignment.to_be_bytes());
 
