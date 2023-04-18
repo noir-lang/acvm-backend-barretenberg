@@ -370,25 +370,117 @@ impl LogicConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Default)]
 pub struct ConstraintSystem {
-    pub var_num: u32,
-    pub public_inputs: Vec<u32>,
+    var_num: u32,
+    public_inputs: Vec<u32>,
 
-    pub logic_constraints: Vec<LogicConstraint>,
-    pub range_constraints: Vec<RangeConstraint>,
-    pub sha256_constraints: Vec<Sha256Constraint>,
-    pub merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
-    pub schnorr_constraints: Vec<SchnorrConstraint>,
-    pub ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
-    pub blake2s_constraints: Vec<Blake2sConstraint>,
-    pub pedersen_constraints: Vec<PedersenConstraint>,
-    pub hash_to_field_constraints: Vec<HashToFieldConstraint>,
-    pub fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
-    pub constraints: Vec<Constraint>,
+    logic_constraints: Vec<LogicConstraint>,
+    range_constraints: Vec<RangeConstraint>,
+    sha256_constraints: Vec<Sha256Constraint>,
+    merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
+    schnorr_constraints: Vec<SchnorrConstraint>,
+    ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
+    blake2s_constraints: Vec<Blake2sConstraint>,
+    pedersen_constraints: Vec<PedersenConstraint>,
+    hash_to_field_constraints: Vec<HashToFieldConstraint>,
+    fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
+    constraints: Vec<Constraint>,
+}
+
+// This is a separate impl so the constructor can get the wasm_bindgen macro in the future
+impl ConstraintSystem {
+    pub fn new() -> Self {
+        ConstraintSystem::default()
+    }
+}
+
+// Builder-style impl, but we use all data types that can be defaulted so we don't need a separate builder struct
+// TODO(blaine): Add #[cfg(test)] once this project is merged into a single crate
+impl ConstraintSystem {
+    pub fn var_num(mut self, var_num: u32) -> Self {
+        self.var_num = var_num;
+        self
+    }
+
+    pub fn public_inputs(mut self, public_inputs: Vec<u32>) -> Self {
+        self.public_inputs = public_inputs;
+        self
+    }
+
+    pub fn logic_constraints(mut self, logic_constraints: Vec<LogicConstraint>) -> Self {
+        self.logic_constraints = logic_constraints;
+        self
+    }
+
+    pub fn range_constraints(mut self, range_constraints: Vec<RangeConstraint>) -> Self {
+        self.range_constraints = range_constraints;
+        self
+    }
+
+    pub fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
+        self.sha256_constraints = sha256_constraints;
+        self
+    }
+
+    pub fn merkle_membership_constraints(
+        mut self,
+        merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
+    ) -> Self {
+        self.merkle_membership_constraints = merkle_membership_constraints;
+        self
+    }
+
+    pub fn schnorr_constraints(mut self, schnorr_constraints: Vec<SchnorrConstraint>) -> Self {
+        self.schnorr_constraints = schnorr_constraints;
+        self
+    }
+
+    pub fn ecdsa_secp256k1_constraints(
+        mut self,
+        ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
+    ) -> Self {
+        self.ecdsa_secp256k1_constraints = ecdsa_secp256k1_constraints;
+        self
+    }
+
+    pub fn blake2s_constraints(mut self, blake2s_constraints: Vec<Blake2sConstraint>) -> Self {
+        self.blake2s_constraints = blake2s_constraints;
+        self
+    }
+
+    pub fn pedersen_constraints(mut self, pedersen_constraints: Vec<PedersenConstraint>) -> Self {
+        self.pedersen_constraints = pedersen_constraints;
+        self
+    }
+
+    pub fn hash_to_field_constraints(
+        mut self,
+        hash_to_field_constraints: Vec<HashToFieldConstraint>,
+    ) -> Self {
+        self.hash_to_field_constraints = hash_to_field_constraints;
+        self
+    }
+
+    pub fn fixed_base_scalar_mul_constraints(
+        mut self,
+        fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
+    ) -> Self {
+        self.fixed_base_scalar_mul_constraints = fixed_base_scalar_mul_constraints;
+        self
+    }
+
+    pub fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
+        self.constraints = constraints;
+        self
+    }
 }
 
 impl ConstraintSystem {
+    pub fn public_inputs_size(&self) -> usize {
+        self.public_inputs.len()
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 
