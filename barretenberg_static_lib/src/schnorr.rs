@@ -1,4 +1,3 @@
-use common::acvm::FieldElement;
 use std::convert::TryInto;
 
 use super::Barretenberg;
@@ -14,22 +13,13 @@ impl Barretenberg {
         barretenberg_sys::schnorr::construct_public_key(&private_key)
     }
 
-    pub fn verify_signature(
-        &mut self,
-        pub_key: [u8; 64],
-        sig: [u8; 64],
-        message: &[u8],
-    ) -> FieldElement {
-        let r: bool = barretenberg_sys::schnorr::verify_signature(
+    pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+        barretenberg_sys::schnorr::verify_signature(
             pub_key,
             sig[0..32].try_into().unwrap(),
             sig[32..64].try_into().unwrap(),
             message,
-        );
-        match r {
-            false => FieldElement::zero(),
-            true => FieldElement::one(),
-        }
+        )
 
         // Note, currently for Barretenberg plonk, if the signature fails
         // then the whole circuit fails.
@@ -46,8 +36,8 @@ fn basic_interop() {
 
     let public_key = barretenberg.construct_public_key(private_key);
     let signature = barretenberg.construct_signature(&message, private_key);
-    let result = barretenberg.verify_signature(public_key, signature, &message);
-    assert_eq!(result, FieldElement::one());
+    let valid_signature = barretenberg.verify_signature(public_key, signature, &message);
+    assert!(valid_signature);
 
     // Should fail, since the messages are different
     let private_key = [2; 32];
@@ -55,8 +45,8 @@ fn basic_interop() {
 
     let public_key = barretenberg.construct_public_key(private_key);
     let signature = barretenberg.construct_signature(&message, private_key);
-    let result = barretenberg.verify_signature(public_key, signature, &[0, 2]);
-    assert_eq!(result, FieldElement::zero());
+    let valid_signature = barretenberg.verify_signature(public_key, signature, &[0, 2]);
+    assert!(!valid_signature);
 
     // Should fail, since the signature is not valid
     let private_key = [2; 32];
@@ -64,8 +54,8 @@ fn basic_interop() {
     let signature = [1; 64];
 
     let public_key = barretenberg.construct_public_key(private_key);
-    let result = barretenberg.verify_signature(public_key, signature, &message);
-    assert_eq!(result, FieldElement::zero());
+    let valid_signature = barretenberg.verify_signature(public_key, signature, &message);
+    assert!(!valid_signature);
 
     // Should fail, since the public key does not match
     let private_key_a = [1; 32];
@@ -74,8 +64,8 @@ fn basic_interop() {
 
     let public_key_b = barretenberg.construct_public_key(private_key_b);
     let signature_a = barretenberg.construct_signature(&message, private_key_a);
-    let result = barretenberg.verify_signature(public_key_b, signature_a, &message);
-    assert_eq!(result, FieldElement::zero());
+    let valid_signature = barretenberg.verify_signature(public_key_b, signature_a, &message);
+    assert!(!valid_signature);
 
     // Test the first case again, to check if memory is being freed and overwritten properly
     let private_key = [2; 32];
@@ -83,6 +73,6 @@ fn basic_interop() {
 
     let public_key = barretenberg.construct_public_key(private_key);
     let signature = barretenberg.construct_signature(&message, private_key);
-    let result = barretenberg.verify_signature(public_key, signature, &message);
-    assert_eq!(result, FieldElement::one());
+    let valid_signature = barretenberg.verify_signature(public_key, signature, &message);
+    assert!(valid_signature);
 }
