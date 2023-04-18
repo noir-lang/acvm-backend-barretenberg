@@ -1,8 +1,10 @@
+use std::vec;
+
 use barretenberg_wasm;
 use common::acvm::{
     acir::brillig_bytecode, acir::circuit::opcodes::Brillig, acir::circuit::Opcode,
-    acir::native_types::Witness, pwg::block::Blocks, PartialWitnessGenerator, UnresolvedBrillig,
-    UnresolvedData,
+    acir::native_types::Witness, pwg::block::Blocks, FieldElement, PartialWitnessGenerator,
+    UnresolvedBrillig, UnresolvedData,
 };
 use js_sys::JsString;
 use js_transforms::{
@@ -91,6 +93,23 @@ async fn resolve_oracle(
     Ok(unresolved_brillig.brillig)
 }
 
+fn resolve_oracle_cheat(
+    mut unresolved_brillig: UnresolvedBrillig,
+) -> Result<Brillig, JsErrorString> {
+    let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
+    let z = FieldElement::zero();
+    oracle_data.output_values = match oracle_data.name.as_str() {
+        "rand" => vec![z; 2],
+        "getNotes2" => vec![z; 32],
+        "notifyCreatedNote" => vec![z; 2],
+        "getSecretKey" => vec![z; 2],
+        "notifyNullifiedNote" => vec![z; 2],
+        _ => return Err("orcale not found".into()),
+    };
+
+    Ok(unresolved_brillig.brillig)
+}
+
 #[wasm_bindgen]
 pub async fn solve_intermediate_witness(
     circuit: js_sys::Uint8Array,
@@ -113,6 +132,7 @@ pub async fn solve_intermediate_witness(
         } = plonk
             .solve(&mut witness_assignments, &mut blocks, opcodes_to_solve)
             .map_err(|err| JsString::from(format!("solver opcode resolution error: {}", err)))?;
+        console_log!("unresolved brillig count: {}", unresolved_brilligs.len());
         let brillig_futures: Vec<_> = unresolved_brilligs
             .into_iter()
             .map(|unresolved_brillig| resolve_oracle(&oracle_resolver, unresolved_brillig))
