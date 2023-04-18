@@ -388,12 +388,16 @@ pub struct ConstraintSystem {
     constraints: Vec<Constraint>,
 }
 
-// Builder-style impl, but we use all data types that can be defaulted so we don't need a separate builder struct
+// This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl ConstraintSystem {
     pub fn new() -> Self {
         ConstraintSystem::default()
     }
+}
 
+// Builder-style impl, but we use all data types that can be defaulted so we don't need a separate builder struct
+// TODO(blaine): Add #[cfg(test)] once this project is merged into a single crate
+impl ConstraintSystem {
     pub fn var_num(mut self, var_num: u32) -> Self {
         self.var_num = var_num;
         self
