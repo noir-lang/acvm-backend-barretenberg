@@ -106,7 +106,7 @@ cfg_if::cfg_if! {
             // This method is primarily used to determine how many group
             // elements we need from the CRS. So using 2^19 on an error
             // should be an overestimation.
-            pub(crate) fn get_circuit_size(
+            pub fn get_circuit_size(
                 barretenberg: &mut Barretenberg,
                 constraint_system: &ConstraintSystem,
             ) -> u32 {
@@ -114,8 +114,8 @@ cfg_if::cfg_if! {
                 let cs_ptr = barretenberg.allocate(&cs_buf);
 
                 let circuit_size = barretenberg
-                .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-                .into_i32();
+                    .call("acir_proofs_get_total_circuit_size", &cs_ptr)
+                    .into_i32();
                 let circuit_size =
                     u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
@@ -124,7 +124,7 @@ cfg_if::cfg_if! {
                 pow2ceil(circuit_size + StandardComposer::NUM_RESERVED_GATES)
             }
 
-            pub(crate) fn get_exact_circuit_size(
+            pub fn get_exact_circuit_size(
                 barretenberg: &mut Barretenberg,
                 constraint_system: &ConstraintSystem,
             ) -> u32 {

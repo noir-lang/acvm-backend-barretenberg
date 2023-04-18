@@ -29,10 +29,6 @@ impl Assignments {
         buffer
     }
 
-    pub fn from_vec(vec: Vec<Scalar>) -> Assignments {
-        Assignments(vec)
-    }
-
     pub fn push_i32(&mut self, value: i32) {
         self.0.push(Scalar::from(value as i128));
     }
