@@ -190,8 +190,8 @@ mod tests {
                 &leaf,
             );
 
-            assert!(
-                is_leaf_in_tree == test_vector.result,
+            assert_eq!(
+                is_leaf_in_tree, test_vector.result,
                 "{}",
                 test_vector.error_msg
             );
