@@ -78,7 +78,7 @@ impl StandardComposer {
 
         barretenberg.free(cs_ptr);
 
-        pow2ceil(circuit_size + StandardComposer::NUM_RESERVED_GATES)
+        circuit_size
     }
 
     pub fn compute_proving_key(&mut self) -> Vec<u8> {
