@@ -55,7 +55,13 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
                 .map(|input| witness_to_value(initial_witness, input.witness))
                 .collect();
 
-            let result = crate::merkle::check_membership::<B>(hash_path?, root, index, leaf);
+            let valid_proof = crate::merkle::check_membership::<B>(hash_path?, root, index, leaf);
+
+            let result = if valid_proof {
+                FieldElement::one()
+            } else {
+                FieldElement::zero()
+            };
 
             initial_witness.insert(gadget_call.outputs[0], result);
         }
