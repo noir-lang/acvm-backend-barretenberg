@@ -52,24 +52,15 @@ impl StandardComposer {
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = barretenberg.allocate(&cs_buf);
 
-        let func = barretenberg
-            .instance
-            .exports
-            .get_function("acir_proofs_get_total_circuit_size")
-            .unwrap();
+        let circuit_size = barretenberg
+            .call("acir_proofs_get_total_circuit_size", &cs_ptr)
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
-        let params: Vec<_> = vec![cs_ptr.clone()];
-        match func.call(&params) {
-            Ok(vals) => {
-                let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
-                let u32_val = u32::from_be_bytes(i32_bytes);
-                barretenberg.free(cs_ptr);
-                pow2ceil(u32_val + StandardComposer::NUM_RESERVED_GATES)
-            }
-            Err(_) => {
-                unreachable!("failed on acir_proofs_get_total_circuit_size call");
-            }
-        }
+        barretenberg.free(cs_ptr);
+
+        pow2ceil(circuit_size + StandardComposer::NUM_RESERVED_GATES)
     }
 
     pub fn get_exact_circuit_size(
@@ -79,24 +70,15 @@ impl StandardComposer {
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = barretenberg.allocate(&cs_buf);
 
-        let func = barretenberg
-            .instance
-            .exports
-            .get_function("acir_proofs_get_exact_circuit_size")
-            .unwrap();
+        let circuit_size = barretenberg
+            .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
-        let params: Vec<_> = vec![cs_ptr.clone()];
-        match func.call(&params) {
-            Ok(vals) => {
-                let i32_bytes = vals.first().cloned().unwrap().unwrap_i32().to_be_bytes();
-                let u32_val = u32::from_be_bytes(i32_bytes);
-                barretenberg.free(cs_ptr);
-                u32_val
-            }
-            Err(_) => {
-                unreachable!("failed on acir_proofs_get_exact_circuit_size call");
-            }
-        }
+        barretenberg.free(cs_ptr);
+
+        circuit_size
     }
 
     pub fn compute_proving_key(&mut self) -> Vec<u8> {
