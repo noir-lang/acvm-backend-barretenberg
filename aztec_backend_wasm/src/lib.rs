@@ -94,6 +94,7 @@ async fn resolve_oracle(
 }
 
 fn resolve_oracle_cheat(
+    _oracle_resolver: &js_sys::Function,
     mut unresolved_brillig: UnresolvedBrillig,
 ) -> Result<Brillig, JsErrorString> {
     let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
@@ -135,11 +136,11 @@ pub async fn solve_intermediate_witness(
         console_log!("unresolved brillig count: {}", unresolved_brilligs.len());
         let brillig_futures: Vec<_> = unresolved_brilligs
             .into_iter()
-            .map(|unresolved_brillig| resolve_oracle(&oracle_resolver, unresolved_brillig))
+            .map(|unresolved_brillig| resolve_oracle_cheat(&oracle_resolver, unresolved_brillig))
             .collect();
         opcodes_to_solve = Vec::new();
         for brillig_future in brillig_futures {
-            let filled_brillig = brillig_future.await?;
+            let filled_brillig = brillig_future?; //brillig_future.await?;
             unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
         }
         opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
