@@ -85,6 +85,8 @@ async fn resolve_oracle(
             .output_values
             .push(js_value_to_field_element(elem)?)
     }
+    console_log!("solved {}", oracle_data.name);
+    console_log!("outputs: {:?}", oracle_data.output_values);
 
     // Insert updated brillig oracle into bytecode
     unresolved_brillig.brillig.bytecode[unresolved_brillig.oracle_wait_info.program_counter] =
