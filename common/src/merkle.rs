@@ -308,7 +308,7 @@ pub fn check_membership<Barretenberg: PathHasher>(
     root: &FieldElement,
     index: &FieldElement,
     leaf: &FieldElement,
-) -> FieldElement {
+) -> bool {
     let mut barretenberg = Barretenberg::new();
 
     let mut index_bits = index.bits();
@@ -325,11 +325,8 @@ pub fn check_membership<Barretenberg: PathHasher>(
         };
         current = barretenberg.hash(&hash_left, &hash_right);
     }
-    if &current == root {
-        FieldElement::one()
-    } else {
-        FieldElement::zero()
-    }
+
+    &current == root
 }
 // fn hash(message: &[u8]) -> FieldElement {
 //     use blake2::Digest;
