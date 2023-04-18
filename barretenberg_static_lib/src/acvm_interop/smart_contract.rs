@@ -43,21 +43,10 @@ fn test_smart_contract() {
         qc: Scalar::zero(),
     };
 
-    let constraint_system = ConstraintSystem {
-        var_num: 4,
-        public_inputs: vec![1, 2],
-        logic_constraints: vec![],
-        range_constraints: vec![],
-        sha256_constraints: vec![],
-        merkle_membership_constraints: vec![],
-        schnorr_constraints: vec![],
-        blake2s_constraints: vec![],
-        pedersen_constraints: vec![],
-        hash_to_field_constraints: vec![],
-        constraints: vec![constraint],
-        ecdsa_secp256k1_constraints: vec![],
-        fixed_base_scalar_mul_constraints: vec![],
-    };
+    let constraint_system = ConstraintSystem::new()
+        .var_num(4)
+        .public_inputs(vec![1, 2])
+        .constraints(vec![constraint]);
 
     let sc = StandardComposer::new(constraint_system);
 

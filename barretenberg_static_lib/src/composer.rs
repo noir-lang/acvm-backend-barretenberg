@@ -133,7 +133,7 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
-        proof::remove_public_inputs(self.constraint_system.public_inputs.len(), &result)
+        proof::remove_public_inputs(self.constraint_system.public_inputs_size(), &result)
     }
 
     pub fn verify_with_vk(
@@ -179,21 +179,7 @@ mod test {
 
     #[test]
     fn test_no_constraints_no_pub_inputs() {
-        let constraint_system = ConstraintSystem {
-            var_num: 4,
-            public_inputs: vec![],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![],
-            hash_to_field_constraints: vec![],
-            constraints: vec![],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new();
 
         let case_1 = WitnessResult {
             witness: vec![].into(),
@@ -218,21 +204,9 @@ mod test {
             qc: Scalar::zero(),
         };
 
-        let constraint_system = ConstraintSystem {
-            var_num: 4,
-            public_inputs: vec![],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![],
-            hash_to_field_constraints: vec![],
-            constraints: vec![constraint],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .constraints(vec![constraint]);
 
         let case_1 = WitnessResult {
             witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
@@ -276,21 +250,10 @@ mod test {
             qc: Scalar::zero(),
         };
 
-        let constraint_system = ConstraintSystem {
-            var_num: 4,
-            public_inputs: vec![1, 2],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![],
-            hash_to_field_constraints: vec![],
-            constraints: vec![constraint],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .public_inputs(vec![1, 2])
+            .constraints(vec![constraint]);
 
         // This fails because the constraint system requires public inputs,
         // but none are supplied in public_inputs. So the verifier will not
@@ -360,21 +323,10 @@ mod test {
             qc: Scalar::one(),
         };
 
-        let constraint_system = ConstraintSystem {
-            var_num: 5,
-            public_inputs: vec![1],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![],
-            hash_to_field_constraints: vec![],
-            constraints: vec![constraint, constraint2],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(5)
+            .public_inputs(vec![1])
+            .constraints(vec![constraint, constraint2]);
 
         let case_1 = WitnessResult {
             witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()].into(),
@@ -417,21 +369,10 @@ mod test {
             qc: -Scalar::one(),
         };
 
-        let constraint_system = ConstraintSystem {
-            var_num: 80,
-            public_inputs: vec![],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![constraint],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![],
-            hash_to_field_constraints: vec![],
-            constraints: vec![arith_constraint],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(80)
+            .schnorr_constraints(vec![constraint])
+            .constraints(vec![arith_constraint]);
 
         let pub_x =
             Scalar::from_hex("0x17cbd3ed3151ccfd170efe1d54280a6a4822640bf5c369908ad74ea21518a9c5")
@@ -513,21 +454,10 @@ mod test {
             .unwrap(),
         };
 
-        let constraint_system = ConstraintSystem {
-            var_num: 100,
-            public_inputs: vec![],
-            logic_constraints: vec![],
-            range_constraints: vec![],
-            sha256_constraints: vec![],
-            merkle_membership_constraints: vec![],
-            schnorr_constraints: vec![],
-            blake2s_constraints: vec![],
-            pedersen_constraints: vec![constraint],
-            hash_to_field_constraints: vec![],
-            constraints: vec![x_constraint, y_constraint],
-            ecdsa_secp256k1_constraints: vec![],
-            fixed_base_scalar_mul_constraints: vec![],
-        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(100)
+            .pedersen_constraints(vec![constraint])
+            .constraints(vec![x_constraint, y_constraint]);
 
         let scalar_0 = Scalar::from_hex("0x00").unwrap();
         let scalar_1 = Scalar::from_hex("0x01").unwrap();
