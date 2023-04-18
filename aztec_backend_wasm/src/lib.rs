@@ -108,6 +108,15 @@ fn resolve_oracle_cheat(
         _ => return Err("orcale not found".into()),
     };
 
+    console_log!(
+        "solving {}, at counter {}.",
+        &oracle_data.name,
+        unresolved_brillig.oracle_wait_info.program_counter
+    );
+    console_log!(
+        "Brillig length {}",
+        unresolved_brillig.brillig.bytecode.len()
+    );
     // Insert updated brillig oracle into bytecode
     unresolved_brillig.brillig.bytecode[unresolved_brillig.oracle_wait_info.program_counter] =
         brillig_bytecode::Opcode::Oracle(oracle_data);
@@ -124,6 +133,7 @@ pub async fn solve_intermediate_witness(
     console_error_panic_hook::set_once();
 
     let mut opcodes_to_solve = read_circuit(circuit)?.opcodes;
+    console_log!("Initial opcodes to solve {}", opcodes_to_solve.len());
     let mut witness_assignments = js_map_to_witness_map(initial_witness)?;
     let mut blocks = Blocks::default();
 
@@ -137,6 +147,7 @@ pub async fn solve_intermediate_witness(
         } = plonk
             .solve(&mut witness_assignments, &mut blocks, opcodes_to_solve)
             .map_err(|err| JsString::from(format!("solver opcode resolution error: {}", err)))?;
+        console_log!("unresolved_opcodes count: {}", unresolved_opcodes.len());
         console_log!("unresolved brillig count: {}", unresolved_brilligs.len());
         let brillig_futures: Vec<_> = unresolved_brilligs
             .into_iter()
@@ -148,6 +159,12 @@ pub async fn solve_intermediate_witness(
             unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
         }
         opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
+        console_log!(
+            "opcodes_to_solve after callback count: {}",
+            opcodes_to_solve.len()
+        );
+        let opcodes_string = format!("{:?}", opcodes_to_solve);
+        console_log!("{}", opcodes_string);
     }
 
     Ok(witness_map_to_js_map(witness_assignments))
