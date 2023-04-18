@@ -36,7 +36,7 @@ pub fn flatten_witness_map(
 
     // Note: The witnesses are sorted via their witness index
     // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
-    let witness_assignments = (1..num_witnesses)
+    let witness_assignments: Vec<FieldElement> = (1..num_witnesses)
         .map(|witness_index| {
             // Get the value if it exists. If i does not, then we fill it with the zero value
             witness_values
@@ -45,5 +45,5 @@ pub fn flatten_witness_map(
         })
         .collect();
 
-    Assignments::from_vec(witness_assignments)
+    Assignments::from(witness_assignments)
 }
