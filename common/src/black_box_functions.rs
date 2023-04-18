@@ -14,12 +14,7 @@ use crate::merkle::PathHasher;
 // that the PWG needs from Barretenberg
 pub trait BarretenbergShared: PathHasher {
     fn new() -> Self;
-    fn verify_signature(
-        &mut self,
-        pub_key: [u8; 64],
-        sig: [u8; 64],
-        message: &[u8],
-    ) -> FieldElement;
+    fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool;
     fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement);
     fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
 }
@@ -100,10 +95,16 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
 
             let mut barretenberg = <B as BarretenbergShared>::new();
 
-            let result = barretenberg.verify_signature(pub_key, signature, &message);
-            if result != FieldElement::one() {
+            let valid_signature = barretenberg.verify_signature(pub_key, signature, &message);
+            if !valid_signature {
                 dbg!("signature has failed to verify");
             }
+
+            let result = if valid_signature {
+                FieldElement::one()
+            } else {
+                FieldElement::zero()
+            };
 
             initial_witness.insert(gadget_call.outputs[0], result);
         }
