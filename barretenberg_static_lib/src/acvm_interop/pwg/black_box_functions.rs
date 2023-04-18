@@ -15,12 +15,7 @@ impl BarretenbergShared for Barretenberg {
         Barretenberg::new()
     }
 
-    fn verify_signature(
-        &mut self,
-        pub_key: [u8; 64],
-        sig: [u8; 64],
-        message: &[u8],
-    ) -> FieldElement {
+    fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
         self.verify_signature(pub_key, sig, message)
     }
 
