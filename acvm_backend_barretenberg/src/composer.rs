@@ -6,8 +6,8 @@ use crate::Barretenberg;
 
 pub(crate) struct StandardComposer {
     barretenberg: Barretenberg,
-    crs: CRS,
     constraint_system: ConstraintSystem,
+    circuit_size: u32,
 }
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
@@ -109,12 +109,10 @@ impl StandardComposer {
     ) -> StandardComposer {
         let circuit_size = barretenberg.get_circuit_size(&constraint_system);
 
-        let crs = barretenberg.get_crs(circuit_size as usize + 1);
-
         StandardComposer {
             barretenberg,
-            crs,
             constraint_system,
+            circuit_size,
         }
     }
 }
@@ -165,25 +163,28 @@ impl StandardComposer {
     }
 
     pub(crate) fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
+        let CRS {
+            g1_data, g2_data, ..
+        } = self.barretenberg.get_crs(self.circuit_size);
+        let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 let mut vk_addr: *mut u8 = std::ptr::null_mut();
                 let vk_ptr = &mut vk_addr as *mut *mut u8;
-                let g2_clone = self.crs.g2_data.clone();
-                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
                 let proving_key = proving_key.to_vec();
 
                 let vk_size;
                 unsafe {
                     vk_size = barretenberg_sys::composer::init_verification_key(
                         pippenger_ptr,
-                        &g2_clone,
+                        &g2_data,
                         &proving_key,
                         vk_ptr,
                     )
                 }
 
-                std::mem::forget(g2_clone);
+                std::mem::forget(g2_data);
                 std::mem::forget(proving_key);
 
                 let result;
@@ -194,9 +195,7 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
-
-                let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+                let g2_ptr = self.barretenberg.allocate(&g2_data);
 
                 let pk_ptr = self.barretenberg.allocate(proving_key);
 
@@ -225,6 +224,10 @@ impl StandardComposer {
         witness: WitnessAssignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
+        let CRS {
+            g1_data, g2_data, ..
+        } = self.barretenberg.get_crs(self.circuit_size);
+        let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
         let cs_buf = self.constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
@@ -232,14 +235,13 @@ impl StandardComposer {
             if #[cfg(feature = "native")] {
                 let mut proof_addr: *mut u8 = std::ptr::null_mut();
                 let p_proof = &mut proof_addr as *mut *mut u8;
-                let g2_clone = self.crs.g2_data.clone();
                 let proving_key = proving_key.to_vec();
 
                 let proof_size;
                 unsafe {
                     proof_size = barretenberg_sys::composer::create_proof_with_pk(
-                        self.barretenberg.get_pippenger(&self.crs.g1_data).pointer(),
-                        &g2_clone,
+                        pippenger_ptr,
+                        &g2_data,
                         &proving_key,
                         &cs_buf,
                         &witness_buf,
@@ -247,7 +249,7 @@ impl StandardComposer {
                     );
                 }
 
-                std::mem::forget(g2_clone);
+                std::mem::forget(g2_data);
                 std::mem::forget(proving_key);
                 std::mem::forget(cs_buf);
                 std::mem::forget(witness_buf);
@@ -259,10 +261,10 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
+                let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
                 let cs_ptr = self.barretenberg.allocate(&cs_buf);
                 let witness_ptr = self.barretenberg.allocate(&witness_buf);
-                let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+                let g2_ptr = self.barretenberg.allocate(&g2_data);
                 let pk_ptr = self.barretenberg.allocate(proving_key);
 
                 let proof_size = self
@@ -301,6 +303,8 @@ impl StandardComposer {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
+        let CRS { g2_data, .. } = self.barretenberg.get_crs(self.circuit_size);
+
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
         // This is non-standard however, so this Rust wrapper will strip the public inputs
@@ -316,7 +320,7 @@ impl StandardComposer {
                 let verified;
                 unsafe {
                     verified = barretenberg_sys::composer::verify_with_vk(
-                        &self.crs.g2_data,
+                        &g2_data,
                         &verification_key,
                         &cs_buf,
                         &proof,
@@ -328,7 +332,7 @@ impl StandardComposer {
 
                 let cs_ptr = self.barretenberg.allocate(&cs_buf);
                 let proof_ptr = self.barretenberg.allocate(&proof);
-                let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+                let g2_ptr = self.barretenberg.allocate(&g2_data);
                 let vk_ptr = self.barretenberg.allocate(verification_key);
 
                 let verified = self

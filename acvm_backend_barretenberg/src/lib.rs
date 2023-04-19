@@ -19,6 +19,8 @@ struct Barretenberg {
     memory: Memory,
     #[cfg(feature = "wasm")]
     instance: Instance,
+
+    crs: Option<CRS>,
 }
 
 impl Default for Barretenberg {
@@ -28,8 +30,19 @@ impl Default for Barretenberg {
 }
 
 impl Barretenberg {
-    fn get_crs(&mut self, num_points: usize) -> CRS {
-        CRS::new(num_points)
+    fn get_crs(&mut self, num_points: u32) -> CRS {
+        // TODO: yucky, we can avoid this cloning.
+        let num_points = num_points as usize;
+
+        if let Some(crs) = &self.crs {
+            if crs.num_points >= num_points {
+                return crs.clone();
+            }
+        }
+        let new_crs = CRS::new(num_points);
+        self.crs = Some(new_crs.clone());
+
+        new_crs
     }
 }
 
@@ -48,7 +61,7 @@ cfg_if::cfg_if! {
 
         impl Barretenberg {
             pub(crate) fn new() -> Barretenberg {
-                Barretenberg { }
+                Barretenberg { crs: None }
             }
         }
 
@@ -73,7 +86,7 @@ cfg_if::cfg_if! {
         impl Barretenberg {
             pub(crate) fn new() -> Barretenberg {
                 let (instance, memory) = instance_load();
-                Barretenberg { memory, instance }
+                Barretenberg { memory, instance, crs: None }
             }
         }
 
