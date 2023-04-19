@@ -1,5 +1,4 @@
 use super::Plonk;
-use crate::composer::StandardComposer;
 use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
@@ -36,10 +35,12 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
+        let mut barretenberg = Barretenberg::new();
+        let constraint_system = &circuit.into();
 
-        let proving_key = composer.compute_proving_key();
-        let verification_key = composer.compute_verification_key(&proving_key);
+        let proving_key = barretenberg.compute_proving_key(constraint_system);
+        let verification_key =
+            barretenberg.compute_verification_key(constraint_system, &proving_key);
 
         (proving_key, verification_key)
     }
@@ -50,11 +51,11 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
+        let mut barretenberg = Barretenberg::new();
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
-        composer.create_proof_with_pk(assignments, proving_key)
+        barretenberg.create_proof_with_pk(&circuit.into(), assignments, proving_key)
     }
 
     fn verify_with_vk(
@@ -64,12 +65,17 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
+        let mut barretenberg = Barretenberg::new();
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
 
-        composer.verify_with_vk(proof, flattened_public_inputs.into(), verification_key)
+        barretenberg.verify_with_vk(
+            &circuit.into(),
+            proof,
+            flattened_public_inputs.into(),
+            verification_key,
+        )
     }
 }

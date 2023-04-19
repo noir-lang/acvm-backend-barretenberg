@@ -4,46 +4,8 @@ use common::proof;
 
 use crate::Barretenberg;
 
-pub(crate) struct StandardComposer {
-    barretenberg: Barretenberg,
-    constraint_system: ConstraintSystem,
-    circuit_size: u32,
-}
-
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-#[cfg(feature = "native")]
-impl Barretenberg {
-    // XXX: There seems to be a bug in the C++ code
-    // where it causes a `HeapAccessOutOfBound` error
-    // for certain circuit sizes.
-    //
-    // This method calls the WASM for the circuit size
-    // if an error is returned, then the circuit size is defaulted to 2^19.
-    //
-    // This method is primarily used to determine how many group
-    // elements we need from the CRS. So using 2^19 on an error
-    // should be an overestimation.
-    pub(crate) fn get_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
-        let num_gates;
-        unsafe {
-            num_gates = barretenberg_sys::composer::get_total_circuit_size(
-                constraint_system.to_bytes().as_slice().as_ptr(),
-            );
-        }
-        pow2ceil(num_gates + NUM_RESERVED_GATES)
-    }
-
-    pub(crate) fn get_exact_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
-        unsafe {
-            barretenberg_sys::composer::get_exact_circuit_size(
-                constraint_system.to_bytes().as_slice().as_ptr(),
-            )
-        }
-    }
-}
-
-#[cfg(feature = "wasm")]
 impl Barretenberg {
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
@@ -57,32 +19,56 @@ impl Barretenberg {
     // should be an overestimation.
     pub(crate) fn get_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
         let cs_buf = constraint_system.to_bytes();
-        let cs_ptr = self.allocate(&cs_buf);
 
-        let circuit_size = self
-            .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-            .into_i32();
-        let circuit_size =
-            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "native")] {
+                let circuit_size;
+                unsafe {
+                    circuit_size = barretenberg_sys::composer::get_total_circuit_size(
+                        cs_buf.as_slice().as_ptr(),
+                    );
+                }
+            } else {
+                let cs_ptr = self.allocate(&cs_buf);
 
-        self.free(cs_ptr);
+                let circuit_size = self
+                    .call("acir_proofs_get_total_circuit_size", &cs_ptr)
+                    .into_i32();
+                let circuit_size =
+                    u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+
+                self.free(cs_ptr);
+            }
+        }
 
         pow2ceil(circuit_size + NUM_RESERVED_GATES)
     }
 
     pub(crate) fn get_exact_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
         let cs_buf = constraint_system.to_bytes();
-        let cs_ptr = self.allocate(&cs_buf);
 
-        let circuit_size = self
-            .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-            .into_i32();
-        let circuit_size =
-            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "native")] {
+                unsafe {
+                    barretenberg_sys::composer::get_exact_circuit_size(
+                        cs_buf.as_slice().as_ptr(),
+                    )
+                }
+            } else {
+                let cs_buf = constraint_system.to_bytes();
+                let cs_ptr = self.allocate(&cs_buf);
 
-        self.free(cs_ptr);
+                let circuit_size = self
+                    .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
+                    .into_i32();
+                let circuit_size =
+                    u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
-        circuit_size
+                self.free(cs_ptr);
+
+                circuit_size
+            }
+        }
     }
 }
 
@@ -102,24 +88,9 @@ fn pow2ceil(v: u32) -> u32 {
     }
 }
 
-impl StandardComposer {
-    pub(crate) fn new(
-        constraint_system: ConstraintSystem,
-        mut barretenberg: Barretenberg,
-    ) -> StandardComposer {
-        let circuit_size = barretenberg.get_circuit_size(&constraint_system);
-
-        StandardComposer {
-            barretenberg,
-            constraint_system,
-            circuit_size,
-        }
-    }
-}
-
-impl StandardComposer {
-    pub(crate) fn compute_proving_key(&mut self) -> Vec<u8> {
-        let cs_buf = self.constraint_system.to_bytes();
+impl Barretenberg {
+    pub(crate) fn compute_proving_key(&mut self, constraint_system: &ConstraintSystem) -> Vec<u8> {
+        let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
@@ -141,20 +112,19 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let cs_ptr = self.barretenberg.allocate(&cs_buf);
+                let cs_ptr = self.allocate(&cs_buf);
 
                 let pk_size = self
-                    .barretenberg
                     .call_multiple(
                         "acir_proofs_init_proving_key",
                         vec![&cs_ptr, &Value::I32(0)],
                     )
                     .value();
 
-                let pk_ptr = self.barretenberg.slice_memory(0, 4);
+                let pk_ptr = self.slice_memory(0, 4);
                 let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
 
-                self.barretenberg.slice_memory(
+                self.slice_memory(
                     pk_ptr as usize,
                     pk_ptr as usize + pk_size.unwrap_i32() as usize,
                 )
@@ -162,11 +132,17 @@ impl StandardComposer {
         }
     }
 
-    pub(crate) fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
+    pub(crate) fn compute_verification_key(
+        &mut self,
+        constraint_system: &ConstraintSystem,
+        proving_key: &[u8],
+    ) -> Vec<u8> {
+        let circuit_size = self.get_circuit_size(constraint_system);
+
         let CRS {
             g1_data, g2_data, ..
-        } = self.barretenberg.get_crs(self.circuit_size);
-        let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
+        } = self.get_crs(circuit_size);
+        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
@@ -195,23 +171,22 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let g2_ptr = self.barretenberg.allocate(&g2_data);
+                let g2_ptr = self.allocate(&g2_data);
 
-                let pk_ptr = self.barretenberg.allocate(proving_key);
+                let pk_ptr = self.allocate(proving_key);
 
 
                 let vk_size = self
-                    .barretenberg
                     .call_multiple(
                         "acir_proofs_init_verification_key",
                         vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &Value::I32(0)],
                     )
                     .value();
 
-                let vk_ptr = self.barretenberg.slice_memory(0, 4);
+                let vk_ptr = self.slice_memory(0, 4);
                 let vk_ptr = u32::from_le_bytes(vk_ptr[0..4].try_into().unwrap());
 
-                self.barretenberg.slice_memory(
+                self.slice_memory(
                     vk_ptr as usize,
                     vk_ptr as usize + vk_size.unwrap_i32() as usize,
                 )
@@ -221,14 +196,17 @@ impl StandardComposer {
 
     pub(crate) fn create_proof_with_pk(
         &mut self,
+        constraint_system: &ConstraintSystem,
         witness: WitnessAssignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
+        let circuit_size = self.get_circuit_size(constraint_system);
+
         let CRS {
             g1_data, g2_data, ..
-        } = self.barretenberg.get_crs(self.circuit_size);
-        let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
-        let cs_buf = self.constraint_system.to_bytes();
+        } = self.get_crs(circuit_size);
+        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+        let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
         cfg_if::cfg_if! {
@@ -261,14 +239,13 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let pippenger_ptr = self.barretenberg.get_pippenger(&g1_data).pointer();
-                let cs_ptr = self.barretenberg.allocate(&cs_buf);
-                let witness_ptr = self.barretenberg.allocate(&witness_buf);
-                let g2_ptr = self.barretenberg.allocate(&g2_data);
-                let pk_ptr = self.barretenberg.allocate(proving_key);
+                let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+                let cs_ptr = self.allocate(&cs_buf);
+                let witness_ptr = self.allocate(&witness_buf);
+                let g2_ptr = self.allocate(&g2_data);
+                let pk_ptr = self.allocate(proving_key);
 
                 let proof_size = self
-                    .barretenberg
                     .call_multiple(
                         "acir_proofs_new_proof",
                         vec![
@@ -282,28 +259,30 @@ impl StandardComposer {
                     )
                     .value();
 
-                let proof_ptr = self.barretenberg.slice_memory(0, 4);
+                let proof_ptr = self.slice_memory(0, 4);
                 let proof_ptr = u32::from_le_bytes(proof_ptr[0..4].try_into().unwrap());
 
-                let result = self.barretenberg.slice_memory(
+                let result = self.slice_memory(
                     proof_ptr as usize,
                     proof_ptr as usize + proof_size.unwrap_i32() as usize,
                 );
             }
         }
 
-        proof::remove_public_inputs(self.constraint_system.public_inputs_size(), &result)
+        proof::remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
     pub(crate) fn verify_with_vk(
         &mut self,
+        constraint_system: &ConstraintSystem,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
-        let CRS { g2_data, .. } = self.barretenberg.get_crs(self.circuit_size);
+        let circuit_size = self.get_circuit_size(constraint_system);
+        let CRS { g2_data, .. } = self.get_crs(circuit_size);
 
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -311,7 +290,7 @@ impl StandardComposer {
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
         //
         let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
-        let cs_buf = self.constraint_system.to_bytes();
+        let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
@@ -330,13 +309,12 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
-                let cs_ptr = self.barretenberg.allocate(&cs_buf);
-                let proof_ptr = self.barretenberg.allocate(&proof);
-                let g2_ptr = self.barretenberg.allocate(&g2_data);
-                let vk_ptr = self.barretenberg.allocate(verification_key);
+                let cs_ptr = self.allocate(&cs_buf);
+                let proof_ptr = self.allocate(&proof);
+                let g2_ptr = self.allocate(&g2_data);
+                let vk_ptr = self.allocate(verification_key);
 
                 let verified = self
-                    .barretenberg
                     .call_multiple(
                         "acir_proofs_verify_proof",
                         vec![
@@ -349,7 +327,7 @@ impl StandardComposer {
                     )
                     .value();
 
-                self.barretenberg.free(proof_ptr);
+                self.free(proof_ptr);
 
                 match verified.unwrap_i32() {
                     0 => false,
@@ -675,14 +653,20 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) {
-        let mut sc = StandardComposer::new(constraint_system, Barretenberg::new());
+        let mut bb = Barretenberg::new();
 
-        let proving_key = sc.compute_proving_key();
-        let verification_key = sc.compute_verification_key(&proving_key);
+        let proving_key = bb.compute_proving_key(&constraint_system);
+        let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
 
         for test_case in test_cases.into_iter() {
-            let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
-            let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
+            let proof =
+                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key);
+            let verified = bb.verify_with_vk(
+                &constraint_system,
+                &proof,
+                test_case.public_inputs,
+                &verification_key,
+            );
             assert_eq!(verified, test_case.result);
         }
     }
