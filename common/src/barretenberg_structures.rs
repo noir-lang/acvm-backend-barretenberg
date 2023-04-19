@@ -330,11 +330,11 @@ impl FixedBaseScalarMulConstraint {
 
 #[derive(Clone, Hash, Debug)]
 pub struct LogicConstraint {
-    a: i32,
-    b: i32,
-    result: i32,
-    num_bits: i32,
-    is_xor_gate: bool,
+    pub a: i32,
+    pub b: i32,
+    pub result: i32,
+    pub num_bits: i32,
+    pub is_xor_gate: bool,
 }
 
 impl LogicConstraint {
