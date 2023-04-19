@@ -1,5 +1,6 @@
 use super::Plonk;
 use crate::composer::StandardComposer;
+use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
@@ -12,18 +13,8 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                StandardComposer::get_exact_circuit_size(&circuit.into())
-
-            } else {
-                use crate::Barretenberg;
-
-                let mut barretenberg = Barretenberg::new();
-
-                StandardComposer::get_exact_circuit_size(&mut barretenberg, &circuit.into())
-            }
-        }
+        let mut barretenberg = Barretenberg::new();
+        barretenberg.get_exact_circuit_size(&circuit.into())
     }
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
@@ -45,7 +36,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let mut composer = StandardComposer::new(circuit.into());
+        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
 
         let proving_key = composer.compute_proving_key();
         let verification_key = composer.compute_verification_key(&proving_key);
@@ -59,7 +50,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let mut composer = StandardComposer::new(circuit.into());
+        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
@@ -73,7 +64,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let mut composer = StandardComposer::new(circuit.into());
+        let mut composer = StandardComposer::new(circuit.into(), Barretenberg::new());
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.

@@ -59,6 +59,7 @@ impl SmartContract for Plonk {
 #[test]
 fn test_smart_contract() {
     use crate::composer::StandardComposer;
+    use crate::Barretenberg;
     use common::barretenberg_structures::*;
 
     let constraint = Constraint {
@@ -77,7 +78,7 @@ fn test_smart_contract() {
         .public_inputs(vec![1, 2])
         .constraints(vec![constraint]);
 
-    let mut sc = StandardComposer::new(constraint_system);
+    let mut sc = StandardComposer::new(constraint_system, Barretenberg::new());
 
     let proving_key = sc.compute_proving_key();
     let verification_key = sc.compute_verification_key(&proving_key);

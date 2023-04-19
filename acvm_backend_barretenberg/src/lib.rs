@@ -12,6 +12,7 @@ mod scalar_mul;
 mod schnorr;
 
 pub use acvm_interop::Plonk;
+use common::crs::CRS;
 
 struct Barretenberg {
     #[cfg(feature = "wasm")]
@@ -23,6 +24,12 @@ struct Barretenberg {
 impl Default for Barretenberg {
     fn default() -> Barretenberg {
         Barretenberg::new()
+    }
+}
+
+impl Barretenberg {
+    fn get_crs(&mut self, num_points: usize) -> CRS {
+        CRS::new(num_points)
     }
 }
 
@@ -41,7 +48,7 @@ cfg_if::cfg_if! {
 
         impl Barretenberg {
             pub(crate) fn new() -> Barretenberg {
-                Barretenberg {}
+                Barretenberg { }
             }
         }
 

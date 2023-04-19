@@ -1,153 +1,125 @@
-use super::pippenger::Pippenger;
 use common::barretenberg_structures::*;
 use common::crs::CRS;
 use common::proof;
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "native")] {
+use crate::Barretenberg;
 
-        pub(crate) struct StandardComposer {
-            pippenger: Pippenger,
-            crs: CRS,
-            constraint_system: ConstraintSystem,
+pub(crate) struct StandardComposer {
+    barretenberg: Barretenberg,
+    crs: CRS,
+    constraint_system: ConstraintSystem,
+}
+
+const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
+
+#[cfg(feature = "native")]
+impl Barretenberg {
+    // XXX: There seems to be a bug in the C++ code
+    // where it causes a `HeapAccessOutOfBound` error
+    // for certain circuit sizes.
+    //
+    // This method calls the WASM for the circuit size
+    // if an error is returned, then the circuit size is defaulted to 2^19.
+    //
+    // This method is primarily used to determine how many group
+    // elements we need from the CRS. So using 2^19 on an error
+    // should be an overestimation.
+    pub(crate) fn get_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+        let num_gates;
+        unsafe {
+            num_gates = barretenberg_sys::composer::get_total_circuit_size(
+                constraint_system.to_bytes().as_slice().as_ptr(),
+            );
         }
+        pow2ceil(num_gates + NUM_RESERVED_GATES)
+    }
 
-        fn pow2ceil(v: u32) -> u32 {
-            v.next_power_of_two()
+    pub(crate) fn get_exact_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+        unsafe {
+            barretenberg_sys::composer::get_exact_circuit_size(
+                constraint_system.to_bytes().as_slice().as_ptr(),
+            )
         }
+    }
+}
 
-        impl StandardComposer {
-            pub(crate) fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-                let circuit_size = StandardComposer::get_circuit_size(&constraint_system);
+#[cfg(feature = "wasm")]
+impl Barretenberg {
+    // XXX: There seems to be a bug in the C++ code
+    // where it causes a `HeapAccessOutOfBound` error
+    // for certain circuit sizes.
+    //
+    // This method calls the WASM for the circuit size
+    // if an error is returned, then the circuit size is defaulted to 2^19.
+    //
+    // This method is primarily used to determine how many group
+    // elements we need from the CRS. So using 2^19 on an error
+    // should be an overestimation.
+    pub(crate) fn get_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+        let cs_buf = constraint_system.to_bytes();
+        let cs_ptr = self.allocate(&cs_buf);
 
-                let crs = CRS::new(circuit_size as usize + 1);
+        let circuit_size = self
+            .call("acir_proofs_get_total_circuit_size", &cs_ptr)
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
-                let pippenger = Pippenger::new(&crs.g1_data);
+        self.free(cs_ptr);
 
-                StandardComposer {
-                    pippenger,
-                    crs,
-                    constraint_system,
-                }
-            }
+        pow2ceil(circuit_size + NUM_RESERVED_GATES)
+    }
 
-            // XXX: There seems to be a bug in the C++ code
-            // where it causes a `HeapAccessOutOfBound` error
-            // for certain circuit sizes.
-            //
-            // This method calls the WASM for the circuit size
-            // if an error is returned, then the circuit size is defaulted to 2^19.
-            //
-            // This method is primarily used to determine how many group
-            // elements we need from the CRS. So using 2^19 on an error
-            // should be an overestimation.
-            pub(crate) fn get_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
-                let num_gates;
-                unsafe {
-                    num_gates = barretenberg_sys::composer::get_total_circuit_size(
-                        constraint_system.to_bytes().as_slice().as_ptr(),
-                    );
-                }
-                pow2ceil(num_gates + StandardComposer::NUM_RESERVED_GATES)
-            }
+    pub(crate) fn get_exact_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+        let cs_buf = constraint_system.to_bytes();
+        let cs_ptr = self.allocate(&cs_buf);
 
-            pub(crate) fn get_exact_circuit_size(constraint_system: &ConstraintSystem) -> u32 {
-                unsafe {
-                    barretenberg_sys::composer::get_exact_circuit_size(
-                        constraint_system.to_bytes().as_slice().as_ptr(),
-                    )
-                }
-            }
+        let circuit_size = self
+            .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
+            .into_i32();
+        let circuit_size =
+            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+
+        self.free(cs_ptr);
+
+        circuit_size
+    }
+}
+
+fn pow2ceil(v: u32) -> u32 {
+    #[cfg(feature = "native")]
+    {
+        v.next_power_of_two()
+    }
+
+    #[cfg(not(feature = "native"))]
+    {
+        let mut p = 1;
+        while p < v {
+            p <<= 1;
         }
-    } else {
-        use super::Barretenberg;
+        p
+    }
+}
 
-        pub(crate) struct StandardComposer {
-            barretenberg: Barretenberg,
-            pippenger: Pippenger,
-            crs: CRS,
-            constraint_system: ConstraintSystem,
-        }
+impl StandardComposer {
+    pub(crate) fn new(
+        constraint_system: ConstraintSystem,
+        mut barretenberg: Barretenberg,
+    ) -> StandardComposer {
+        let circuit_size = barretenberg.get_circuit_size(&constraint_system);
 
-        fn pow2ceil(v: u32) -> u32 {
-            let mut p = 1;
-            while p < v {
-                p <<= 1;
-            }
-            p
-        }
+        let crs = barretenberg.get_crs(circuit_size as usize + 1);
 
-        impl StandardComposer {
-            pub(crate) fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-                let mut barretenberg = Barretenberg::new();
-
-                let circuit_size =
-                    StandardComposer::get_circuit_size(&mut barretenberg, &constraint_system);
-
-                let crs = CRS::new(circuit_size as usize);
-
-                let pippenger = Pippenger::new(&crs.g1_data, &mut barretenberg);
-
-                StandardComposer {
-                    barretenberg,
-                    pippenger,
-                    crs,
-                    constraint_system,
-                }
-            }
-
-            // XXX: There seems to be a bug in the C++ code
-            // where it causes a `HeapAccessOutOfBound` error
-            // for certain circuit sizes.
-            //
-            // This method calls the WASM for the circuit size
-            // if an error is returned, then the circuit size is defaulted to 2^19.
-            //
-            // This method is primarily used to determine how many group
-            // elements we need from the CRS. So using 2^19 on an error
-            // should be an overestimation.
-            pub(crate) fn get_circuit_size(
-                barretenberg: &mut Barretenberg,
-                constraint_system: &ConstraintSystem,
-            ) -> u32 {
-                let cs_buf = constraint_system.to_bytes();
-                let cs_ptr = barretenberg.allocate(&cs_buf);
-
-                let circuit_size = barretenberg
-                    .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-                    .into_i32();
-                let circuit_size =
-                    u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
-
-                barretenberg.free(cs_ptr);
-
-                pow2ceil(circuit_size + StandardComposer::NUM_RESERVED_GATES)
-            }
-
-            pub(crate) fn get_exact_circuit_size(
-                barretenberg: &mut Barretenberg,
-                constraint_system: &ConstraintSystem,
-            ) -> u32 {
-                let cs_buf = constraint_system.to_bytes();
-                let cs_ptr = barretenberg.allocate(&cs_buf);
-
-                let circuit_size = barretenberg
-                    .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-                    .into_i32();
-                let circuit_size =
-                    u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
-
-                barretenberg.free(cs_ptr);
-
-                circuit_size
-            }
+        StandardComposer {
+            barretenberg,
+            crs,
+            constraint_system,
         }
     }
 }
 
 impl StandardComposer {
-    const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
-
     pub(crate) fn compute_proving_key(&mut self) -> Vec<u8> {
         let cs_buf = self.constraint_system.to_bytes();
 
@@ -198,7 +170,7 @@ impl StandardComposer {
                 let mut vk_addr: *mut u8 = std::ptr::null_mut();
                 let vk_ptr = &mut vk_addr as *mut *mut u8;
                 let g2_clone = self.crs.g2_data.clone();
-                let pippenger_ptr = self.pippenger.pointer();
+                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
                 let proving_key = proving_key.to_vec();
 
                 let vk_size;
@@ -222,15 +194,18 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
+                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
+
                 let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
 
                 let pk_ptr = self.barretenberg.allocate(proving_key);
+
 
                 let vk_size = self
                     .barretenberg
                     .call_multiple(
                         "acir_proofs_init_verification_key",
-                        vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
+                        vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &Value::I32(0)],
                     )
                     .value();
 
@@ -263,7 +238,7 @@ impl StandardComposer {
                 let proof_size;
                 unsafe {
                     proof_size = barretenberg_sys::composer::create_proof_with_pk(
-                        self.pippenger.pointer(),
+                        self.barretenberg.get_pippenger(&self.crs.g1_data).pointer(),
                         &g2_clone,
                         &proving_key,
                         &cs_buf,
@@ -284,6 +259,7 @@ impl StandardComposer {
             } else {
                 use wasmer::Value;
 
+                let pippenger_ptr = self.barretenberg.get_pippenger(&self.crs.g1_data).pointer();
                 let cs_ptr = self.barretenberg.allocate(&cs_buf);
                 let witness_ptr = self.barretenberg.allocate(&witness_buf);
                 let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
@@ -294,7 +270,7 @@ impl StandardComposer {
                     .call_multiple(
                         "acir_proofs_new_proof",
                         vec![
-                            &self.pippenger.pointer(),
+                            &pippenger_ptr,
                             &g2_ptr,
                             &pk_ptr,
                             &cs_ptr,
@@ -695,7 +671,7 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) {
-        let mut sc = StandardComposer::new(constraint_system);
+        let mut sc = StandardComposer::new(constraint_system, Barretenberg::new());
 
         let proving_key = sc.compute_proving_key();
         let verification_key = sc.compute_verification_key(&proving_key);
