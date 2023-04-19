@@ -370,6 +370,52 @@ impl LogicConstraint {
     }
 }
 
+#[derive(Clone, Hash, Debug)]
+pub struct RecursionConstraint {
+    pub verification_key: Vec<i32>, // UP size is 115
+    pub proof: Vec<i32>, // UP size is 94
+    pub public_input: i32,
+    pub key_hash: i32,
+    pub input_aggregation_object: [i32; 16],
+    pub output_aggregation_object: [i32; 16],
+}
+
+impl RecursionConstraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let vk_len = (self.verification_key.len()) as u32;
+        buffer.extend_from_slice(&vk_len.to_be_bytes());
+        for constraint in self.verification_key.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        let proof_len = (self.proof.len()) as u32;
+        buffer.extend_from_slice(&proof_len.to_be_bytes());
+        for constraint in self.proof.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer.extend_from_slice(&self.public_input.to_be_bytes());
+
+        buffer.extend_from_slice(&self.key_hash.to_be_bytes());
+
+        let input_agg_obj_len = (self.input_aggregation_object.len()) as u32;
+        buffer.extend_from_slice(&input_agg_obj_len.to_be_bytes());
+        for constraint in self.input_aggregation_object.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        let output_agg_obj_len = (self.output_aggregation_object.len()) as u32;
+        buffer.extend_from_slice(&output_agg_obj_len.to_be_bytes());
+        for constraint in self.output_aggregation_object.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer
+    }
+}
+
 #[derive(Clone, Hash, Debug, Default)]
 pub struct ConstraintSystem {
     var_num: u32,
@@ -385,6 +431,7 @@ pub struct ConstraintSystem {
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
+    recursion_constraints: Vec<RecursionConstraint>,
     constraints: Vec<Constraint>,
 }
 
@@ -467,6 +514,14 @@ impl ConstraintSystem {
         fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
     ) -> Self {
         self.fixed_base_scalar_mul_constraints = fixed_base_scalar_mul_constraints;
+        self
+    }
+
+    pub fn recursion_constraints(
+        mut self,
+        recursion_constraints: Vec<RecursionConstraint>,
+    ) -> Self {
+        self.recursion_constraints = recursion_constraints;
         self
     }
 
@@ -560,6 +615,12 @@ impl ConstraintSystem {
         let fixed_base_scalar_mul_len = self.fixed_base_scalar_mul_constraints.len() as u32;
         buffer.extend_from_slice(&fixed_base_scalar_mul_len.to_be_bytes());
         for constraint in self.fixed_base_scalar_mul_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
+        let recursion_constraints_len = self.recursion_constraints.len();
+        buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
+        for constraint in self.recursion_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -931,6 +992,7 @@ impl From<&Circuit> for ConstraintSystem {
             blake2s_constraints,
             hash_to_field_constraints,
             constraints,
+            recursion_constraints: vec![], // TODO: implement BlackBoxFunc::VerifyProof
             fixed_base_scalar_mul_constraints,
         }
     }
