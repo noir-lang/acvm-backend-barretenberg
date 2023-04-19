@@ -117,10 +117,18 @@
           doCheck = true;
         });
 
-        cargo-test = craneLib.cargoTest (commonArgs // {
+        cargo-test-native = craneLib.cargoTest (commonArgs // {
           inherit cargoArtifacts;
 
           cargoTestExtraArgs = "--workspace -- --test-threads=1";
+
+          doCheck = true;
+        });
+
+        cargo-test-wasm = craneLib.cargoTest (commonArgs // {
+          inherit cargoArtifacts;
+
+          cargoTestExtraArgs = "--workspace --no-default-features --features='wasm'";
 
           doCheck = true;
         });
