@@ -223,17 +223,17 @@ mod test {
             public_inputs: Assignments::default(),
             result: true,
         };
-        // let case_4 = WitnessResult {
-        //     witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
-        //     public_inputs: Assignments::default(),
-        //     result: false,
-        // };
+        let case_4 = WitnessResult {
+            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
+            public_inputs: Assignments::default(),
+            result: false,
+        };
         let case_5 = WitnessResult {
             witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: false,
         };
-        let test_cases = vec![case_1, case_2, case_3, case_5];
+        let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
         test_composer_with_pk_vk(constraint_system, test_cases);
     }
@@ -334,7 +334,7 @@ mod test {
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 50_i128.into()].into(),
+            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()].into(),
             public_inputs: vec![Scalar::one()].into(),
             result: false,
         };
@@ -580,6 +580,7 @@ mod test {
 
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
+            dbg!(proof.clone());
             let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }

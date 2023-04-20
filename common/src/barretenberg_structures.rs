@@ -372,7 +372,7 @@ impl LogicConstraint {
 
 #[derive(Clone, Hash, Debug)]
 pub struct RecursionConstraint {
-    pub verification_key: Vec<i32>, // UP size is 115
+    pub key: Vec<i32>, // UP size is 115
     pub proof: Vec<i32>, // UP size is 94
     pub public_input: i32,
     pub key_hash: i32,
@@ -384,9 +384,9 @@ impl RecursionConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
-        let vk_len = (self.verification_key.len()) as u32;
+        let vk_len = (self.key.len()) as u32;
         buffer.extend_from_slice(&vk_len.to_be_bytes());
-        for constraint in self.verification_key.iter() {
+        for constraint in self.key.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
