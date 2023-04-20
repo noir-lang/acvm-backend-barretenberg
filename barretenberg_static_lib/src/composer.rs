@@ -580,7 +580,6 @@ mod test {
 
         for test_case in test_cases.into_iter() {
             let proof = sc.create_proof_with_pk(test_case.witness, &proving_key);
-            dbg!(proof.clone());
             let verified = sc.verify_with_vk(&proof, test_case.public_inputs, &verification_key);
             assert_eq!(verified, test_case.result);
         }

@@ -618,7 +618,7 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
-        let recursion_constraints_len = self.recursion_constraints.len();
+        let recursion_constraints_len = self.recursion_constraints.len() as u32;
         buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
         for constraint in self.recursion_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
