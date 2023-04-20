@@ -472,7 +472,95 @@ mod test {
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
 
-    // TODO: Add logic constaint test (copy from C++)
+    #[test]
+    fn test_logic_constraints() {
+        /*
+         * constraints produced by Noir program:
+         * fn main(x : u32, y : pub u32) {
+         * let z = x ^ y;
+         *
+         * constrain z != 10;
+         * }
+         */
+        let range_a = RangeConstraint { a: 1, num_bits: 32 };
+        let range_b = RangeConstraint { a: 2, num_bits: 32 };
+
+        let logic_constraint = LogicConstraint {
+            a: 1,
+            b: 2,
+            result: 3,
+            num_bits: 32,
+            is_xor_gate: true,
+        };
+
+        let expr_a = Constraint {
+            a: 3,
+            b: 4,
+            c: 0,
+            qm: Scalar::zero(),
+            ql: Scalar::one(),
+            qr: -Scalar::one(),
+            qo: Scalar::zero(),
+            qc: -Scalar::from_hex("0x0a").unwrap(),
+        };
+        let expr_b = Constraint {
+            a: 4,
+            b: 5,
+            c: 6,
+            qm: Scalar::one(),
+            ql: Scalar::zero(),
+            qr: Scalar::zero(),
+            qo: -Scalar::one(),
+            qc: Scalar::zero(),
+        };
+        let expr_c = Constraint {
+            a: 4,
+            b: 6,
+            c: 4,
+            qm: Scalar::one(),
+            ql: Scalar::zero(),
+            qr: Scalar::zero(),
+            qo: -Scalar::one(),
+            qc: Scalar::zero(),
+        };
+        let expr_d = Constraint {
+            a: 6,
+            b: 0,
+            c: 0,
+            qm: Scalar::zero(),
+            ql: -Scalar::one(),
+            qr: Scalar::zero(),
+            qo: Scalar::zero(),
+            qc: Scalar::one(),
+        };
+
+        let constraint_system = ConstraintSystem::new()
+            .var_num(7)
+            .public_inputs(vec![2])
+            .range_constraints(vec![range_a, range_b])
+            .logic_constraints(vec![logic_constraint])
+            .constraints(vec![expr_a, expr_b, expr_c, expr_d]);
+
+        let scalar_5 = Scalar::from_hex("0x05").unwrap();
+        let scalar_10 = Scalar::from_hex("0x0a").unwrap();
+        let scalar_15 = Scalar::from_hex("0x0f").unwrap();
+        let scalar_5_inverse = scalar_5.inverse();
+        let witness_values = vec![
+            scalar_5,
+            scalar_10,
+            scalar_15,
+            scalar_5,
+            scalar_5_inverse,
+            Scalar::one(),
+        ];
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: vec![scalar_10].into(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
 
     #[derive(Clone, Debug)]
     struct WitnessResult {
