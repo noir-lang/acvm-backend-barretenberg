@@ -6,28 +6,36 @@ use std::{convert::TryInto, path::Path};
 // Hashes the leaves up the path, on the way to the root
 pub trait PathHasher {
     fn new() -> Self;
-    fn hash(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement;
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement;
 }
 
 // Hashes the message into a leaf
 pub trait MessageHasher {
     fn new() -> Self;
-    fn hash(&mut self, msg: &[u8]) -> FieldElement;
+    fn hash(&self, msg: &[u8]) -> FieldElement;
 }
 
-impl MessageHasher for blake2::Blake2s {
+pub struct Blake2sHasher {
+    hasher: std::cell::RefCell<blake2::Blake2s>,
+}
+
+impl MessageHasher for Blake2sHasher {
     fn new() -> Self {
         use blake2::Digest;
-        <blake2::Blake2s as Digest>::new()
+        Blake2sHasher {
+            hasher: std::cell::RefCell::new(blake2::Blake2s::new()),
+        }
     }
 
-    fn hash(&mut self, msg: &[u8]) -> FieldElement {
+    fn hash(&self, msg: &[u8]) -> FieldElement {
         use blake2::Digest;
 
-        self.update(msg);
+        let mut hasher = self.hasher.borrow_mut();
 
-        let res = self.clone().finalize();
-        self.reset();
+        hasher.update(msg);
+
+        let res = hasher.clone().finalize();
+        hasher.reset();
         FieldElement::from_be_bytes_reduce(&res[..])
     }
 }
@@ -54,7 +62,7 @@ pub struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     msg_hasher: MH,
 }
 
-fn insert_root(db: &mut sled::Db, value: FieldElement) {
+fn insert_root(db: &sled::Db, value: FieldElement) {
     db.insert("ROOT".as_bytes(), value.to_be_bytes()).unwrap();
 }
 fn fetch_root(db: &sled::Db) -> FieldElement {
@@ -64,7 +72,7 @@ fn fetch_root(db: &sled::Db) -> FieldElement {
         .expect("merkle root should always be present");
     FieldElement::from_be_bytes_reduce(&value)
 }
-fn insert_depth(db: &mut sled::Db, value: u32) {
+fn insert_depth(db: &sled::Db, value: u32) {
     db.insert("DEPTH".as_bytes(), &value.to_be_bytes()).unwrap();
 }
 fn fetch_depth(db: &sled::Db) -> u32 {
@@ -74,7 +82,7 @@ fn fetch_depth(db: &sled::Db) -> u32 {
         .expect("depth should always be present");
     u32::from_be_bytes(value.to_vec().try_into().unwrap())
 }
-fn insert_empty_index(db: &mut sled::Db, index: u32) {
+fn insert_empty_index(db: &sled::Db, index: u32) {
     // First fetch the depth to see that this is less than
     let depth = fetch_depth(db);
     let total_size = 1 << depth;
@@ -90,7 +98,7 @@ fn fetch_empty_index(db: &sled::Db) -> u32 {
         .expect("empty index should always be present");
     u32::from_be_bytes(value.to_vec().try_into().unwrap())
 }
-fn insert_preimage(db: &mut sled::Db, index: u32, value: Vec<u8>) {
+fn insert_preimage(db: &sled::Db, index: u32, value: Vec<u8>) {
     let tree = db.open_tree("preimages").unwrap();
 
     let index = index as u128;
@@ -116,7 +124,7 @@ fn fetch_hash(db: &sled::Db, index: usize) -> FieldElement {
         .unwrap()
 }
 
-fn insert_hash(db: &mut sled::Db, index: u32, hash: FieldElement) {
+fn insert_hash(db: &sled::Db, index: u32, hash: FieldElement) {
     let tree = db.open_tree("hashes").unwrap();
     let index = index as u128;
 
@@ -162,13 +170,13 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
     }
     pub fn new<P: AsRef<Path>>(depth: u32, path: P) -> MerkleTree<MH, PH> {
-        let mut barretenberg = PH::new();
-        let mut msg_hasher = MH::new();
+        let barretenberg = PH::new();
+        let msg_hasher = MH::new();
 
         assert!((1..=20).contains(&depth)); // Why can depth != 0 and depth not more than 20?
 
         let config = sled::Config::new().path(path);
-        let mut db = config.open().unwrap();
+        let db = config.open().unwrap();
 
         let total_size = 1u32 << depth;
 
@@ -193,18 +201,18 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             layer_size /= 2;
         }
         let root = current;
-        insert_root(&mut db, root);
+        insert_root(&db, root);
 
         for (index, hash) in hashes.into_iter().enumerate() {
-            insert_hash(&mut db, index as u32, hash)
+            insert_hash(&db, index as u32, hash)
         }
 
         for (index, image) in pre_images.into_iter().enumerate() {
-            insert_preimage(&mut db, index as u32, image)
+            insert_preimage(&db, index as u32, image)
         }
 
-        insert_depth(&mut db, depth);
-        insert_empty_index(&mut db, 0);
+        insert_depth(&db, depth);
+        insert_empty_index(&db, 0);
 
         MerkleTree {
             depth,
@@ -233,20 +241,20 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         path
     }
     /// Updates the message at index and computes the new tree root
-    pub fn update_message(&mut self, index: usize, new_message: &[u8]) -> FieldElement {
+    pub fn update_message(&self, index: usize, new_message: &[u8]) -> FieldElement {
         let current = self.msg_hasher.hash(new_message);
 
-        insert_preimage(&mut self.db, index as u32, new_message.to_vec());
+        insert_preimage(&self.db, index as u32, new_message.to_vec());
         self.update_leaf(index, current)
     }
 
-    fn check_if_index_valid_and_increment(&mut self, mut index: usize) {
+    fn check_if_index_valid_and_increment(&self, mut index: usize) {
         // Fetch the empty index
         let empty_index = fetch_empty_index(&self.db) as usize;
         if empty_index == index {
             // increment the empty index
             index += 1;
-            insert_empty_index(&mut self.db, index as u32);
+            insert_empty_index(&self.db, index as u32);
         } else {
             panic!("this is an regular append-only merkle tree. Tried to insert at {index}, but next empty is at {empty_index}");
         }
@@ -264,7 +272,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
     }
 
     /// Update the element at index and compute the new tree root
-    pub fn update_leaf(&mut self, mut index: usize, mut current: FieldElement) -> FieldElement {
+    pub fn update_leaf(&self, mut index: usize, mut current: FieldElement) -> FieldElement {
         // Note that this method does not update the list of messages [preimages]|
         // use `update_message` to do this
         self.check_if_index_valid_and_increment(index);
@@ -272,7 +280,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         let mut offset = 0usize;
         let mut layer_size = self.total_size;
         for _ in 0..self.depth {
-            insert_hash(&mut self.db, (offset + index) as u32, current);
+            insert_hash(&self.db, (offset + index) as u32, current);
 
             index &= (!0) - 1;
             current = self.barretenberg.hash(
@@ -285,7 +293,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             index /= 2;
         }
 
-        insert_root(&mut self.db, current);
+        insert_root(&self.db, current);
         current
     }
     /// Gets a message at `index`. This is not the leaf
@@ -309,7 +317,7 @@ pub fn check_membership<Barretenberg: PathHasher>(
     index: &FieldElement,
     leaf: &FieldElement,
 ) -> bool {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
 
     let mut index_bits = index.bits();
     index_bits.reverse();
@@ -339,7 +347,7 @@ pub fn check_membership<Barretenberg: PathHasher>(
 // XXX(FIXME) : Currently, this is very aztec specific, because this PWG does not have
 // a way to deal with generic ECC operations
 // fn compress_native(
-//     barretenberg: &mut Barretenberg,
+//     barretenberg: &Barretenberg,
 //     left: &FieldElement,
 //     right: &FieldElement,
 // ) -> FieldElement {

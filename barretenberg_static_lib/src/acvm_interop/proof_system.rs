@@ -48,7 +48,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let mut composer = StandardComposer::new(circuit.into());
+        let composer = StandardComposer::new(circuit.into());
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
@@ -62,7 +62,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let mut composer = StandardComposer::new(circuit.into());
+        let composer = StandardComposer::new(circuit.into());
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.

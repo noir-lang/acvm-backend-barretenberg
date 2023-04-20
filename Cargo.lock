@@ -267,7 +267,6 @@ name = "barretenberg_static_lib"
 version = "0.1.0"
 dependencies = [
  "barretenberg-sys",
- "blake2",
  "common",
  "tempfile",
 ]
@@ -276,7 +275,6 @@ dependencies = [
 name = "barretenberg_wasm"
 version = "0.1.0"
 dependencies = [
- "blake2",
  "common",
  "getrandom",
  "pkg-config",

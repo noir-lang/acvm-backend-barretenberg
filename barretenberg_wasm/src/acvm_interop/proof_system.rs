@@ -13,9 +13,9 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
 
-        StandardComposer::get_exact_circuit_size(&mut barretenberg, &circuit.into())
+        StandardComposer::get_exact_circuit_size(&barretenberg, &circuit.into())
     }
 
     fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
@@ -37,7 +37,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let mut composer = StandardComposer::new(circuit.into());
+        let composer = StandardComposer::new(circuit.into());
 
         let proving_key = composer.compute_proving_key();
         let verification_key = composer.compute_verification_key(&proving_key);
@@ -51,7 +51,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let mut composer = StandardComposer::new(circuit.into());
+        let composer = StandardComposer::new(circuit.into());
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
@@ -65,7 +65,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let mut composer = StandardComposer::new(circuit.into());
+        let composer = StandardComposer::new(circuit.into());
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.

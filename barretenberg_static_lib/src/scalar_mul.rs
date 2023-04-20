@@ -4,7 +4,7 @@ use super::field_to_array;
 use super::Barretenberg;
 
 impl Barretenberg {
-    pub fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
+    pub fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
         let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input));
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(32);
         let pubkey_x = FieldElement::from_be_bytes_reduce(pubkey_x_bytes);
@@ -18,7 +18,7 @@ mod test {
     use super::*;
     #[test]
     fn smoke_test() {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         let input = FieldElement::one();
 
         let res = barretenberg.fixed_base(&input);

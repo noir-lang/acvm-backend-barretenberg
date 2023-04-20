@@ -6,7 +6,7 @@ pub struct Pippenger {
 }
 
 impl Pippenger {
-    pub fn new(crs_data: &[u8], barretenberg: &mut Barretenberg) -> Pippenger {
+    pub fn new(crs_data: &[u8], barretenberg: &Barretenberg) -> Pippenger {
         let num_points = Value::I32((crs_data.len() / 64) as i32);
 
         let crs_ptr = barretenberg.allocate(crs_data);

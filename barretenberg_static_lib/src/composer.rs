@@ -101,11 +101,7 @@ impl StandardComposer {
         result.to_vec()
     }
 
-    pub fn create_proof_with_pk(
-        &mut self,
-        witness: WitnessAssignments,
-        proving_key: &[u8],
-    ) -> Vec<u8> {
+    pub fn create_proof_with_pk(&self, witness: WitnessAssignments, proving_key: &[u8]) -> Vec<u8> {
         let cs_buf = self.constraint_system.to_bytes();
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
@@ -137,7 +133,7 @@ impl StandardComposer {
     }
 
     pub fn verify_with_vk(
-        &mut self,
+        &self,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
@@ -573,7 +569,7 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) {
-        let mut sc = StandardComposer::new(constraint_system);
+        let sc = StandardComposer::new(constraint_system);
 
         let proving_key = sc.compute_proving_key();
         let verification_key = sc.compute_verification_key(&proving_key);

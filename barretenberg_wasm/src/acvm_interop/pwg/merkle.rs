@@ -5,7 +5,7 @@ use common::acvm::FieldElement;
 use common::merkle::PathHasher;
 
 impl PathHasher for Barretenberg {
-    fn hash(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         self.compress_native(left, right)
     }
 
@@ -16,14 +16,14 @@ impl PathHasher for Barretenberg {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::merkle::{MerkleTree, MessageHasher};
+    use common::merkle::{Blake2sHasher, MerkleTree, MessageHasher};
 
     #[test]
     fn basic_interop_initial_root() {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
         // Test that the initial root is computed correctly
-        let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let tree: MerkleTree<Blake2sHasher, Barretenberg> = MerkleTree::new(3, &temp_dir);
         // Copied from barretenberg by copying the stdout from MemoryTree
         let expected_hex = "04ccfbbb859b8605546e03dcaf41393476642859ff7f99446c054b841f0e05c8";
         assert_eq!(tree.root().to_hex(), expected_hex)
@@ -33,7 +33,7 @@ mod tests {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
         // Test that the hashpath is correct
-        let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let tree: MerkleTree<Blake2sHasher, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
         let path = tree.get_hash_path(0);
 
@@ -63,7 +63,7 @@ mod tests {
         // Test that computing the HashPath is correct
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let tree: MerkleTree<Blake2sHasher, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
         tree.update_message(0, &[0; 64]);
         tree.update_message(1, &[1; 64]);
@@ -158,9 +158,9 @@ mod tests {
 
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
-        let mut msg_hasher: blake2::Blake2s = MessageHasher::new();
+        let msg_hasher: Blake2sHasher = MessageHasher::new();
 
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let tree: MerkleTree<Blake2sHasher, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
         for test_vector in tests {
             let index = FieldElement::try_from_str(test_vector.index).unwrap();

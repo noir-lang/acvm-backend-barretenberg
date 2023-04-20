@@ -3,7 +3,7 @@ use wasmer::Value;
 
 use super::Barretenberg;
 impl Barretenberg {
-    pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
+    pub fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
         self.transfer_to_heap(&private_key, 64);
         self.transfer_to_heap(message, 96);
         let message_len = Value::I32(message.len() as i32);
@@ -22,7 +22,7 @@ impl Barretenberg {
         sig_bytes.try_into().unwrap()
     }
 
-    pub fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
+    pub fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64] {
         self.transfer_to_heap(&private_key, 0);
 
         self.call_multiple("compute_public_key", vec![&Value::I32(0), &Value::I32(32)]);
@@ -30,7 +30,7 @@ impl Barretenberg {
         self.slice_memory(32, 96).try_into().unwrap()
     }
 
-    pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+    pub fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
         self.transfer_to_heap(&pub_key, 0);
         self.transfer_to_heap(&sig[0..32], 64);
         self.transfer_to_heap(&sig[32..64], 96);
@@ -59,7 +59,7 @@ impl Barretenberg {
 
 #[test]
 fn basic_interop() {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
 
     // First case should pass, standard procedure for Schnorr
     let private_key = [2; 32];

@@ -4,7 +4,7 @@ use super::field_to_array;
 use super::Barretenberg;
 
 impl Barretenberg {
-    pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+    pub fn compress_native(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         let result_bytes = barretenberg_sys::pedersen::compress_native(
             left.to_be_bytes().as_slice().try_into().unwrap(),
             right.to_be_bytes().as_slice().try_into().unwrap(),
@@ -12,7 +12,7 @@ impl Barretenberg {
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
-    pub fn compress_many(&mut self, inputs: Vec<FieldElement>) -> FieldElement {
+    pub fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
         let mut inputs_buf = Vec::new();
         for f in inputs {
             inputs_buf.push(field_to_array(&f));
@@ -21,7 +21,7 @@ impl Barretenberg {
         FieldElement::from_be_bytes_reduce(&result)
     }
 
-    pub fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
+    pub fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
         let mut inputs_buf = Vec::new();
         for f in inputs {
             inputs_buf.push(field_to_array(&f));
@@ -62,7 +62,7 @@ fn basic_interop() {
         },
     ];
 
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
     for test in tests {
         let expected = FieldElement::from_hex(test.expected_hex).unwrap();
 
@@ -75,7 +75,7 @@ fn basic_interop() {
 
 #[test]
 fn pedersen_hash_to_point() {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
     let (x, y) = barretenberg.encrypt(vec![FieldElement::zero(), FieldElement::one()]);
     let expected_x = FieldElement::from_hex(
         "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",

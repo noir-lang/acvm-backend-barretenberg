@@ -5,13 +5,13 @@ use acvm::acir::BlackBoxFunc;
 pub use acvm::FieldElement as Scalar;
 
 #[derive(Debug, Clone)]
-pub struct Assignments(Vec<Scalar>);
+pub struct Assignments(std::cell::RefCell<Vec<Scalar>>);
 pub type WitnessAssignments = Assignments;
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl Assignments {
     pub fn new() -> Assignments {
-        Assignments(vec![])
+        Assignments(std::cell::RefCell::new(vec![]))
     }
 }
 
@@ -19,25 +19,25 @@ impl Assignments {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
-        let witness_len = self.0.len() as u32;
+        let witness_len = self.0.borrow().len() as u32;
         buffer.extend_from_slice(&witness_len.to_be_bytes());
 
-        for assignment in self.0.iter() {
+        for assignment in self.0.borrow().iter() {
             buffer.extend_from_slice(&assignment.to_be_bytes());
         }
 
         buffer
     }
 
-    pub fn push_i32(&mut self, value: i32) {
-        self.0.push(Scalar::from(value as i128));
+    pub fn push_i32(&self, value: i32) {
+        self.0.borrow_mut().push(Scalar::from(value as i128));
     }
-    pub fn push(&mut self, value: Scalar) {
-        self.0.push(value);
+    pub fn push(&self, value: Scalar) {
+        self.0.borrow_mut().push(value);
     }
 
     pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.0.borrow().is_empty()
     }
 }
 
@@ -46,13 +46,14 @@ impl IntoIterator for Assignments {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
+        // TODO(blaine): I think this is wrong because it consumes the RefCell and replaces with empty vec
+        self.0.take().into_iter()
     }
 }
 
 impl From<Vec<Scalar>> for Assignments {
     fn from(w: Vec<Scalar>) -> Assignments {
-        Assignments(w)
+        Assignments(w.into())
     }
 }
 

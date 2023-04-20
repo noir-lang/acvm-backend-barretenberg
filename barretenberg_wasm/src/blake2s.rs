@@ -5,7 +5,7 @@ use wasmer::Value;
 impl Barretenberg {
     // TODO : Replace this call with a blake2s call and a field element reduce
     /// Hashes to a bn254 scalar field element using blake2s
-    pub fn hash_to_field(&mut self, input: &[u8]) -> FieldElement {
+    pub fn hash_to_field(&self, input: &[u8]) -> FieldElement {
         let input_ptr = self.allocate(input); // 0..32
 
         let result_ptr = Value::I32(0);
@@ -46,7 +46,7 @@ fn basic_interop() {
         },
     ];
 
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
     for test in tests {
         let expected = FieldElement::from_hex(test.expected_hex).unwrap();
         let got = barretenberg.hash_to_field(&test.input);

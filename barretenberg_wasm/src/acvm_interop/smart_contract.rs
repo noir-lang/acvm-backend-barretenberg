@@ -10,7 +10,7 @@ use super::Plonk;
 impl SmartContract for Plonk {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
         // TODO: Don't create an entire new wasm instance for one function call
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         let g2 = G2::new();
 
         let g2_ptr = barretenberg.allocate(&g2.data);
@@ -56,7 +56,7 @@ fn test_smart_contract() {
         .public_inputs(vec![1, 2])
         .constraints(vec![constraint]);
 
-    let mut sc = StandardComposer::new(constraint_system);
+    let sc = StandardComposer::new(constraint_system);
 
     let proving_key = sc.compute_proving_key();
     let verification_key = sc.compute_verification_key(&proving_key);

@@ -51,7 +51,7 @@ impl WASMValue {
 
 impl Barretenberg {
     /// Transfer bytes to WASM heap
-    pub fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
+    pub fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
         let memory = &self.memory;
 
         #[cfg(feature = "js")]
@@ -102,7 +102,7 @@ impl Barretenberg {
     }
 
     /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
-    pub fn allocate(&mut self, bytes: &[u8]) -> Value {
+    pub fn allocate(&self, bytes: &[u8]) -> Value {
         let ptr = self
             .call("bbmalloc", &Value::I32(bytes.len() as i32))
             .value();
@@ -117,7 +117,7 @@ impl Barretenberg {
     /// Frees a pointer.
     /// Notice we consume the Value, if you clone the value before passing it to free
     /// It most likely is a bug
-    pub fn free(&mut self, pointer: Value) {
+    pub fn free(&self, pointer: Value) {
         self.call("bbfree", &pointer);
     }
 }
@@ -278,7 +278,7 @@ fn env_load_prover_crs(_: i32) -> i32 {
 
 #[test]
 fn smoke() {
-    let mut b = Barretenberg::new();
+    let b = Barretenberg::new();
     let (x, y) = b.encrypt(vec![
         common::acvm::FieldElement::zero(),
         common::acvm::FieldElement::one(),

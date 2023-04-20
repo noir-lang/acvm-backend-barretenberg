@@ -18,7 +18,6 @@ getrandom = "0.2"
 pkg-config = "0.3"
 
 [dev-dependencies]
-blake2 = "0.9.1"
 tempfile = "*"
 
 [features]

@@ -14,14 +14,13 @@ pub struct StandardComposer {
 
 impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
 
-        let circuit_size =
-            StandardComposer::get_circuit_size(&mut barretenberg, &constraint_system);
+        let circuit_size = StandardComposer::get_circuit_size(&barretenberg, &constraint_system);
 
         let crs = CRS::new(circuit_size as usize);
 
-        let pippenger = Pippenger::new(&crs.g1_data, &mut barretenberg);
+        let pippenger = Pippenger::new(&crs.g1_data, &barretenberg);
 
         StandardComposer {
             barretenberg,
@@ -46,7 +45,7 @@ impl StandardComposer {
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
     pub fn get_circuit_size(
-        barretenberg: &mut Barretenberg,
+        barretenberg: &Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
         let cs_buf = constraint_system.to_bytes();
@@ -64,7 +63,7 @@ impl StandardComposer {
     }
 
     pub fn get_exact_circuit_size(
-        barretenberg: &mut Barretenberg,
+        barretenberg: &Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
         let cs_buf = constraint_system.to_bytes();
@@ -81,7 +80,7 @@ impl StandardComposer {
         circuit_size
     }
 
-    pub fn compute_proving_key(&mut self) -> Vec<u8> {
+    pub fn compute_proving_key(&self) -> Vec<u8> {
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
 
@@ -102,7 +101,7 @@ impl StandardComposer {
         )
     }
 
-    pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
+    pub fn compute_verification_key(&self, proving_key: &[u8]) -> Vec<u8> {
         let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
 
         let pk_ptr = self.barretenberg.allocate(proving_key);
@@ -124,11 +123,7 @@ impl StandardComposer {
         )
     }
 
-    pub fn create_proof_with_pk(
-        &mut self,
-        witness: WitnessAssignments,
-        proving_key: &[u8],
-    ) -> Vec<u8> {
+    pub fn create_proof_with_pk(&self, witness: WitnessAssignments, proving_key: &[u8]) -> Vec<u8> {
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
 
@@ -165,7 +160,7 @@ impl StandardComposer {
     }
 
     pub fn verify_with_vk(
-        &mut self,
+        &self,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
         proof: &[u8],
@@ -532,7 +527,7 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) {
-        let mut sc = StandardComposer::new(constraint_system);
+        let sc = StandardComposer::new(constraint_system);
 
         let proving_key = sc.compute_proving_key();
         let verification_key = sc.compute_verification_key(&proving_key);
