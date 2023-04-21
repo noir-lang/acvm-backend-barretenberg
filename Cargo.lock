@@ -265,9 +265,9 @@ dependencies = [
 
 [[package]]
 name = "barretenberg-sys"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "550a86403cc44a6ddca26c74ffecf5c0f6aa64f7de9952654b7c6ed062184c3e"
+checksum = "6bc96e40cc45e7d5622cbc57a140aee926a7fb6e4f7d07dda758daa9256f3317"
 dependencies = [
  "bindgen",
  "cc",

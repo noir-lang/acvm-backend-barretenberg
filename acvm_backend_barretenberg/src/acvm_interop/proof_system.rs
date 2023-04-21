@@ -1,5 +1,5 @@
 use crate::Barretenberg;
-use common::acvm::acir::{circuit::Circuit, native_types::Witness};
+use common::acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
 use common::proof;
@@ -14,21 +14,21 @@ impl ProofSystemCompiler for Barretenberg {
         self.get_exact_circuit_size_internal(&circuit.into())
     }
 
-    fn black_box_function_supported(&self, opcode: &common::acvm::acir::BlackBoxFunc) -> bool {
+    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool {
         match opcode {
-            common::acvm::acir::BlackBoxFunc::AES => false,
-            common::acvm::acir::BlackBoxFunc::AND => true,
-            common::acvm::acir::BlackBoxFunc::XOR => true,
-            common::acvm::acir::BlackBoxFunc::RANGE => true,
-            common::acvm::acir::BlackBoxFunc::SHA256 => true,
-            common::acvm::acir::BlackBoxFunc::Blake2s => true,
-            common::acvm::acir::BlackBoxFunc::MerkleMembership => true,
-            common::acvm::acir::BlackBoxFunc::SchnorrVerify => true,
-            common::acvm::acir::BlackBoxFunc::Pedersen => true,
-            common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
-            common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
-            common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
-            common::acvm::acir::BlackBoxFunc::Keccak256 => false,
+            BlackBoxFunc::AND
+            | BlackBoxFunc::XOR
+            | BlackBoxFunc::RANGE
+            | BlackBoxFunc::SHA256
+            | BlackBoxFunc::Blake2s
+            | BlackBoxFunc::MerkleMembership
+            | BlackBoxFunc::SchnorrVerify
+            | BlackBoxFunc::Pedersen
+            | BlackBoxFunc::HashToField128Security
+            | BlackBoxFunc::EcdsaSecp256k1
+            | BlackBoxFunc::FixedBaseScalarMul => true,
+
+            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
         }
     }
 

@@ -13,7 +13,7 @@ cfg-if = "1.0.0"
 common = { path = "../common", default-features = false }
 
 # Native
-barretenberg-sys = { version = "0.1.1", optional = true }
+barretenberg-sys = { version = "0.1.2", optional = true }
 
 # Wasm
 wasmer = { version = "*", optional = true, default-features = false }
