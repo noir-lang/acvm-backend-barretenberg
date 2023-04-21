@@ -19,15 +19,12 @@ mod scalar_mul;
 mod schnorr;
 
 pub use acvm_interop::Plonk;
-use common::crs::CRS;
 
 struct Barretenberg {
     #[cfg(feature = "wasm")]
     memory: Memory,
     #[cfg(feature = "wasm")]
     instance: Instance,
-
-    crs: Option<CRS>,
 }
 
 impl Default for Barretenberg {
@@ -36,26 +33,9 @@ impl Default for Barretenberg {
     }
 }
 
-impl Barretenberg {
-    fn get_crs(&mut self, num_points: u32) -> CRS {
-        // TODO: yucky, we can avoid this cloning.
-        let num_points = num_points as usize;
-
-        if let Some(crs) = &self.crs {
-            if crs.num_points >= num_points {
-                return crs.clone();
-            }
-        }
-        let new_crs = CRS::new(num_points);
-        self.crs = Some(new_crs.clone());
-
-        new_crs
-    }
-}
-
 #[test]
 fn smoke() {
-    let mut b = Barretenberg::new();
+    let b = Barretenberg::new();
     let (x, y) = b.encrypt(vec![
         common::acvm::FieldElement::zero(),
         common::acvm::FieldElement::one(),
@@ -68,7 +48,7 @@ cfg_if::cfg_if! {
 
         impl Barretenberg {
             pub(crate) fn new() -> Barretenberg {
-                Barretenberg { crs: None }
+                Barretenberg {}
             }
         }
 
@@ -93,7 +73,7 @@ cfg_if::cfg_if! {
         impl Barretenberg {
             pub(crate) fn new() -> Barretenberg {
                 let (instance, memory) = instance_load();
-                Barretenberg { memory, instance, crs: None }
+                Barretenberg { memory, instance }
             }
         }
 
@@ -120,7 +100,7 @@ cfg_if::cfg_if! {
 
         impl Barretenberg {
             /// Transfer bytes to WASM heap
-            fn transfer_to_heap(&mut self, arr: &[u8], offset: usize) {
+            fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
                 let memory = &self.memory;
 
                 #[cfg(feature = "js")]
@@ -172,7 +152,7 @@ cfg_if::cfg_if! {
             }
 
             /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
-            fn allocate(&mut self, bytes: &[u8]) -> Value {
+            fn allocate(&self, bytes: &[u8]) -> Value {
                 let ptr = self
                     .call("bbmalloc", &Value::I32(bytes.len() as i32))
                     .value();
@@ -187,7 +167,7 @@ cfg_if::cfg_if! {
             /// Frees a pointer.
             /// Notice we consume the Value, if you clone the value before passing it to free
             /// It most likely is a bug
-            fn free(&mut self, pointer: Value) {
+            fn free(&self, pointer: Value) {
                 self.call("bbfree", &pointer);
             }
         }

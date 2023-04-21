@@ -2,11 +2,7 @@ use super::Barretenberg;
 
 impl Barretenberg {
     #[allow(dead_code)]
-    pub(crate) fn construct_signature(
-        &mut self,
-        message: &[u8],
-        private_key: [u8; 32],
-    ) -> [u8; 64] {
+    pub(crate) fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 let (s, e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
@@ -36,7 +32,7 @@ impl Barretenberg {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
+    pub(crate) fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64] {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 barretenberg_sys::schnorr::construct_public_key(&private_key)
@@ -53,7 +49,7 @@ impl Barretenberg {
     }
 
     pub(crate) fn verify_signature(
-        &mut self,
+        &self,
         pub_key: [u8; 64],
         sig: [u8; 64],
         message: &[u8],
@@ -99,7 +95,7 @@ impl Barretenberg {
 
 #[test]
 fn basic_interop() {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
 
     // First case should pass, standard procedure for Schnorr
     let private_key = [2; 32];

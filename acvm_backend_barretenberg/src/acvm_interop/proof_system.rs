@@ -12,7 +12,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         barretenberg.get_exact_circuit_size(&circuit.into())
     }
 
@@ -35,7 +35,7 @@ impl ProofSystemCompiler for Plonk {
     }
 
     fn preprocess(&self, circuit: &Circuit) -> (Vec<u8>, Vec<u8>) {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         let constraint_system = &circuit.into();
 
         let proving_key = barretenberg.compute_proving_key(constraint_system);
@@ -51,7 +51,7 @@ impl ProofSystemCompiler for Plonk {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
@@ -65,7 +65,7 @@ impl ProofSystemCompiler for Plonk {
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
 
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.

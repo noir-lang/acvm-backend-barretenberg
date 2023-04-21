@@ -3,7 +3,7 @@ use common::acvm::FieldElement;
 use super::Barretenberg;
 
 impl Barretenberg {
-    pub(crate) fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
+    pub(crate) fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 use super::field_to_array;
@@ -35,7 +35,7 @@ mod test {
     use super::*;
     #[test]
     fn smoke_test() {
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         let input = FieldElement::one();
 
         let res = barretenberg.fixed_base(&input);

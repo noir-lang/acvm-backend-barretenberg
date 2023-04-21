@@ -6,7 +6,7 @@ use std::{convert::TryInto, path::Path};
 // Hashes the leaves up the path, on the way to the root
 pub trait PathHasher {
     fn new() -> Self;
-    fn hash(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement;
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement;
 }
 
 // Hashes the message into a leaf
@@ -162,7 +162,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
     }
     pub fn new<P: AsRef<Path>>(depth: u32, path: P) -> MerkleTree<MH, PH> {
-        let mut barretenberg = PH::new();
+        let barretenberg = PH::new();
         let mut msg_hasher = MH::new();
 
         assert!((1..=20).contains(&depth)); // Why can depth != 0 and depth not more than 20?
@@ -309,7 +309,7 @@ pub fn check_membership<Barretenberg: PathHasher>(
     index: &FieldElement,
     leaf: &FieldElement,
 ) -> bool {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
 
     let mut index_bits = index.bits();
     index_bits.reverse();

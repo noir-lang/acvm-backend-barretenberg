@@ -5,7 +5,7 @@ use common::acvm::FieldElement;
 use common::merkle::PathHasher;
 
 impl PathHasher for Barretenberg {
-    fn hash(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         self.compress_native(left, right)
     }
 
@@ -207,7 +207,7 @@ mod tests {
 
         let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
-        let mut barretenberg = Barretenberg::new();
+        let barretenberg = Barretenberg::new();
         let pubkey_x = FieldElement::from_hex(
             "0x0bff8247aa94b08d1c680d7a3e10831bd8c8cf2ea2c756b0d1d89acdcad877ad",
         )

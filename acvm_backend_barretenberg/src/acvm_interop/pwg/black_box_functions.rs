@@ -15,15 +15,15 @@ impl BarretenbergShared for Barretenberg {
         Barretenberg::new()
     }
 
-    fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+    fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
         self.verify_signature(pub_key, sig, message)
     }
 
-    fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
+    fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
         self.fixed_base(input)
     }
 
-    fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
+    fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
         self.encrypt(inputs)
     }
 }

@@ -14,9 +14,9 @@ use crate::merkle::PathHasher;
 // that the PWG needs from Barretenberg
 pub trait BarretenbergShared: PathHasher {
     fn new() -> Self;
-    fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool;
-    fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement);
-    fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
+    fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool;
+    fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement);
+    fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
 }
 
 pub fn solve_black_box_func_call<B: BarretenbergShared>(
@@ -99,7 +99,7 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
                 message.push(msg_i);
             }
 
-            let mut barretenberg = <B as BarretenbergShared>::new();
+            let barretenberg = <B as BarretenbergShared>::new();
 
             let valid_signature = barretenberg.verify_signature(pub_key, signature, &message);
             if !valid_signature {
@@ -121,7 +121,7 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
                 .map(|input| witness_to_value(initial_witness, input.witness))
                 .collect();
             let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
-            let mut barretenberg = <B as BarretenbergShared>::new();
+            let barretenberg = <B as BarretenbergShared>::new();
 
             let (res_x, res_y) = barretenberg.encrypt(scalars);
             initial_witness.insert(gadget_call.outputs[0], res_x);
@@ -153,7 +153,7 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
         BlackBoxFunc::FixedBaseScalarMul => {
             let scalar = witness_to_value(initial_witness, gadget_call.inputs[0].witness)?;
 
-            let mut barretenberg = <B as BarretenbergShared>::new();
+            let barretenberg = <B as BarretenbergShared>::new();
             let (pub_x, pub_y) = barretenberg.fixed_base(scalar);
 
             initial_witness.insert(gadget_call.outputs[0], pub_x);

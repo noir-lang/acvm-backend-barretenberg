@@ -25,7 +25,7 @@ fn transcript_location() -> PathBuf {
 }
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct CRS {
     pub g1_data: Vec<u8>,
     pub g2_data: Vec<u8>,

@@ -8,7 +8,7 @@ pub(crate) struct Pippenger {
 }
 
 impl Barretenberg {
-    pub(crate) fn get_pippenger(&mut self, crs_data: &[u8]) -> Pippenger {
+    pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Pippenger {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 let pippenger_ptr = barretenberg_sys::pippenger::new(crs_data);

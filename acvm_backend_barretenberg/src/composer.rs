@@ -17,7 +17,7 @@ impl Barretenberg {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    pub(crate) fn get_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+    pub(crate) fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
         let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {
@@ -44,7 +44,7 @@ impl Barretenberg {
         pow2ceil(circuit_size + NUM_RESERVED_GATES)
     }
 
-    pub(crate) fn get_exact_circuit_size(&mut self, constraint_system: &ConstraintSystem) -> u32 {
+    pub(crate) fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
         let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {
@@ -55,7 +55,6 @@ impl Barretenberg {
                     )
                 }
             } else {
-                let cs_buf = constraint_system.to_bytes();
                 let cs_ptr = self.allocate(&cs_buf);
 
                 let circuit_size = self
@@ -89,7 +88,7 @@ fn pow2ceil(v: u32) -> u32 {
 }
 
 impl Barretenberg {
-    pub(crate) fn compute_proving_key(&mut self, constraint_system: &ConstraintSystem) -> Vec<u8> {
+    pub(crate) fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
         let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {
@@ -133,15 +132,14 @@ impl Barretenberg {
     }
 
     pub(crate) fn compute_verification_key(
-        &mut self,
+        &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
     ) -> Vec<u8> {
         let circuit_size = self.get_circuit_size(constraint_system);
-
         let CRS {
             g1_data, g2_data, ..
-        } = self.get_crs(circuit_size);
+        } = CRS::new(circuit_size as usize);
         let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
 
         cfg_if::cfg_if! {
@@ -195,16 +193,15 @@ impl Barretenberg {
     }
 
     pub(crate) fn create_proof_with_pk(
-        &mut self,
+        &self,
         constraint_system: &ConstraintSystem,
         witness: WitnessAssignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
         let circuit_size = self.get_circuit_size(constraint_system);
-
         let CRS {
             g1_data, g2_data, ..
-        } = self.get_crs(circuit_size);
+        } = CRS::new(circuit_size as usize);
         let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
         let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
@@ -239,7 +236,6 @@ impl Barretenberg {
             } else {
                 use wasmer::Value;
 
-                let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
                 let cs_ptr = self.allocate(&cs_buf);
                 let witness_ptr = self.allocate(&witness_buf);
                 let g2_ptr = self.allocate(&g2_data);
@@ -273,7 +269,7 @@ impl Barretenberg {
     }
 
     pub(crate) fn verify_with_vk(
-        &mut self,
+        &self,
         constraint_system: &ConstraintSystem,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
@@ -282,7 +278,7 @@ impl Barretenberg {
         verification_key: &[u8],
     ) -> bool {
         let circuit_size = self.get_circuit_size(constraint_system);
-        let CRS { g2_data, .. } = self.get_crs(circuit_size);
+        let CRS { g2_data, .. } = CRS::new(circuit_size as usize);
 
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -741,7 +737,7 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) {
-        let mut bb = Barretenberg::new();
+        let bb = Barretenberg::new();
 
         let proving_key = bb.compute_proving_key(&constraint_system);
         let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
