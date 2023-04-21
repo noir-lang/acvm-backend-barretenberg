@@ -72,13 +72,6 @@
         # rust-bindgen needs to know the location of libclang
         LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
 
-        # Barretenberg fails if tests are run on multiple threads, so we set the test thread
-        # count to 1 throughout the entire project
-        #
-        # Note: Setting this allows for consistent behavior across build and shells, but is mostly
-        # hidden from the developer - i.e. when they see the command being run via `nix flake check`
-        RUST_TEST_THREADS = "1";
-
         # We set the environment variable because barretenberg must be compiled in a special way for wasm
         BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
 
