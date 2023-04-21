@@ -9,6 +9,7 @@ rust-version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blake2 = "0.9.1"
 cfg-if = "1.0.0"
 common = { path = "../common", default-features = false }
 
@@ -28,7 +29,7 @@ blake2 = "0.9.1"
 tempfile = "*"
 
 [features]
-default = ["native"]
+default = ["wasm"]
 
 native=[
     "dep:barretenberg-sys",

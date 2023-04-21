@@ -1,5 +1,3 @@
-// TODO: remove once this module is used
-#![allow(dead_code)]
 use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
 
@@ -300,48 +298,3 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         self.depth
     }
 }
-
-// TODO: alter this method so that it only processes one hash per level rather than overriding
-// the one of leaves for each level of the hash path
-pub fn check_membership<Barretenberg: PathHasher>(
-    hash_path: Vec<&FieldElement>,
-    root: &FieldElement,
-    index: &FieldElement,
-    leaf: &FieldElement,
-) -> bool {
-    let barretenberg = Barretenberg::new();
-
-    let mut index_bits = index.bits();
-    index_bits.reverse();
-
-    let mut current = *leaf;
-
-    for (i, path_elem) in hash_path.into_iter().enumerate() {
-        let path_bit = index_bits[i];
-        let (hash_left, hash_right) = if !path_bit {
-            (current, *path_elem)
-        } else {
-            (*path_elem, current)
-        };
-        current = barretenberg.hash(&hash_left, &hash_right);
-    }
-
-    &current == root
-}
-// fn hash(message: &[u8]) -> FieldElement {
-//     use blake2::Digest;
-
-//     let mut hasher = blake2::Blake2s::new();
-//     hasher.update(message);
-//     let res = hasher.finalize();
-//     FieldElement::from_be_bytes_reduce(&res[..])
-// }
-// XXX(FIXME) : Currently, this is very aztec specific, because this PWG does not have
-// a way to deal with generic ECC operations
-// fn compress_native(
-//     barretenberg: &mut Barretenberg,
-//     left: &FieldElement,
-//     right: &FieldElement,
-// ) -> FieldElement {
-//     barretenberg.compress_native(left, right)
-// }

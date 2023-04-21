@@ -1,8 +1,5 @@
-// TODO: remove once this module is used
-#![allow(dead_code)]
 use crate::Barretenberg;
-use common::acvm::FieldElement;
-use common::merkle::PathHasher;
+use common::{acvm::FieldElement, merkle::PathHasher};
 
 impl PathHasher for Barretenberg {
     fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
@@ -12,6 +9,33 @@ impl PathHasher for Barretenberg {
     fn new() -> Self {
         Barretenberg::new()
     }
+}
+
+// TODO: alter this method so that it only processes one hash per level rather than overriding
+// the one of leaves for each level of the hash path
+pub(super) fn check_membership(
+    barretenberg: &Barretenberg,
+    hash_path: Vec<&FieldElement>,
+    root: &FieldElement,
+    index: &FieldElement,
+    leaf: &FieldElement,
+) -> bool {
+    let mut index_bits = index.bits();
+    index_bits.reverse();
+
+    let mut current = *leaf;
+
+    for (i, path_elem) in hash_path.into_iter().enumerate() {
+        let path_bit = index_bits[i];
+        let (hash_left, hash_right) = if !path_bit {
+            (current, *path_elem)
+        } else {
+            (*path_elem, current)
+        };
+        current = barretenberg.hash(&hash_left, &hash_right);
+    }
+
+    &current == root
 }
 
 #[cfg(test)]
@@ -184,12 +208,8 @@ mod tests {
                 hash_path_ref.push(hash);
             }
             let hash_path_ref = hash_path_ref.iter().collect();
-            let is_leaf_in_tree = common::merkle::check_membership::<Barretenberg>(
-                hash_path_ref,
-                &root,
-                &index,
-                &leaf,
-            );
+            let is_leaf_in_tree =
+                super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
 
             assert_eq!(
                 is_leaf_in_tree, test_vector.result,
@@ -236,7 +256,7 @@ mod tests {
         }
         let hash_path_ref = hash_path_ref.iter().collect();
         let is_leaf_in_tree =
-            common::merkle::check_membership::<Barretenberg>(hash_path_ref, &root, &index, &leaf);
+            super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
 
         assert!(is_leaf_in_tree)
     }
