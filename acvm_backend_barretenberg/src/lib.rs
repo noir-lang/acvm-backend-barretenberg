@@ -82,10 +82,9 @@ cfg_if::cfg_if! {
             memory: Memory,
         }
 
-        /// A wrapper around the return value from a WASM call
-        /// Notice, Option<> is used because not every call returns a value
-        /// Some calls are simply made to free a pointer for example
-        /// Or manipulate the heap
+        /// A wrapper around the return value from a WASM call.
+        /// Notice, `Option<Value>` is used because not every call returns a value,
+        /// some calls are simply made to free a pointer or manipulate the heap.
         #[derive(Debug)]
         struct WASMValue(Option<Value>);
 
