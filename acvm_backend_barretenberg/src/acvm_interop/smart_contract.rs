@@ -27,7 +27,6 @@ impl SmartContract for Barretenberg {
                 };
             } else {
                 use wasmer::Value;
-                use crate::Barretenberg;
 
                 let g2_ptr = self.allocate(&g2.data);
                 let vk_ptr = self.allocate(verification_key);
