@@ -2,9 +2,9 @@ use common::acvm::SmartContract;
 use common::crs::G2;
 use common::ULTRA_VERIFIER_CONTRACT;
 
-use super::Plonk;
+use crate::Barretenberg;
 
-impl SmartContract for Plonk {
+impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
         let g2 = G2::new();
 
@@ -29,22 +29,19 @@ impl SmartContract for Plonk {
                 use wasmer::Value;
                 use crate::Barretenberg;
 
-                // TODO: Don't create an entire new wasm instance for one function call
-                let barretenberg = Barretenberg::new();
+                let g2_ptr = self.allocate(&g2.data);
+                let vk_ptr = self.allocate(verification_key);
 
-                let g2_ptr = barretenberg.allocate(&g2.data);
-                let vk_ptr = barretenberg.allocate(verification_key);
-
-                let contract_size = barretenberg
+                let contract_size = self
                     .call_multiple(
                         "acir_proofs_get_solidity_verifier",
                         vec![&g2_ptr, &vk_ptr, &Value::I32(0)],
                     )
                     .value();
-                let contract_ptr = barretenberg.slice_memory(0, 4);
+                let contract_ptr = self.slice_memory(0, 4);
                 let contract_ptr = u32::from_le_bytes(contract_ptr[0..4].try_into().unwrap());
 
-                let sc_as_bytes = barretenberg.slice_memory(
+                let sc_as_bytes = self.slice_memory(
                     contract_ptr as usize,
                     contract_ptr as usize + contract_size.unwrap_i32() as usize,
                 );
@@ -82,8 +79,7 @@ fn test_smart_contract() {
     let proving_key = bb.compute_proving_key(&constraint_system);
     let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
 
-    let plonk = Plonk;
-    let contract = plonk.eth_contract_from_vk(&verification_key);
+    let contract = bb.eth_contract_from_vk(&verification_key);
 
     assert!(contract.contains("contract BaseUltraVerifier"));
     assert!(contract.contains("contract UltraVerifier"));

@@ -44,7 +44,10 @@ impl Barretenberg {
         pow2ceil(circuit_size + NUM_RESERVED_GATES)
     }
 
-    pub(crate) fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
+    pub(crate) fn get_exact_circuit_size_internal(
+        &self,
+        constraint_system: &ConstraintSystem,
+    ) -> u32 {
         let cs_buf = constraint_system.to_bytes();
 
         cfg_if::cfg_if! {

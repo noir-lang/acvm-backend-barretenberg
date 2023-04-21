@@ -18,9 +18,7 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
-pub use acvm_interop::Plonk;
-
-struct Barretenberg {
+pub struct Barretenberg {
     #[cfg(feature = "wasm")]
     memory: Memory,
     #[cfg(feature = "wasm")]

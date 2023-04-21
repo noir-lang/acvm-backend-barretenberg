@@ -6,10 +6,11 @@ use std::collections::BTreeMap;
 mod black_box_functions;
 mod merkle;
 
-use self::black_box_functions::BlackBoxFuncCaller;
-use super::Plonk;
+use crate::Barretenberg;
 
-impl PartialWitnessGenerator for Plonk {
+use self::black_box_functions::BlackBoxFuncCaller;
+
+impl PartialWitnessGenerator for Barretenberg {
     fn solve_black_box_function_call(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
