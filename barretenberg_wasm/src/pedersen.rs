@@ -9,7 +9,7 @@ impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         let lhs_ptr = self.allocate(&left.to_be_bytes());
         let rhs_ptr = self.allocate(&right.to_be_bytes());
-        let result_ptr: usize = 0;
+        let result_ptr: usize = 64;
         self.call_multiple(
             "pedersen_plookup_compress_fields",
             vec![&lhs_ptr, &rhs_ptr, &Value::I32(result_ptr as i32)],
