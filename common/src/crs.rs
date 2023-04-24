@@ -1,7 +1,5 @@
 use std::{env, fs::File, io::Write, path::PathBuf};
 
-use futures_util::StreamExt;
-
 // TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
@@ -111,14 +109,14 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
 // XXX: Below is the logic to download the CRS if it is not already present
 
 pub fn download_crs(path_to_transcript: PathBuf) -> Result<(), String> {
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(download_crs_async(path_to_transcript))
+    use pollster::FutureExt as _;
+
+    download_crs_async(path_to_transcript).block_on()
 }
 
 async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
+    use futures_util::StreamExt;
+
     // Remove old crs
     if path_to_transcript.exists() {
         let _ = std::fs::remove_file(path_to_transcript.as_path());

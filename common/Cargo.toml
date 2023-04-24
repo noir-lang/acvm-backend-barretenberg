@@ -16,10 +16,10 @@ sled = "0.34.6"
 blake2 = "0.9.1"
 dirs = { version = "3.0", optional = true }
 reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["stream", "rustls-tls"] }
-tokio = { version = "1.0", optional = true }
 futures-util = { version = "0.3.14", optional = true }
 indicatif = { version = "0.17.3", optional = true }
+pollster = "0.3.0"
 
 [features]
 default = ["std"]
-std = ["dep:reqwest", "dep:tokio", "dep:futures-util", "dep:dirs", "dep:indicatif"]
+std = ["dep:reqwest", "dep:futures-util", "dep:dirs", "dep:indicatif"]
