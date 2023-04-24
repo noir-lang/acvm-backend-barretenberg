@@ -3,7 +3,7 @@ use common::crs::G2;
 use common::ULTRA_VERIFIER_CONTRACT;
 use wasmer::Value;
 
-use crate::Barretenberg;
+use crate::{Barretenberg, POINTER_BYTES};
 
 use super::Plonk;
 
@@ -15,20 +15,21 @@ impl SmartContract for Plonk {
 
         let g2_ptr = barretenberg.allocate(&g2.data);
         let vk_ptr = barretenberg.allocate(verification_key);
+        let result_ptr: usize = 0;
 
         let contract_size = barretenberg
             .call_multiple(
                 "acir_proofs_get_solidity_verifier",
-                vec![&g2_ptr, &vk_ptr, &Value::I32(0)],
+                vec![&g2_ptr, &vk_ptr, &Value::I32(result_ptr as i32)],
             )
             .value();
-        let contract_ptr = barretenberg.slice_memory(0, 4);
-        let contract_ptr = u32::from_le_bytes(contract_ptr[0..4].try_into().unwrap());
+        let contract_size: usize = contract_size.unwrap_i32() as usize;
 
-        let sc_as_bytes = barretenberg.slice_memory(
-            contract_ptr as usize,
-            contract_ptr as usize + contract_size.unwrap_i32() as usize,
-        );
+        let contract_ptr = barretenberg.slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let contract_ptr: usize =
+            u32::from_le_bytes(contract_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+
+        let sc_as_bytes = barretenberg.slice_memory(contract_ptr, contract_ptr + contract_size);
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")
