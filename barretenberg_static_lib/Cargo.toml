@@ -16,4 +16,3 @@ barretenberg-sys = "0.1.2"
 [dev-dependencies]
 blake2 = "0.9.1"
 tempfile = "*"
-pollster = "0.3.0"
