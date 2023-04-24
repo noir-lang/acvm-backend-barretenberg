@@ -1,5 +1,7 @@
 # aztec_backend
 
+This is a backend for the [ACVM](https://github.com/noir-lang/acvm) which allows proving/verifying ACIR circuits against Aztec Protocol's [Barretenberg](https://github.com/AztecProtocol/barretenberg) library.
+
 ## Working on this project
 
 Due to the large number of native dependencies, this project uses [Nix](https://nixos.org/) and [direnv](https://direnv.net/) to streamline the development experience.
