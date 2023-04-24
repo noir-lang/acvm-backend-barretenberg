@@ -21,6 +21,10 @@ pub use common::crs;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
+const FIELD_BYTES: usize = 32;
+const SIG_BYTES: usize = 64;
+const POINTER_BYTES: usize = 4;
+
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
 pub struct Barretenberg {

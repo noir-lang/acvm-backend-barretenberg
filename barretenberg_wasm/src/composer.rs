@@ -1,5 +1,4 @@
-use super::pippenger::Pippenger;
-use super::Barretenberg;
+use super::{pippenger::Pippenger, Barretenberg, POINTER_BYTES};
 use common::barretenberg_structures::*;
 use common::crs::CRS;
 use common::proof;
@@ -85,43 +84,59 @@ impl StandardComposer {
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
 
+        // The proving key is not actually written to this pointer.
+        // `result_ptr` is a pointer to a pointer which holds the proving key.
+        let result_ptr: usize = 0;
+
         let pk_size = self
             .barretenberg
             .call_multiple(
                 "acir_proofs_init_proving_key",
-                vec![&cs_ptr, &Value::I32(0)],
+                vec![&cs_ptr, &Value::I32(result_ptr as i32)],
             )
             .value();
+        let pk_size: usize = pk_size.unwrap_i32() as usize;
 
-        let pk_ptr = self.barretenberg.slice_memory(0, 4);
-        let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
+        // We then need to read the pointer at `result_ptr` to get the key's location
+        // and then slice memory again at `pk_ptr` to get the proving key.
+        let pk_ptr = self.barretenberg.slice_memory(result_ptr, POINTER_BYTES);
+        let pk_ptr: usize =
+            u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        self.barretenberg.slice_memory(
-            pk_ptr as usize,
-            pk_ptr as usize + pk_size.unwrap_i32() as usize,
-        )
+        self.barretenberg.slice_memory(pk_ptr, pk_ptr + pk_size)
     }
 
     pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
         let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
-
         let pk_ptr = self.barretenberg.allocate(proving_key);
+
+        // The verification key is not actually written to this pointer.
+        // `result_ptr` is a pointer to a pointer which holds the verification key.
+        let result_ptr: usize = 0;
 
         let vk_size = self
             .barretenberg
             .call_multiple(
                 "acir_proofs_init_verification_key",
-                vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
+                vec![
+                    &self.pippenger.pointer(),
+                    &g2_ptr,
+                    &pk_ptr,
+                    &Value::I32(result_ptr as i32),
+                ],
             )
             .value();
+        let vk_size: usize = vk_size.unwrap_i32() as usize;
 
-        let vk_ptr = self.barretenberg.slice_memory(0, 4);
-        let vk_ptr = u32::from_le_bytes(vk_ptr[0..4].try_into().unwrap());
+        // We then need to read the pointer at `result_ptr` to get the key's location
+        // and then slice memory again at `vk_ptr` to get the verification key.
+        let vk_ptr = self
+            .barretenberg
+            .slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let vk_ptr: usize =
+            u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        self.barretenberg.slice_memory(
-            vk_ptr as usize,
-            vk_ptr as usize + vk_size.unwrap_i32() as usize,
-        )
+        self.barretenberg.slice_memory(vk_ptr, vk_ptr + vk_size)
     }
 
     pub fn create_proof_with_pk(
@@ -139,6 +154,10 @@ impl StandardComposer {
 
         let pk_ptr = self.barretenberg.allocate(proving_key);
 
+        // The proof data is not actually written to this pointer.
+        // `result_ptr` is a pointer to a pointer which holds the proof data.
+        let result_ptr: usize = 0;
+
         let proof_size = self
             .barretenberg
             .call_multiple(
@@ -149,18 +168,23 @@ impl StandardComposer {
                     &pk_ptr,
                     &cs_ptr,
                     &witness_ptr,
-                    &Value::I32(0),
+                    &Value::I32(result_ptr as i32),
                 ],
             )
             .value();
+        let proof_size: usize = proof_size.unwrap_i32() as usize;
 
-        let proof_ptr = self.barretenberg.slice_memory(0, 4);
-        let proof_ptr = u32::from_le_bytes(proof_ptr[0..4].try_into().unwrap());
+        // We then need to read the pointer at `result_ptr` to get the proof's location
+        // and then slice memory again at `proof_ptr` to get the proof data.
+        let proof_ptr = self
+            .barretenberg
+            .slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let proof_ptr: usize =
+            u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        let proof = self.barretenberg.slice_memory(
-            proof_ptr as usize,
-            proof_ptr as usize + proof_size.unwrap_i32() as usize,
-        );
+        let proof = self
+            .barretenberg
+            .slice_memory(proof_ptr, proof_ptr + proof_size);
         proof::remove_public_inputs(self.constraint_system.public_inputs_size(), &proof)
     }
 

@@ -1,49 +1,73 @@
 use std::convert::TryInto;
 use wasmer::Value;
 
-use super::Barretenberg;
+use super::{Barretenberg, FIELD_BYTES, SIG_BYTES};
+
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
-        self.transfer_to_heap(&private_key, 64);
-        self.transfer_to_heap(message, 96);
-        let message_len = Value::I32(message.len() as i32);
+        let message_ptr: usize = 96;
+        let private_key_ptr: usize = 64;
+        let sig_s_ptr: usize = 0;
+        let sig_e_ptr: usize = 32;
+        let result_ptr: usize = 0;
+
+        self.transfer_to_heap(&private_key, private_key_ptr);
+        self.transfer_to_heap(message, message_ptr);
         self.call_multiple(
             "construct_signature",
             vec![
-                &Value::I32(96),
-                &message_len,
-                &Value::I32(64),
-                &Value::I32(0),
-                &Value::I32(32),
+                &Value::I32(message_ptr as i32),
+                &Value::I32(message.len() as i32),
+                &Value::I32(private_key_ptr as i32),
+                &Value::I32(sig_e_ptr as i32),
+                &Value::I32(sig_s_ptr as i32),
             ],
         );
 
-        let sig_bytes = self.slice_memory(0, 64);
+        let sig_bytes = self.slice_memory(result_ptr, result_ptr + SIG_BYTES);
         sig_bytes.try_into().unwrap()
     }
 
     pub fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
-        self.transfer_to_heap(&private_key, 0);
+        let private_key_ptr: usize = 0;
+        let result_ptr: usize = 32;
 
-        self.call_multiple("compute_public_key", vec![&Value::I32(0), &Value::I32(32)]);
+        self.transfer_to_heap(&private_key, private_key_ptr);
 
-        self.slice_memory(32, 96).try_into().unwrap()
+        self.call_multiple(
+            "compute_public_key",
+            vec![
+                &Value::I32(private_key_ptr as i32),
+                &Value::I32(result_ptr as i32),
+            ],
+        );
+
+        self.slice_memory(result_ptr, result_ptr + 2 * FIELD_BYTES)
+            .try_into()
+            .unwrap()
     }
 
     pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
-        self.transfer_to_heap(&pub_key, 0);
-        self.transfer_to_heap(&sig[0..32], 64);
-        self.transfer_to_heap(&sig[32..64], 96);
-        self.transfer_to_heap(message, 128);
+        let message_ptr: usize = 128;
+        let public_key_ptr: usize = 0;
+        let sig_s_ptr: usize = 64;
+        let sig_e_ptr: usize = 96;
+
+        let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
+
+        self.transfer_to_heap(&pub_key, public_key_ptr);
+        self.transfer_to_heap(sig_s, sig_s_ptr);
+        self.transfer_to_heap(sig_e, sig_e_ptr);
+        self.transfer_to_heap(message, message_ptr);
 
         let wasm_value = self.call_multiple(
             "verify_signature",
             vec![
-                &Value::I32(128),
+                &Value::I32(message_ptr as i32),
                 &Value::I32(message.len() as i32),
-                &Value::I32(0),
-                &Value::I32(64),
-                &Value::I32(96),
+                &Value::I32(public_key_ptr as i32),
+                &Value::I32(sig_s_ptr as i32),
+                &Value::I32(sig_e_ptr as i32),
             ],
         );
         match wasm_value.into_i32() {
