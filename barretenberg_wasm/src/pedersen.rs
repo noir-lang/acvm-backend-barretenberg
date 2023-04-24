@@ -7,12 +7,20 @@ use super::{Barretenberg, FIELD_BYTES};
 
 impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
-        let lhs_ptr = self.allocate(&left.to_be_bytes());
-        let rhs_ptr = self.allocate(&right.to_be_bytes());
+        let lhs_ptr: usize = 0;
+        let rhs_ptr: usize = 32;
         let result_ptr: usize = 64;
+
+        self.transfer_to_heap(&left.to_be_bytes(), lhs_ptr);
+        self.transfer_to_heap(&right.to_be_bytes(), rhs_ptr);
+
         self.call_multiple(
             "pedersen_plookup_compress_fields",
-            vec![&lhs_ptr, &rhs_ptr, &Value::I32(result_ptr as i32)],
+            vec![
+                &Value::I32(lhs_ptr as i32),
+                &Value::I32(rhs_ptr as i32),
+                &Value::I32(result_ptr as i32),
+            ],
         );
 
         let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
