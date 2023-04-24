@@ -25,11 +25,11 @@ impl SmartContract for Plonk {
             .value();
         let contract_size: usize = contract_size.unwrap_i32() as usize;
 
-        let contract_ptr = barretenberg.slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let contract_ptr = barretenberg.slice_memory(result_ptr, POINTER_BYTES);
         let contract_ptr: usize =
             u32::from_le_bytes(contract_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        let sc_as_bytes = barretenberg.slice_memory(contract_ptr, contract_ptr + contract_size);
+        let sc_as_bytes = barretenberg.slice_memory(contract_ptr, contract_size);
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")

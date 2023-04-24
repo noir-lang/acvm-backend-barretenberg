@@ -13,7 +13,7 @@ impl Barretenberg {
             vec![&lhs_ptr, &Value::I32(result_ptr as i32)],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, result_ptr + 2 * FIELD_BYTES);
+        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(32);
         assert!(pubkey_x_bytes.len() == FIELD_BYTES);
         assert!(pubkey_y_bytes.len() == FIELD_BYTES);

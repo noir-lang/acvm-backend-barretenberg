@@ -29,7 +29,7 @@ impl Barretenberg {
             ],
         );
 
-        let sig_bytes = self.slice_memory(result_ptr, result_ptr + SIG_BYTES);
+        let sig_bytes = self.slice_memory(result_ptr, SIG_BYTES);
         sig_bytes.try_into().unwrap()
     }
 
@@ -47,7 +47,7 @@ impl Barretenberg {
             ],
         );
 
-        self.slice_memory(result_ptr, result_ptr + 2 * FIELD_BYTES)
+        self.slice_memory(result_ptr, 2 * FIELD_BYTES)
             .try_into()
             .unwrap()
     }

@@ -20,7 +20,7 @@ impl Barretenberg {
 
         self.free(input_ptr);
 
-        let result_bytes = self.slice_memory(result_ptr, result_ptr + FIELD_BYTES);
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 }

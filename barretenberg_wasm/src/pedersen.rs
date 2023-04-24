@@ -15,7 +15,7 @@ impl Barretenberg {
             vec![&lhs_ptr, &rhs_ptr, &Value::I32(result_ptr as i32)],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, result_ptr + FIELD_BYTES);
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
@@ -29,7 +29,7 @@ impl Barretenberg {
             vec![&input_ptr, &Value::I32(result_ptr as i32)],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, result_ptr + FIELD_BYTES);
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
@@ -43,7 +43,7 @@ impl Barretenberg {
             vec![&input_ptr, &Value::I32(result_ptr as i32)],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, result_ptr + 2 * FIELD_BYTES);
+        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(32);
         assert!(point_x_bytes.len() == FIELD_BYTES);
         assert!(point_y_bytes.len() == FIELD_BYTES);

@@ -103,7 +103,7 @@ impl StandardComposer {
         let pk_ptr: usize =
             u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        self.barretenberg.slice_memory(pk_ptr, pk_ptr + pk_size)
+        self.barretenberg.slice_memory(pk_ptr, pk_size)
     }
 
     pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
@@ -130,13 +130,11 @@ impl StandardComposer {
 
         // We then need to read the pointer at `result_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
-        let vk_ptr = self
-            .barretenberg
-            .slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let vk_ptr = self.barretenberg.slice_memory(result_ptr, POINTER_BYTES);
         let vk_ptr: usize =
             u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        self.barretenberg.slice_memory(vk_ptr, vk_ptr + vk_size)
+        self.barretenberg.slice_memory(vk_ptr, vk_size)
     }
 
     pub fn create_proof_with_pk(
@@ -176,15 +174,11 @@ impl StandardComposer {
 
         // We then need to read the pointer at `result_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
-        let proof_ptr = self
-            .barretenberg
-            .slice_memory(result_ptr, result_ptr + POINTER_BYTES);
+        let proof_ptr = self.barretenberg.slice_memory(result_ptr, POINTER_BYTES);
         let proof_ptr: usize =
             u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        let proof = self
-            .barretenberg
-            .slice_memory(proof_ptr, proof_ptr + proof_size);
+        let proof = self.barretenberg.slice_memory(proof_ptr, proof_size);
         proof::remove_public_inputs(self.constraint_system.public_inputs_size(), &proof)
     }
 
