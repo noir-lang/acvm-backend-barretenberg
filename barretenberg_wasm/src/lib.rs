@@ -21,6 +21,23 @@ pub use common::crs;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
+// We often need to allocate memory to store various data structures being passed to/from
+// the wasm binary. These constants represent the bytes necessary to allocate to these objects.
+
+/// The number of bytes necessary to store a `FieldElement`.
+const FIELD_BYTES: usize = 32;
+/// The number of bytes necessary to represent a pointer to memory inside the wasm.
+const POINTER_BYTES: usize = 4;
+
+/// The Barretenberg WASM gives us 1024 bytes of scratch space which we can use without
+/// needing to allocate/free it ourselves. This can be useful for when we need to pass in several small variables
+/// when calling functions on the wasm, however it's important to not overrun this scratch space as otherwise
+/// the written data will begin to corrupt the stack.
+///
+/// Using this scratch space isn't particularly safe if we have multiple threads interacting with the wasm however,
+/// each thread could write to the same pointer address simultaneously.
+const WASM_SCRATCH_BYTES: usize = 1024;
+
 /// Barretenberg is the low level struct which calls the WASM file
 /// This is the bridge between Rust and the WASM which itself is a bridge to the C++ codebase.
 pub struct Barretenberg {
@@ -74,11 +91,12 @@ impl Barretenberg {
         }
     }
     // XXX: change to read_mem
-    pub fn slice_memory(&self, start: usize, end: usize) -> Vec<u8> {
+    pub fn slice_memory(&self, start: usize, length: usize) -> Vec<u8> {
         let memory = &self.memory;
+        let end = start + length;
 
         #[cfg(feature = "js")]
-        return memory.uint8view().to_vec()[start as usize..end].to_vec();
+        return memory.uint8view().to_vec()[start..end].to_vec();
 
         #[cfg(not(feature = "js"))]
         return memory.view()[start..end]

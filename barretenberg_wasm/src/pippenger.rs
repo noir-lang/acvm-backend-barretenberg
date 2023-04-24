@@ -1,4 +1,4 @@
-use super::Barretenberg;
+use super::{Barretenberg, FIELD_BYTES};
 use wasmer::Value;
 
 pub struct Pippenger {
@@ -7,12 +7,15 @@ pub struct Pippenger {
 
 impl Pippenger {
     pub fn new(crs_data: &[u8], barretenberg: &mut Barretenberg) -> Pippenger {
-        let num_points = Value::I32((crs_data.len() / 64) as i32);
+        let num_points = crs_data.len() / (2 * FIELD_BYTES);
 
         let crs_ptr = barretenberg.allocate(crs_data);
 
         let pippenger_ptr = barretenberg
-            .call_multiple("new_pippenger", vec![&crs_ptr, &num_points])
+            .call_multiple(
+                "new_pippenger",
+                vec![&crs_ptr, &Value::I32(num_points as i32)],
+            )
             .value();
 
         barretenberg.free(crs_ptr);
