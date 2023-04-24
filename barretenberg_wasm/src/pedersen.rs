@@ -36,7 +36,7 @@ impl Barretenberg {
     pub fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
-        let result_ptr: usize = 32;
+        let result_ptr: usize = 0;
 
         self.call_multiple(
             "pedersen_plookup_commit",

@@ -6,7 +6,7 @@ use super::{Barretenberg, FIELD_BYTES};
 impl Barretenberg {
     pub fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
         let lhs_ptr = self.allocate(&input.to_be_bytes());
-        let result_ptr: usize = 32;
+        let result_ptr: usize = 0;
 
         self.call_multiple(
             "compute_public_key",
