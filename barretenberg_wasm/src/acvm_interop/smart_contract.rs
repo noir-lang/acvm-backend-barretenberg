@@ -15,17 +15,22 @@ impl SmartContract for Plonk {
 
         let g2_ptr = barretenberg.allocate(&g2.data);
         let vk_ptr = barretenberg.allocate(verification_key);
-        let result_ptr: usize = 0;
+
+        // The smart contract string is not actually written to this pointer.
+        // `contract_ptr_ptr` is a pointer to a pointer which holds the smart contract string.
+        let contract_ptr_ptr: usize = 0;
 
         let contract_size = barretenberg
             .call_multiple(
                 "acir_proofs_get_solidity_verifier",
-                vec![&g2_ptr, &vk_ptr, &Value::I32(result_ptr as i32)],
+                vec![&g2_ptr, &vk_ptr, &Value::I32(contract_ptr_ptr as i32)],
             )
             .value();
         let contract_size: usize = contract_size.unwrap_i32() as usize;
 
-        let contract_ptr = barretenberg.slice_memory(result_ptr, POINTER_BYTES);
+        // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
+        // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
+        let contract_ptr = barretenberg.slice_memory(contract_ptr_ptr, POINTER_BYTES);
         let contract_ptr: usize =
             u32::from_le_bytes(contract_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
