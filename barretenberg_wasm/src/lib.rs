@@ -26,8 +26,6 @@ use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Val
 
 /// The number of bytes necessary to store a `FieldElement`.
 const FIELD_BYTES: usize = 32;
-/// The number of bytes necessary to store a Schnorr signature.
-const SCHNORR_SIG_BYTES: usize = 64;
 /// The number of bytes necessary to represent a pointer to memory inside the wasm.
 const POINTER_BYTES: usize = 4;
 

@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use wasmer::Value;
 
 use super::Barretenberg;
-use super::{FIELD_BYTES, SCHNORR_SIG_BYTES, WASM_SCRATCH_BYTES};
+use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
@@ -14,7 +14,6 @@ impl Barretenberg {
         let private_key_ptr: usize = 64;
         let sig_s_ptr: usize = 0;
         let sig_e_ptr: usize = 32;
-        let result_ptr: usize = 0;
 
         self.transfer_to_heap(&private_key, private_key_ptr);
         self.transfer_to_heap(message, message_ptr);
@@ -29,8 +28,12 @@ impl Barretenberg {
             ],
         );
 
-        let sig_bytes = self.slice_memory(result_ptr, SCHNORR_SIG_BYTES);
-        sig_bytes.try_into().unwrap()
+        let sig_s_bytes = self.slice_memory(sig_s_ptr, FIELD_BYTES);
+        let sig_e_bytes = self.slice_memory(sig_e_ptr, FIELD_BYTES);
+        let sig_s: [u8; 32] = sig_s_bytes.try_into().unwrap();
+        let sig_e: [u8; 32] = sig_e_bytes.try_into().unwrap();
+
+        [sig_s, sig_e].concat().try_into().unwrap()
     }
 
     pub fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
