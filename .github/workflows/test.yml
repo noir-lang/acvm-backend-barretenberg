@@ -34,6 +34,20 @@ jobs:
         with:
           name: barretenberg
 
+      - name: Restore Cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/nix-cache
+          key: ${{ runner.os }}-flake-${{ hashFiles('flake.lock') }}
+
+      - name: Copy cache into nix store
+        run: |
+          nix copy --from "file:/tmp/nix-cache"
+
       - name: Run `nix flake check`
         run: |
           nix flake check -L
+
+      - name: Export cache from nix store
+        run: |
+          nix copy --to "file:/tmp/nix-cache?compression=zstd&parallel-compression=true"
