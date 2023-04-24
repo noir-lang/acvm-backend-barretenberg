@@ -164,6 +164,8 @@
       };
 
       packages.default = acvm-backend-barretenberg;
+
+      # We expose the `cargo-artifacts` derivation so we can cache our cargo dependencies in CI
       packages.cargo-artifacts = cargoArtifacts;
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
