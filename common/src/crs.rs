@@ -1,3 +1,5 @@
+#[cfg(feature = "js")]
+use wasm_bindgen::prelude::*;
 // TODO(blaine): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
@@ -137,14 +139,28 @@ pub mod download {
     }
 
     pub fn read_crs(path: PathBuf) -> Vec<u8> {
-        include_bytes!("/Users/phated/.nargo/backends/acvm-backend-barretenberg/transcript00.dat")
-            .to_vec()
-        // vec![]
+        // include_bytes!("../../transcript00.dat").to_vec()
+        vec![]
     }
 
     pub fn transcript_location() -> PathBuf {
-        PathBuf::from("/Users/phated/.nargo/backends/acvm-backend-barretenberg/transcript00.dat")
+        PathBuf::from("/home/koby/git/noir-lang/aztec_backend/transcript00.dat")
     }
+}
+
+#[cfg(feature = "js")]
+#[wasm_bindgen]
+pub fn init_log_level(level: String) {
+    use log::Level;
+    use std::str::FromStr;
+    // Set the static variable from Rust
+    use std::sync::Once;
+
+    let log_level = Level::from_str(&level).unwrap_or(Level::Error);
+    static SET_HOOK: Once = Once::new();
+    SET_HOOK.call_once(|| {
+        wasm_logger::init(wasm_logger::Config::new(log_level));
+    });
 }
 
 #[allow(clippy::upper_case_acronyms)]
@@ -174,7 +190,14 @@ impl CRS {
 
         let g1_data = crs[G1_START..=g1_end].to_vec();
         let g2_data = crs[G2_START..=G2_END].to_vec();
+        CRS {
+            g1_data,
+            g2_data,
+            num_points,
+        }
+    }
 
+    pub fn new_crs_from_data(num_points: usize, g1_data: Vec<u8>, g2_data: Vec<u8>) -> CRS {
         CRS {
             g1_data,
             g2_data,
@@ -192,6 +215,9 @@ pub struct G2 {
 impl G2 {
     pub fn new() -> G2 {
         // If the CRS does not exist, then download it from S3
+
+        // #[cfg(feature = "std")]
+        // {
         if !download::transcript_location().exists() {
             download::download_crs(download::transcript_location());
         }

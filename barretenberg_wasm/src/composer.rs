@@ -9,8 +9,8 @@ use wasmer::Value;
 #[wasm_bindgen]
 pub struct StandardComposer {
     barretenberg: Barretenberg,
-    pippenger: Pippenger,
-    crs: CRS,
+    pippenger: Option<Pippenger>,
+    crs: Option<CRS>,
     constraint_system: ConstraintSystem,
 }
 #[wasm_bindgen]
@@ -19,17 +19,17 @@ impl StandardComposer {
     pub fn new(constraint_system: ConstraintSystem) -> StandardComposer {
         let mut barretenberg = Barretenberg::new();
 
-        let circuit_size =
-            StandardComposer::get_circuit_size(&mut barretenberg, &constraint_system);
+        // let circuit_size =
+        //     StandardComposer::get_circuit_size(&mut barretenberg, &constraint_system);
 
-        let crs = CRS::new(circuit_size as usize);
+        // let crs = CRS::new(circuit_size as usize);
 
-        let pippenger = Pippenger::new(&crs.g1_data, &mut barretenberg);
+        // let pippenger = Pippenger::new(&crs.g1_data, &mut barretenberg);
 
         StandardComposer {
             barretenberg,
-            pippenger,
-            crs,
+            pippenger: None,
+            crs: None,
             constraint_system,
         }
     }
@@ -39,6 +39,20 @@ const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanis
 
 #[wasm_bindgen]
 impl StandardComposer {
+    pub fn get_circ_size(&mut self) -> u32 {
+        StandardComposer::get_circuit_size(&mut self.barretenberg, &self.constraint_system)
+    }
+
+    pub fn init_crs_data(&mut self, num_points: usize, g1_data: Vec<u8>, g2_data: Vec<u8>) {
+        self.crs = Some(CRS::new_crs_from_data(num_points, g1_data, g2_data))
+    }
+    pub fn create_pippenger(&mut self) {
+        self.pippenger = Some(Pippenger::new(
+            &self.crs.as_ref().unwrap().g1_data,
+            &mut self.barretenberg,
+        ));
+    }
+
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
     // for certain circuit sizes.
@@ -49,7 +63,7 @@ impl StandardComposer {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    fn get_circuit_size(
+    pub fn get_circuit_size(
         barretenberg: &mut Barretenberg,
         constraint_system: &ConstraintSystem,
     ) -> u32 {
@@ -125,7 +139,9 @@ impl StandardComposer {
     }
 
     pub fn compute_verification_key(&mut self, proving_key: &[u8]) -> Vec<u8> {
-        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+        let g2_ptr = self
+            .barretenberg
+            .allocate(&self.crs.as_ref().unwrap().g2_data);
 
         let pk_ptr = self.barretenberg.allocate(proving_key);
 
@@ -133,7 +149,12 @@ impl StandardComposer {
             .barretenberg
             .call_multiple(
                 "acir_proofs_init_verification_key",
-                vec![&self.pippenger.pointer(), &g2_ptr, &pk_ptr, &Value::I32(0)],
+                vec![
+                    &self.pippenger.as_ref().unwrap().pointer(),
+                    &g2_ptr,
+                    &pk_ptr,
+                    &Value::I32(0),
+                ],
             )
             .value();
 
@@ -149,7 +170,7 @@ impl StandardComposer {
     pub fn create_proof_with_pk(
         &mut self,
         witness: WitnessAssignments,
-        proving_key: &[u8],
+        proving_key: &[u8], // g2_data: &[u8]
     ) -> Vec<u8> {
         let cs_buf = self.constraint_system.to_bytes();
         let cs_ptr = self.barretenberg.allocate(&cs_buf);
@@ -157,7 +178,9 @@ impl StandardComposer {
         let witness_buf = witness.to_bytes();
         let witness_ptr = self.barretenberg.allocate(&witness_buf);
 
-        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+        let g2_ptr = self
+            .barretenberg
+            .allocate(&self.crs.as_ref().unwrap().g2_data);
 
         let pk_ptr = self.barretenberg.allocate(proving_key);
 
@@ -166,7 +189,7 @@ impl StandardComposer {
             .call_multiple(
                 "acir_proofs_new_proof",
                 vec![
-                    &self.pippenger.pointer(),
+                    &self.pippenger.as_ref().unwrap().pointer(),
                     &g2_ptr,
                     &pk_ptr,
                     &cs_ptr,
@@ -206,7 +229,9 @@ impl StandardComposer {
 
         let proof_ptr = self.barretenberg.allocate(&proof);
 
-        let g2_ptr = self.barretenberg.allocate(&self.crs.g2_data);
+        let g2_ptr = self
+            .barretenberg
+            .allocate(&self.crs.as_ref().unwrap().g2_data);
 
         let vk_ptr = self.barretenberg.allocate(verification_key);
 

@@ -40,9 +40,14 @@
         ];
       };
 
-      rustToolchain = pkgs.rust-bin.stable."1.66.0".default;
+      # rustToolchain = pkgs.rust-bin.stable."1.66.0".default;
+
+        rustToolchain = pkgs.rust-bin.stable.latest.default.override {
+          targets = [ "wasm32-unknown-unknown" ];
+        };
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
 
       environment = {
         # rust-bindgen needs to know the location of libclang
@@ -130,7 +135,7 @@
 
       # llvmPackages should be aligned to selection from libbarretenberg
       # better if we get rid of llvm targets and override them from input
-      devShells.default = pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; } ({
+      devShells.default = pkgs.mkShell.override { stdenv = pkgs.llvmPackages.stdenv; } (environment // {
         inputsFrom = builtins.attrValues self.checks;
 
         buildInputs = packages.default.buildInputs;
@@ -138,12 +143,16 @@
           which
           starship
           git
-          cargo
-          rustc
+          nodejs-18_x
+          rustToolchain
+          wasm-pack
         ];
 
         shellHook = ''
           eval "$(starship init bash)"
+          echo 🧪 BARRETENBERG_BIN_DIR = $BARRETENBERG_BIN_DIR;
+          echo 🧪 BARRETENBERG_TRANSCRIPT = $BARRETENBERG_TRANSCRIPT;
+          echo Build command: wasm-pack build  --target nodejs barretenberg_wasm --no-default-features --features js
         '';
 
       } // environment);

@@ -20,5 +20,13 @@
                 }
             }
         ]
-    }
+    },
+    "rust-analyzer.cargo.features": [
+        // "js"
+    ],
+    "rust-analyzer.cargo.noDefaultFeatures": false,
+    "rust-analyzer.check.features": [
+        // "js"
+    ],
+    "rust-analyzer.check.noDefaultFeatures": false
 }
