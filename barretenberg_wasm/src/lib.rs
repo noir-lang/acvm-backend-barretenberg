@@ -21,8 +21,14 @@ pub use common::crs;
 use std::cell::Cell;
 use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
+// We often need to allocate memory to store various data structures being passed to/from
+// the wasm binary. These constants represent the bytes necessary to allocate to these objects.
+
+/// The number of bytes necessary to store a `FieldElement`.
 const FIELD_BYTES: usize = 32;
-const SIG_BYTES: usize = 64;
+/// The number of bytes necessary to store a Schnorr signature.
+const SCHNORR_SIG_BYTES: usize = 64;
+/// The number of bytes necessary to represent a pointer to memory inside the wasm.
 const POINTER_BYTES: usize = 4;
 
 /// The Barretenberg WASM gives us 1024 bytes of scratch space which we can use without

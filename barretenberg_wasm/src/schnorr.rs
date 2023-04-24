@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use wasmer::Value;
 
 use super::Barretenberg;
-use super::{FIELD_BYTES, SIG_BYTES, WASM_SCRATCH_BYTES};
+use super::{FIELD_BYTES, SCHNORR_SIG_BYTES, WASM_SCRATCH_BYTES};
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
@@ -29,7 +29,7 @@ impl Barretenberg {
             ],
         );
 
-        let sig_bytes = self.slice_memory(result_ptr, SIG_BYTES);
+        let sig_bytes = self.slice_memory(result_ptr, SCHNORR_SIG_BYTES);
         sig_bytes.try_into().unwrap()
     }
 
