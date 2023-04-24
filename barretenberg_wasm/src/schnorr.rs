@@ -1,9 +1,8 @@
 use std::convert::TryInto;
 use wasmer::Value;
 
-use crate::WASM_SCRATCH_BYTES;
-
-use super::{Barretenberg, FIELD_BYTES, SIG_BYTES};
+use super::Barretenberg;
+use super::{FIELD_BYTES, SIG_BYTES, WASM_SCRATCH_BYTES};
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
