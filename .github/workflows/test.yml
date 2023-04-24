@@ -44,7 +44,10 @@ jobs:
       - name: Copy cache into nix store
         if: steps.nix-store-cache.outputs.cache-hit == 'true'
         run: |
-          nix copy --from "file:/tmp/nix-cache"
+          for narinfo in /tmp/nix-cache/*.narinfo; do
+            path=$(head -n 1 "$narinfo" | awk '{print $2}')
+            nix copy --no-check-sigs --from "file:///tmp/nix-cache" "$path"
+          done
 
       - name: Run `nix flake check`
         run: |
@@ -53,4 +56,4 @@ jobs:
       - name: Export cache from nix store
         if: steps.nix-store-cache.outputs.cache-hit != 'true'
         run: |
-          nix copy --to "file:/tmp/nix-cache?compression=zstd&parallel-compression=true"
+          nix copy --to "file:///tmp/nix-cache?compression=zstd&parallel-compression=true" .#cargo-artifacts

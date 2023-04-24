@@ -164,6 +164,7 @@
       };
 
       packages.default = acvm-backend-barretenberg;
+      packages.cargo-artifacts = cargoArtifacts;
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
