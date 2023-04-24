@@ -2,5 +2,8 @@ target
 .DS_Store
 node_modules
 dest
+
+# Nix stuff
 result
-barretenberg_wasm/src/barretenberg.wasm
+.envrc.local
+.direnv
