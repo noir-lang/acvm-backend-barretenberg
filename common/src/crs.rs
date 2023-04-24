@@ -27,6 +27,7 @@ impl CRS {
         let g1_end = G1_START + (num_points * 64) - 1;
 
         // If the CRS does not exist, then download it from S3
+        #[cfg(feature = "std")]
         if !transcript_location().exists() {
             download_crs(transcript_location());
         }
@@ -34,6 +35,7 @@ impl CRS {
         // Read CRS, if it's incomplete, download it
         let mut crs = read_crs(transcript_location());
         if crs.len() < G2_END + 1 {
+            #[cfg(feature = "std")]
             download_crs(transcript_location());
             crs = read_crs(transcript_location());
         }
@@ -67,6 +69,7 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
 
 // XXX: Below is the logic to download the CRS if it is not already present
 
+#[cfg(feature = "std")]
 pub fn download_crs(mut path_to_transcript: PathBuf) {
     // Remove old crs
     if path_to_transcript.exists() {
@@ -98,14 +101,19 @@ pub fn download_crs(mut path_to_transcript: PathBuf) {
     }
 }
 // Taken from https://github.com/hunger/downloader/blob/main/examples/download.rs
+
+#[cfg(feature = "std")]
 struct SimpleReporterPrivate {
     started: std::time::Instant,
     progress_bar: indicatif::ProgressBar,
 }
+
+#[cfg(feature = "std")]
 struct SimpleReporter {
     private: std::sync::Mutex<Option<SimpleReporterPrivate>>,
 }
 
+#[cfg(feature = "std")]
 impl SimpleReporter {
     fn create() -> std::sync::Arc<Self> {
         std::sync::Arc::new(Self {
@@ -114,6 +122,7 @@ impl SimpleReporter {
     }
 }
 
+#[cfg(feature = "std")]
 impl downloader::progress::Reporter for SimpleReporter {
     fn setup(&self, max_progress: Option<u64>, _message: &str) {
         let bar = indicatif::ProgressBar::new(max_progress.unwrap());

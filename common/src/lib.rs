@@ -5,7 +5,6 @@ pub mod barretenberg_structures;
 pub mod black_box_functions;
 pub mod contract;
 
-#[cfg(feature = "std")]
 pub mod crs;
 pub mod merkle;
 pub mod serializer;

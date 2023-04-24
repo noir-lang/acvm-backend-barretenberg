@@ -1,113 +1,194 @@
-#![warn(unused_crate_dependencies, unused_extern_crates)]
-#![warn(unreachable_pub)]
+use std::vec;
 
-pub use barretenberg_wasm::Barretenberg;
-
+use barretenberg_wasm;
+use common::acvm::{
+    acir::brillig_bytecode, acir::circuit::opcodes::Brillig, acir::circuit::Opcode,
+    acir::native_types::Witness, pwg::block::Blocks, FieldElement, PartialWitnessGenerator,
+    UnresolvedBrillig, UnresolvedData,
+};
+use js_sys::JsString;
+use js_transforms::{
+    field_element_to_js_string, format_js_err, js_map_to_witness_map, js_value_to_field_element,
+    read_circuit, witness_map_to_js_map, JsErrorString,
+};
 use wasm_bindgen::prelude::*;
 
-use common::acvm::{
-    acir::circuit::Circuit, acir::native_types::Witness, FieldElement, PartialWitnessGenerator,
-};
-
-use std::collections::BTreeMap;
-
-// Flattened
-pub type ComputedWitness = Vec<u8>;
+mod js_transforms;
 
 #[wasm_bindgen]
-pub fn compute_witnesses(
-    circuit: JsValue,
-    initial_js_witness: Vec<js_sys::JsString>,
-) -> ComputedWitness {
+extern "C" {
+    // Use `js_namespace` here to bind `console.log(..)` instead of just
+    // `log(..)`
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+
+    // The `console.log` is quite polymorphic, so we can bind it with multiple
+    // signatures. Note that we need to use `js_name` to ensure we always call
+    // `log` in JS.
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_u32(a: u32);
+
+    // Multiple arguments too!
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+}
+
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
+async fn resolve_oracle(
+    oracle_resolver: &js_sys::Function,
+    mut unresolved_brillig: UnresolvedBrillig,
+) -> Result<Brillig, JsErrorString> {
+    let mut oracle_data = unresolved_brillig.oracle_wait_info.data;
+
+    // Prepare to call
+    let this = JsValue::null();
+    let name = JsValue::from(oracle_data.name.clone());
+    let inputs = js_sys::Array::default();
+    for input_value in &oracle_data.input_values {
+        let hex_js_string = field_element_to_js_string(input_value);
+        inputs.push(&JsValue::from(hex_js_string));
+    }
+
+    // Call and await
+    let ret_js_val = oracle_resolver
+        .call2(&this, &name, &inputs)
+        .map_err(|err| format!("Error calling oracle_resolver: {}", format_js_err(err)))?;
+    let ret_js_prom: js_sys::Promise = ret_js_val.into();
+    let ret_future: wasm_bindgen_futures::JsFuture = ret_js_prom.into();
+    let js_resolution = ret_future
+        .await
+        .map_err(|err| format!("Error awaiting oracle_resolver: {}", format_js_err(err)))?;
+    if !js_resolution.is_array() {
+        return Err("oracle_resolver must return a Promise<string[]>".into());
+    }
+
+    // Handle and apply result
+    let js_arr = js_sys::Array::from(&js_resolution);
+    // TODO: re-enable length check once the opcode supports it again
+    // let ouput_len = js_arr.length() as usize;
+    // let expected_output_len = oracle_data.outputs.len();
+    // if ouput_len != expected_output_len {
+    //     return Err(format!(
+    //         "Expected output from oracle '{}' of {} elements, but instead received {}",
+    //         oracle_data.name, expected_output_len, ouput_len
+    //     )
+    //     .into());
+    // }
+    for elem in js_arr.iter() {
+        if !elem.is_string() {
+            return Err("Non-string element in oracle_resolver return".into());
+        }
+        oracle_data
+            .output_values
+            .push(js_value_to_field_element(elem)?)
+    }
+    console_log!("solved {}", oracle_data.name);
+    console_log!("outputs: {:?}", oracle_data.output_values);
+
+    // Insert updated brillig oracle into bytecode
+    unresolved_brillig.brillig.bytecode[unresolved_brillig.oracle_wait_info.program_counter] =
+        brillig_bytecode::Opcode::Oracle(oracle_data);
+
+    Ok(unresolved_brillig.brillig)
+}
+
+#[wasm_bindgen]
+pub async fn solve_intermediate_witness(
+    circuit: js_sys::Uint8Array,
+    initial_witness: js_sys::Map,
+    oracle_resolver: js_sys::Function,
+) -> Result<js_sys::Map, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let circuit: Circuit = circuit.into_serde().unwrap();
+    let mut opcodes_to_solve = read_circuit(circuit)?.opcodes;
+    let mut witness_assignments = js_map_to_witness_map(initial_witness)?;
+    let mut blocks = Blocks::default();
 
-    let mut initial_witness = Vec::new();
-    for js_val in initial_js_witness {
-        initial_witness.push(String::from(js_val))
-    }
-
-    // Convert initial witness vector to a BTreeMap and add the zero witness as the first one
-    let mut witness_map: BTreeMap<Witness, FieldElement> = BTreeMap::new();
-    let num_wits = circuit.current_witness_index;
-    for (index, element) in initial_witness.into_iter().enumerate() {
-        witness_map.insert(
-            Witness((index + 1) as u32),
-            FieldElement::from_hex(&element).expect("expected hex strings"),
-        );
-    }
-    debug_assert_eq!((num_wits + 1) as usize, witness_map.len());
-
-    // Now use the partial witness generator to fill in the rest of the witnesses
-    // which are possible
-
+    use barretenberg_wasm::Plonk;
     let plonk = Plonk;
-    match plonk.solve(&mut witness_map, circuit.opcodes) {
-        Ok(_) => {}
-        Err(opcode) => panic!("solver came across an error with opcode {}", opcode),
-    };
+    while !opcodes_to_solve.is_empty() {
+        let UnresolvedData {
+            mut unresolved_opcodes,
+            unresolved_brilligs,
+            ..
+        } = plonk
+            .solve(&mut witness_assignments, &mut blocks, opcodes_to_solve)
+            .map_err(|err| JsString::from(format!("solver opcode resolution error: {}", err)))?;
+        let brillig_futures: Vec<_> = unresolved_brilligs
+            .into_iter()
+            .map(|unresolved_brillig| resolve_oracle(&oracle_resolver, unresolved_brillig))
+            .collect();
+        opcodes_to_solve = Vec::new();
+        for brillig_future in brillig_futures {
+            let filled_brillig = brillig_future.await?;
+            unresolved_opcodes.push(Opcode::Brillig(filled_brillig));
+        }
+        opcodes_to_solve.extend_from_slice(&unresolved_opcodes);
+    }
 
-    // Serialize the witness in a way that the C++ codebase can deserialize
-    let assignments = proof::flatten_witness_map(&circuit, witness_values);
-
-    assignments.to_bytes()
+    Ok(witness_map_to_js_map(witness_assignments))
 }
 
 #[wasm_bindgen]
-pub fn serialise_acir_to_barrtenberg_circuit(acir: JsValue) -> Vec<u8> {
+pub fn intermediate_witness_to_assignment_bytes(
+    intermediate_witness: js_sys::Map,
+) -> Result<js_sys::Uint8Array, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    let circuit: Circuit = acir.into_serde().unwrap();
-    serialize_circuit(&circuit).to_bytes()
-}
+    let intermediate_witness = js_map_to_witness_map(intermediate_witness)?;
 
-#[wasm_bindgen]
-pub fn packed_witness_to_witness(acir: JsValue, witness_arr: Vec<u8>) -> Vec<u8> {
-    console_error_panic_hook::set_once();
-
-    use common::barretenberg_structures::Assignments;
-    let circuit: Circuit = acir.into_serde().unwrap();
-    let witness_values = Witness::from_bytes(&witness_arr);
-    let mut sorted_witness = Assignments::new();
-    let num_witnesses = circuit.num_vars();
+    // Add witnesses in the correct order
+    // Note: The witnesses are sorted via their witness index
+    // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
+    let num_witnesses = intermediate_witness.len();
+    let mut sorted_witness = common::barretenberg_structures::Assignments::new();
     for i in 1..num_witnesses {
-        // Get the value if it exists. If i does not, then we fill it with the zero value
-        let value = match witness_values.get(&Witness(i)) {
+        let value = match intermediate_witness.get(&Witness(i as u32)) {
             Some(value) => *value,
-            None => FieldElement::zero(),
+            None => return Err(format!("Missing witness element at idx {}", i).into()),
         };
 
         sorted_witness.push(value);
     }
-    sorted_witness.to_bytes()
+
+    let bytes = sorted_witness.to_bytes();
+    Ok(js_sys::Uint8Array::from(&bytes[..]))
 }
 
 #[wasm_bindgen]
-pub fn eth_contract_from_cs(vk_method: String) -> String {
-    crate::contract::turbo_verifier::create(&vk_method)
-}
-
-#[wasm_bindgen]
-pub fn serialise_public_inputs(pub_inputs_js_string: Vec<js_sys::JsString>) -> Vec<u8> {
+pub fn acir_to_constraints_system(
+    circuit: js_sys::Uint8Array,
+) -> Result<js_sys::Uint8Array, JsErrorString> {
     console_error_panic_hook::set_once();
 
-    use common::acvm::FieldElement;
+    let circuit = read_circuit(circuit)?;
+    let bytes = common::serializer::serialize_circuit(&circuit).to_bytes();
+    Ok(js_sys::Uint8Array::from(&bytes[..]))
+}
 
-    let mut pub_inputs_string = Vec::new();
-    for val in pub_inputs_js_string {
-        pub_inputs_string.push(String::from(val))
+#[wasm_bindgen]
+pub fn public_input_length(circuit: js_sys::Uint8Array) -> Result<js_sys::Number, JsErrorString> {
+    console_error_panic_hook::set_once();
+
+    let circuit = read_circuit(circuit)?;
+    let length = circuit.public_inputs().0.len() as u32;
+    Ok(js_sys::Number::from(length))
+}
+
+#[wasm_bindgen]
+pub fn public_input_as_bytes(
+    public_witness: js_sys::Map,
+) -> Result<js_sys::Uint8Array, JsErrorString> {
+    console_error_panic_hook::set_once();
+
+    let public_witness = js_map_to_witness_map(public_witness)?;
+    let mut buffer = Vec::new();
+    // Implicitly ordered by index
+    for assignment in public_witness.values() {
+        buffer.extend_from_slice(&assignment.to_be_bytes());
     }
-
-    let mut pub_inputs = Vec::new();
-    for string in pub_inputs_string {
-        let field = FieldElement::from_hex(&string).expect("unexpected hex string");
-        pub_inputs.push(field)
-    }
-
-    pub_inputs
-        .into_iter()
-        .map(|field| field.to_bytes())
-        .flatten()
-        .collect()
+    Ok(js_sys::Uint8Array::from(&buffer[..]))
 }

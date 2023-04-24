@@ -11,6 +11,7 @@ rust-version.workspace = true
 [dependencies]
 wasmer = { version = "*", default-features = false }
 common = { path = "../common", default-features = false }
+js-sys = { version = "0.3.61", optional = true }
 
 [dev-dependencies]
 blake2 = "0.9.1"
@@ -30,4 +31,5 @@ js = [
 
     # "acvm/bn254", 
     "wasmer/js-default",
+    "js-sys",
 ]
