@@ -1,11 +1,17 @@
 use std::convert::TryInto;
 use wasmer::Value;
 
+use crate::WASM_SCRATCH_BYTES;
+
 use super::{Barretenberg, FIELD_BYTES, SIG_BYTES};
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
         let message_ptr: usize = 96;
+        assert!(
+            message_ptr + message.len() < WASM_SCRATCH_BYTES,
+            "Message overran wasm scratch space"
+        );
         let private_key_ptr: usize = 64;
         let sig_s_ptr: usize = 0;
         let sig_e_ptr: usize = 32;
@@ -49,6 +55,10 @@ impl Barretenberg {
 
     pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
         let message_ptr: usize = 128;
+        assert!(
+            message_ptr + message.len() < WASM_SCRATCH_BYTES,
+            "Message overran wasm scratch space"
+        );
         let public_key_ptr: usize = 0;
         let sig_s_ptr: usize = 64;
         let sig_e_ptr: usize = 96;
