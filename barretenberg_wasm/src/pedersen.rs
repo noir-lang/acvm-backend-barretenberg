@@ -8,8 +8,8 @@ use super::{Barretenberg, FIELD_BYTES};
 impl Barretenberg {
     pub fn compress_native(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         let lhs_ptr: usize = 0;
-        let rhs_ptr: usize = 32;
-        let result_ptr: usize = 64;
+        let rhs_ptr: usize = lhs_ptr + FIELD_BYTES;
+        let result_ptr: usize = rhs_ptr + FIELD_BYTES;
 
         self.transfer_to_heap(&left.to_be_bytes(), lhs_ptr);
         self.transfer_to_heap(&right.to_be_bytes(), rhs_ptr);

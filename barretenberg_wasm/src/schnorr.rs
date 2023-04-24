@@ -6,14 +6,14 @@ use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
 
 impl Barretenberg {
     pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
-        let message_ptr: usize = 96;
+        let sig_s_ptr: usize = 0;
+        let sig_e_ptr: usize = sig_s_ptr + FIELD_BYTES;
+        let private_key_ptr: usize = sig_e_ptr + FIELD_BYTES;
+        let message_ptr: usize = private_key_ptr + FIELD_BYTES;
         assert!(
             message_ptr + message.len() < WASM_SCRATCH_BYTES,
             "Message overran wasm scratch space"
         );
-        let private_key_ptr: usize = 64;
-        let sig_s_ptr: usize = 0;
-        let sig_e_ptr: usize = 32;
 
         self.transfer_to_heap(&private_key, private_key_ptr);
         self.transfer_to_heap(message, message_ptr);
@@ -56,14 +56,14 @@ impl Barretenberg {
     }
 
     pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
-        let message_ptr: usize = 128;
+        let public_key_ptr: usize = 0;
+        let sig_s_ptr: usize = public_key_ptr + 2 * FIELD_BYTES;
+        let sig_e_ptr: usize = sig_s_ptr + FIELD_BYTES;
+        let message_ptr: usize = sig_e_ptr + FIELD_BYTES;
         assert!(
             message_ptr + message.len() < WASM_SCRATCH_BYTES,
             "Message overran wasm scratch space"
         );
-        let public_key_ptr: usize = 0;
-        let sig_s_ptr: usize = 64;
-        let sig_e_ptr: usize = 96;
 
         let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
 

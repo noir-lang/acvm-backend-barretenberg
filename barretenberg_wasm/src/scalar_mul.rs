@@ -6,7 +6,7 @@ use super::{Barretenberg, FIELD_BYTES};
 impl Barretenberg {
     pub fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement) {
         let lhs_ptr: usize = 0;
-        let result_ptr: usize = 32;
+        let result_ptr: usize = lhs_ptr + FIELD_BYTES;
 
         self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
 
