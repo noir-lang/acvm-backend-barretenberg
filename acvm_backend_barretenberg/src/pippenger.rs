@@ -14,13 +14,17 @@ impl Barretenberg {
                 let pippenger_ptr = barretenberg_sys::pippenger::new(crs_data);
             } else {
                 use wasmer::Value;
+                use super::FIELD_BYTES;
 
-                let num_points = Value::I32((crs_data.len() / 64) as i32);
+                let num_points = crs_data.len() / (2 * FIELD_BYTES);
 
                 let crs_ptr = self.allocate(crs_data);
 
                 let pippenger_ptr = self
-                    .call_multiple("new_pippenger", vec![&crs_ptr, &num_points])
+                    .call_multiple(
+                        "new_pippenger",
+                        vec![&crs_ptr, &Value::I32(num_points as i32)],
+                    )
                     .value();
 
                 self.free(crs_ptr);

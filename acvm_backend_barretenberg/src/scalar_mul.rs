@@ -1,6 +1,6 @@
 use common::acvm::FieldElement;
 
-use super::Barretenberg;
+use super::{Barretenberg, FIELD_BYTES};
 
 impl Barretenberg {
     pub(crate) fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
@@ -12,17 +12,22 @@ impl Barretenberg {
             } else {
                 use wasmer::Value;
 
-                let lhs_ptr = self.allocate(&input.to_be_bytes()); // 0..32
-                let result_ptr = Value::I32(32);
-                self.call_multiple("compute_public_key", vec![&lhs_ptr, &result_ptr]);
+                let lhs_ptr: usize = 0;
+                let result_ptr: usize = lhs_ptr + FIELD_BYTES;
+                self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
 
-                let result_bytes = self.slice_memory(32, 96);
+                self.call_multiple(
+                    "compute_public_key",
+                    vec![&Value::I32(lhs_ptr as i32), &Value::I32(result_ptr as i32)],
+                );
+
+                let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
             }
         }
 
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(32);
-        assert!(pubkey_x_bytes.len() == 32);
-        assert!(pubkey_y_bytes.len() == 32);
+        assert!(pubkey_x_bytes.len() == FIELD_BYTES);
+        assert!(pubkey_y_bytes.len() == FIELD_BYTES);
 
         let pubkey_x = FieldElement::from_be_bytes_reduce(pubkey_x_bytes);
         let pubkey_y = FieldElement::from_be_bytes_reduce(pubkey_y_bytes);

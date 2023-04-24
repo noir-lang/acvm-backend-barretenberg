@@ -113,23 +113,31 @@ impl Barretenberg {
                 result
             } else {
                 use wasmer::Value;
+                use super::POINTER_BYTES;
 
                 let cs_ptr = self.allocate(&cs_buf);
+
+                // The proving key is not actually written to this pointer.
+                // `pk_ptr_ptr` is a pointer to a pointer which holds the proving key.
+                let pk_ptr_ptr: usize = 0;
 
                 let pk_size = self
                     .call_multiple(
                         "acir_proofs_init_proving_key",
-                        vec![&cs_ptr, &Value::I32(0)],
+                        vec![&cs_ptr, &Value::I32(pk_ptr_ptr as i32)],
                     )
                     .value();
+                let pk_size: usize = pk_size.unwrap_i32() as usize;
 
-                let pk_ptr = self.slice_memory(0, 4);
-                let pk_ptr = u32::from_le_bytes(pk_ptr[0..4].try_into().unwrap());
+                 // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
+                // and then slice memory again at `pk_ptr` to get the proving key.
+                let pk_ptr = self.slice_memory(pk_ptr_ptr, POINTER_BYTES);
+                let pk_ptr: usize =
+                    u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-                self.slice_memory(
-                    pk_ptr as usize,
-                    pk_ptr as usize + pk_size.unwrap_i32() as usize,
-                )
+
+            self.slice_memory(pk_ptr, pk_size)
+
             }
         }
     }
@@ -171,26 +179,35 @@ impl Barretenberg {
                 result.to_vec()
             } else {
                 use wasmer::Value;
+                use super::POINTER_BYTES;
 
                 let g2_ptr = self.allocate(&g2_data);
-
                 let pk_ptr = self.allocate(proving_key);
 
+                // The verification key is not actually written to this pointer.
+                // `vk_ptr_ptr` is a pointer to a pointer which holds the verification key.
+                let vk_ptr_ptr: usize = 0;
 
                 let vk_size = self
                     .call_multiple(
                         "acir_proofs_init_verification_key",
-                        vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &Value::I32(0)],
+                        vec![
+                            &pippenger_ptr,
+                            &g2_ptr,
+                            &pk_ptr,
+                            &Value::I32(vk_ptr_ptr as i32)
+                        ],
                     )
                     .value();
+                let vk_size: usize = vk_size.unwrap_i32() as usize;
 
-                let vk_ptr = self.slice_memory(0, 4);
-                let vk_ptr = u32::from_le_bytes(vk_ptr[0..4].try_into().unwrap());
+                // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
+                // and then slice memory again at `vk_ptr` to get the verification key.
+                let vk_ptr = self.slice_memory(vk_ptr_ptr, POINTER_BYTES);
+                let vk_ptr: usize =
+                    u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-                self.slice_memory(
-                    vk_ptr as usize,
-                    vk_ptr as usize + vk_size.unwrap_i32() as usize,
-                )
+                self.slice_memory(vk_ptr, vk_size)
             }
         }
     }
@@ -238,11 +255,16 @@ impl Barretenberg {
                 }
             } else {
                 use wasmer::Value;
+                use super::POINTER_BYTES;
 
                 let cs_ptr = self.allocate(&cs_buf);
                 let witness_ptr = self.allocate(&witness_buf);
                 let g2_ptr = self.allocate(&g2_data);
                 let pk_ptr = self.allocate(proving_key);
+
+                // The proof data is not actually written to this pointer.
+                // `proof_ptr_ptr` is a pointer to a pointer which holds the proof data.
+                let proof_ptr_ptr: usize = 0;
 
                 let proof_size = self
                     .call_multiple(
@@ -257,14 +279,15 @@ impl Barretenberg {
                         ],
                     )
                     .value();
+                let proof_size: usize = proof_size.unwrap_i32() as usize;
 
-                let proof_ptr = self.slice_memory(0, 4);
-                let proof_ptr = u32::from_le_bytes(proof_ptr[0..4].try_into().unwrap());
+                // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
+                // and then slice memory again at `proof_ptr` to get the proof data.
+                let proof_ptr = self.slice_memory(proof_ptr_ptr, POINTER_BYTES);
+                let proof_ptr: usize =
+                    u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-                let result = self.slice_memory(
-                    proof_ptr as usize,
-                    proof_ptr as usize + proof_size.unwrap_i32() as usize,
-                );
+                let result = self.slice_memory(proof_ptr, proof_size);
             }
         }
 

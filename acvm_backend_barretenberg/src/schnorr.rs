@@ -5,30 +5,43 @@ impl Barretenberg {
     pub(crate) fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
-                let (s, e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
-                let sig_bytes: [u8; 64] = [s, e].concat().try_into().unwrap();
-                sig_bytes
+                let (sig_s, sig_e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
+
             } else {
                 use wasmer::Value;
+                use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
 
-                self.transfer_to_heap(&private_key, 64);
-                self.transfer_to_heap(message, 96);
-                let message_len = Value::I32(message.len() as i32);
+                let sig_s_ptr: usize = 0;
+                let sig_e_ptr: usize = sig_s_ptr + FIELD_BYTES;
+                let private_key_ptr: usize = sig_e_ptr + FIELD_BYTES;
+                let message_ptr: usize = private_key_ptr + private_key.len();
+                assert!(
+                    message_ptr + message.len() < WASM_SCRATCH_BYTES,
+                    "Message overran wasm scratch space"
+                );
+
+                self.transfer_to_heap(&private_key, private_key_ptr);
+                self.transfer_to_heap(message, message_ptr);
                 self.call_multiple(
                     "construct_signature",
                     vec![
-                        &Value::I32(96),
-                        &message_len,
-                        &Value::I32(64),
-                        &Value::I32(0),
-                        &Value::I32(32),
+                        &Value::I32(message_ptr as i32),
+                        &Value::I32(message.len() as i32),
+                        &Value::I32(private_key_ptr as i32),
+                        &Value::I32(sig_s_ptr as i32),
+                        &Value::I32(sig_e_ptr as i32),
                     ],
                 );
 
-                let sig_bytes = self.slice_memory(0, 64);
-                sig_bytes.try_into().unwrap()
+                let sig_s_bytes = self.slice_memory(sig_s_ptr, FIELD_BYTES);
+                let sig_e_bytes = self.slice_memory(sig_e_ptr, FIELD_BYTES);
+                let sig_s: [u8; 32] = sig_s_bytes.try_into().unwrap();
+                let sig_e: [u8; 32] = sig_e_bytes.try_into().unwrap();
             }
         }
+
+        let sig_bytes: [u8; 64] = [sig_s, sig_e].concat().try_into().unwrap();
+        sig_bytes
     }
 
     #[allow(dead_code)]
@@ -38,12 +51,24 @@ impl Barretenberg {
                 barretenberg_sys::schnorr::construct_public_key(&private_key)
             } else {
                 use wasmer::Value;
+                use super::FIELD_BYTES;
 
-                self.transfer_to_heap(&private_key, 0);
+                let private_key_ptr: usize = 0;
+                let result_ptr: usize = 32;
 
-                self.call_multiple("compute_public_key", vec![&Value::I32(0), &Value::I32(32)]);
+                self.transfer_to_heap(&private_key, private_key_ptr);
 
-                self.slice_memory(32, 96).try_into().unwrap()
+                self.call_multiple(
+                    "compute_public_key",
+                    vec![
+                        &Value::I32(private_key_ptr as i32),
+                        &Value::I32(result_ptr as i32),
+                    ],
+                );
+
+                self.slice_memory(result_ptr, 2 * FIELD_BYTES)
+                    .try_into()
+                    .unwrap()
             }
         }
     }
@@ -54,30 +79,42 @@ impl Barretenberg {
         sig: [u8; 64],
         message: &[u8],
     ) -> bool {
+        let (sig_s, sig_e) = sig.split_at(32);
+
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 barretenberg_sys::schnorr::verify_signature(
                     pub_key,
-                    sig[0..32].try_into().unwrap(),
-                    sig[32..64].try_into().unwrap(),
+                    sig_s,
+                    sig_e,
                     message,
                 )
             } else {
                 use wasmer::Value;
+                use super::WASM_SCRATCH_BYTES;
 
-                self.transfer_to_heap(&pub_key, 0);
-                self.transfer_to_heap(&sig[0..32], 64);
-                self.transfer_to_heap(&sig[32..64], 96);
-                self.transfer_to_heap(message, 128);
+                let public_key_ptr: usize = 0;
+                let sig_s_ptr: usize = public_key_ptr + pub_key.len();
+                let sig_e_ptr: usize = sig_s_ptr + sig_s.len();
+                let message_ptr: usize = sig_e_ptr + sig_e.len();
+                assert!(
+                    message_ptr + message.len() < WASM_SCRATCH_BYTES,
+                    "Message overran wasm scratch space"
+                );
+
+                self.transfer_to_heap(&pub_key, public_key_ptr);
+                self.transfer_to_heap(sig_s, sig_s_ptr);
+                self.transfer_to_heap(sig_e, sig_e_ptr);
+                self.transfer_to_heap(message, message_ptr);
 
                 let wasm_value = self.call_multiple(
                     "verify_signature",
                     vec![
-                        &Value::I32(128),
+                        &Value::I32(message_ptr as i32),
                         &Value::I32(message.len() as i32),
-                        &Value::I32(0),
-                        &Value::I32(64),
-                        &Value::I32(96),
+                        &Value::I32(public_key_ptr as i32),
+                        &Value::I32(sig_s_ptr as i32),
+                        &Value::I32(sig_e_ptr as i32),
                     ],
                 );
                 match wasm_value.into_i32() {
