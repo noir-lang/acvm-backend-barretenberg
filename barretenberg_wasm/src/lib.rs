@@ -95,12 +95,13 @@ impl Barretenberg {
     // XXX: change to read_mem
     pub fn slice_memory(&self, start: usize, length: usize) -> Vec<u8> {
         let memory = &self.memory;
+        let end = start + length;
 
         #[cfg(feature = "js")]
-        return memory.uint8view().to_vec()[start..start + length].to_vec();
+        return memory.uint8view().to_vec()[start..end].to_vec();
 
         #[cfg(not(feature = "js"))]
-        return memory.view()[start..start + length]
+        return memory.view()[start..end]
             .iter()
             .map(|cell: &Cell<u8>| cell.get())
             .collect();
