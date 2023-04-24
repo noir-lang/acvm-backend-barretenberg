@@ -19,8 +19,8 @@ impl Barretenberg {
                 &Value::I32(message_ptr as i32),
                 &Value::I32(message.len() as i32),
                 &Value::I32(private_key_ptr as i32),
-                &Value::I32(sig_e_ptr as i32),
                 &Value::I32(sig_s_ptr as i32),
+                &Value::I32(sig_e_ptr as i32),
             ],
         );
 
