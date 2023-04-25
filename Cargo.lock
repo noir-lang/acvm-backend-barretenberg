@@ -277,7 +277,6 @@ dependencies = [
  "barretenberg-sys",
  "blake2",
  "common",
- "hex",
  "tempfile",
 ]
 

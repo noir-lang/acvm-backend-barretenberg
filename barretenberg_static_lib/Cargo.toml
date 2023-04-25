@@ -17,4 +17,3 @@ barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", 
 [dev-dependencies]
 blake2 = "0.9.1"
 tempfile = "*"
-hex = "0.4.3"

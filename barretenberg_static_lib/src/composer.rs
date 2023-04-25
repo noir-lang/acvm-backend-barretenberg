@@ -240,7 +240,6 @@ mod test {
     use super::*;
     use common::acvm::FieldElement;
     use common::barretenberg_structures::{Constraint, PedersenConstraint, Scalar};
-    use hex;
 
     #[test]
     fn test_no_constraints_no_pub_inputs() {
