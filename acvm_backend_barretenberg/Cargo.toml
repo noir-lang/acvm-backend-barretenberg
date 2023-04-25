@@ -29,9 +29,8 @@ blake2 = "0.9.1"
 tempfile = "*"
 
 [features]
-default = ["wasm"]
-
-native=[
+default = ["native"]
+native = [
     "dep:barretenberg-sys",
     "common/std",
 ]
