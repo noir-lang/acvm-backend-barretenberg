@@ -125,8 +125,6 @@ impl PartialWitnessGenerator for Barretenberg {
                 initial_witness.insert(func_call.outputs[1], res_y);
             }
             BlackBoxFunc::HashToField128Security => {
-                // Deal with Blake2s -- XXX: It's not possible for pwg to know that it is Blake2s
-                // We need to get this method from the backend
                 let mut hasher = <Blake2s as blake2::Digest>::new();
 
                 // 0. For each input in the vector of inputs, check if we have their witness assignments (Can do this outside of match, since they all have inputs)
