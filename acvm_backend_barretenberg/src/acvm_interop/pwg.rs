@@ -177,19 +177,17 @@ fn calculate_merkle_root(
     let mut index_bits = index.bits();
     index_bits.reverse();
 
-    let mut current = *leaf;
-
-    for (i, path_elem) in hash_path.into_iter().enumerate() {
-        let path_bit = index_bits[i];
-        let (hash_left, hash_right) = if !path_bit {
-            (current, *path_elem)
-        } else {
-            (*path_elem, current)
-        };
-        current = hash_func(&hash_left, &hash_right);
-    }
-
-    current
+    index_bits.into_iter().zip(hash_path.into_iter()).fold(
+        *leaf,
+        |current_node, (path_bit, path_elem)| {
+            let (left, right) = if !path_bit {
+                (&current_node, path_elem)
+            } else {
+                (path_elem, &current_node)
+            };
+            hash_func(left, right)
+        },
+    )
 }
 
 #[cfg(test)]
