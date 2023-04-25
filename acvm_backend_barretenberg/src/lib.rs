@@ -6,7 +6,7 @@
 // We then throw a compilation error if both flags are set.
 // TODO: handle JS target.
 #[cfg(all(feature = "native", feature = "wasm"))]
-compile_error!("feature \"native\"  and feature \"wasm\" cannot be enabled at the same time");
+compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the same time");
 
 mod acvm_interop;
 mod blake2s;
