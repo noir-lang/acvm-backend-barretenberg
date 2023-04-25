@@ -1,4 +1,4 @@
-use crate::Barretenberg;
+use crate::{pedersen::Pedersen, Barretenberg};
 use common::{acvm::FieldElement, merkle::PathHasher};
 
 impl PathHasher for Barretenberg {

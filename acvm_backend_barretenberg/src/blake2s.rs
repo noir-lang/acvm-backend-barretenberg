@@ -2,34 +2,43 @@ use common::acvm::FieldElement;
 
 use super::Barretenberg;
 
+pub(crate) trait Blake2s {
+    fn hash_to_field(&self, input: &[u8]) -> FieldElement;
+}
+
+#[cfg(feature = "native")]
 impl Barretenberg {
     #[allow(dead_code)]
     /// Hashes to a bn254 scalar field element using blake2s
-    pub(crate) fn hash_to_field(&self, input: &[u8]) -> FieldElement {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                let result_bytes = barretenberg_sys::blake2s::hash_to_field(input);
-            } else {
-                use wasmer::Value;
-                use super::FIELD_BYTES;
+    fn hash_to_field(&self, input: &[u8]) -> FieldElement {
+        let result_bytes = barretenberg_sys::blake2s::hash_to_field(input);
+        FieldElement::from_be_bytes_reduce(&result_bytes)
+    }
+}
 
-                let input_ptr = self.allocate(input);
-                let result_ptr: usize = 0;
+#[cfg(not(feature = "native"))]
+impl Barretenberg {
+    #[allow(dead_code)]
+    /// Hashes to a bn254 scalar field element using blake2s
+    fn hash_to_field(&self, input: &[u8]) -> FieldElement {
+        use super::FIELD_BYTES;
+        use wasmer::Value;
 
-                self.call_multiple(
-                    "blake2s_to_field",
-                    vec![
-                        &input_ptr,
-                        &Value::I32(input.len() as i32),
-                        &Value::I32(result_ptr as i32),
-                    ],
-                );
+        let input_ptr = self.allocate(input);
+        let result_ptr: usize = 0;
 
-                self.free(input_ptr);
+        self.call_multiple(
+            "blake2s_to_field",
+            vec![
+                &input_ptr,
+                &Value::I32(input.len() as i32),
+                &Value::I32(result_ptr as i32),
+            ],
+        );
 
-                let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
-            }
-        }
+        self.free(input_ptr);
+
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 }

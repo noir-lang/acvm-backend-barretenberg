@@ -2,30 +2,44 @@ use common::acvm::FieldElement;
 
 use super::{Barretenberg, FIELD_BYTES};
 
-impl Barretenberg {
-    pub(crate) fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                use super::field_to_array;
+pub(crate) trait ScalarMul {
+    fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement);
+}
 
-                let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input));
-            } else {
-                use wasmer::Value;
+#[cfg(feature = "native")]
+impl ScalarMul for Barretenberg {
+    fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
+        use super::field_to_array;
 
-                let lhs_ptr: usize = 0;
-                let result_ptr: usize = lhs_ptr + FIELD_BYTES;
-                self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
-
-                self.call_multiple(
-                    "compute_public_key",
-                    vec![&Value::I32(lhs_ptr as i32), &Value::I32(result_ptr as i32)],
-                );
-
-                let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
-            }
-        }
+        let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input));
 
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(FIELD_BYTES);
+        assert!(pubkey_x_bytes.len() == FIELD_BYTES);
+        assert!(pubkey_y_bytes.len() == FIELD_BYTES);
+
+        let pubkey_x = FieldElement::from_be_bytes_reduce(pubkey_x_bytes);
+        let pubkey_y = FieldElement::from_be_bytes_reduce(pubkey_y_bytes);
+        (pubkey_x, pubkey_y)
+    }
+}
+
+#[cfg(not(feature = "native"))]
+impl ScalarMul for Barretenberg {
+    fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
+        use wasmer::Value;
+
+        let lhs_ptr: usize = 0;
+        let result_ptr: usize = lhs_ptr + FIELD_BYTES;
+        self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
+
+        self.call_multiple(
+            "compute_public_key",
+            vec![&Value::I32(lhs_ptr as i32), &Value::I32(result_ptr as i32)],
+        );
+
+        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
+        let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(FIELD_BYTES);
+
         assert!(pubkey_x_bytes.len() == FIELD_BYTES);
         assert!(pubkey_y_bytes.len() == FIELD_BYTES);
 

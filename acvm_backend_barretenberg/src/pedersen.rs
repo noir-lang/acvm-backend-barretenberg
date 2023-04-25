@@ -2,104 +2,113 @@ use common::acvm::FieldElement;
 
 use super::Barretenberg;
 
-impl Barretenberg {
-    pub(crate) fn compress_native(
-        &self,
-        left: &FieldElement,
-        right: &FieldElement,
-    ) -> FieldElement {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                let result_bytes = barretenberg_sys::pedersen::compress_native(
-                    left.to_be_bytes().as_slice().try_into().unwrap(),
-                    right.to_be_bytes().as_slice().try_into().unwrap(),
-                );
-            } else {
-                use wasmer::Value;
-                use super::FIELD_BYTES;
+pub(crate) trait Pedersen {
+    fn compress_native(&self, left: &FieldElement, right: &FieldElement) -> FieldElement;
+    fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement;
+    fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
+}
 
-                let lhs_ptr: usize = 0;
-                let rhs_ptr: usize = lhs_ptr + FIELD_BYTES;
-                let result_ptr: usize = rhs_ptr + FIELD_BYTES;
+#[cfg(feature = "native")]
+impl Pedersen for Barretenberg {
+    fn compress_native(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+        let result_bytes = barretenberg_sys::pedersen::compress_native(
+            left.to_be_bytes().as_slice().try_into().unwrap(),
+            right.to_be_bytes().as_slice().try_into().unwrap(),
+        );
 
-                self.transfer_to_heap(&left.to_be_bytes(), lhs_ptr);
-                self.transfer_to_heap(&right.to_be_bytes(), rhs_ptr);
-
-                self.call_multiple(
-                    "pedersen_plookup_compress_fields",
-                    vec![
-                        &Value::I32(lhs_ptr as i32),
-                        &Value::I32(rhs_ptr as i32),
-                        &Value::I32(result_ptr as i32),
-                    ],
-                );
-
-                let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
-            }
-        }
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
     #[allow(dead_code)]
-    pub(crate) fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                use super::field_to_array;
+    fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
+        use super::field_to_array;
 
-                let mut inputs_buf = Vec::new();
-                for f in inputs {
-                    inputs_buf.push(field_to_array(&f));
-                }
-                let result_bytes = barretenberg_sys::pedersen::compress_many(&inputs_buf);
-            } else {
-                use wasmer::Value;
-                use common::barretenberg_structures::Assignments;
-                use super::FIELD_BYTES;
-
-                let input_buf = Assignments::from(inputs).to_bytes();
-                let input_ptr = self.allocate(&input_buf);
-                let result_ptr: usize = 0;
-
-                self.call_multiple(
-                    "pedersen_plookup_compress",
-                    vec![&input_ptr, &Value::I32(result_ptr as i32)],
-                );
-
-                let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
-            }
+        let mut inputs_buf = Vec::new();
+        for f in inputs {
+            inputs_buf.push(field_to_array(&f));
         }
+        let result_bytes = barretenberg_sys::pedersen::compress_many(&inputs_buf);
+
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
-    pub(crate) fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "native")] {
-                use super::field_to_array;
+    fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
+        use super::field_to_array;
 
-                let mut inputs_buf = Vec::new();
-                for f in inputs {
-                    inputs_buf.push(field_to_array(&f));
-                }
-                let (point_x_bytes, point_y_bytes) = barretenberg_sys::pedersen::encrypt(&inputs_buf);
-            } else {
-                use wasmer::Value;
-                use common::barretenberg_structures::Assignments;
-                use super::FIELD_BYTES;
-
-
-                let input_buf = Assignments::from(inputs).to_bytes();
-                let input_ptr = self.allocate(&input_buf);
-                let result_ptr: usize = 0;
-
-                self.call_multiple(
-                    "pedersen_plookup_commit",
-                    vec![&input_ptr, &Value::I32(result_ptr as i32)],
-                );
-
-                let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
-                let (point_x_bytes, point_y_bytes) = result_bytes.split_at(FIELD_BYTES);
-            }
+        let mut inputs_buf = Vec::new();
+        for f in inputs {
+            inputs_buf.push(field_to_array(&f));
         }
+        let (point_x_bytes, point_y_bytes) = barretenberg_sys::pedersen::encrypt(&inputs_buf);
+
+        let point_x = FieldElement::from_be_bytes_reduce(&point_x_bytes);
+        let point_y = FieldElement::from_be_bytes_reduce(&point_y_bytes);
+
+        (point_x, point_y)
+    }
+}
+
+#[cfg(not(feature = "native"))]
+impl Pedersen for Barretenberg {
+    fn compress_native(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+        use super::FIELD_BYTES;
+        use wasmer::Value;
+
+        let lhs_ptr: usize = 0;
+        let rhs_ptr: usize = lhs_ptr + FIELD_BYTES;
+        let result_ptr: usize = rhs_ptr + FIELD_BYTES;
+
+        self.transfer_to_heap(&left.to_be_bytes(), lhs_ptr);
+        self.transfer_to_heap(&right.to_be_bytes(), rhs_ptr);
+
+        self.call_multiple(
+            "pedersen_plookup_compress_fields",
+            vec![
+                &Value::I32(lhs_ptr as i32),
+                &Value::I32(rhs_ptr as i32),
+                &Value::I32(result_ptr as i32),
+            ],
+        );
+
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
+        FieldElement::from_be_bytes_reduce(&result_bytes)
+    }
+
+    #[allow(dead_code)]
+    fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
+        use super::FIELD_BYTES;
+        use common::barretenberg_structures::Assignments;
+        use wasmer::Value;
+
+        let input_buf = Assignments::from(inputs).to_bytes();
+        let input_ptr = self.allocate(&input_buf);
+        let result_ptr: usize = 0;
+
+        self.call_multiple(
+            "pedersen_plookup_compress",
+            vec![&input_ptr, &Value::I32(result_ptr as i32)],
+        );
+
+        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
+        FieldElement::from_be_bytes_reduce(&result_bytes)
+    }
+
+    fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
+        use super::FIELD_BYTES;
+        use common::barretenberg_structures::Assignments;
+        use wasmer::Value;
+
+        let input_buf = Assignments::from(inputs).to_bytes();
+        let input_ptr = self.allocate(&input_buf);
+        let result_ptr: usize = 0;
+
+        self.call_multiple(
+            "pedersen_plookup_commit",
+            vec![&input_ptr, &Value::I32(result_ptr as i32)],
+        );
+
+        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
+        let (point_x_bytes, point_y_bytes) = result_bytes.split_at(FIELD_BYTES);
 
         let point_x = FieldElement::from_be_bytes_reduce(point_x_bytes);
         let point_y = FieldElement::from_be_bytes_reduce(point_y_bytes);

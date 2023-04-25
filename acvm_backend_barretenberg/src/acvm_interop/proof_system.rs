@@ -1,3 +1,4 @@
+use crate::composer::Composer;
 use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
 use common::acvm::FieldElement;
@@ -11,7 +12,7 @@ impl ProofSystemCompiler for Barretenberg {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> u32 {
-        self.get_exact_circuit_size_internal(&circuit.into())
+        Composer::get_exact_circuit_size(self, &circuit.into())
     }
 
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool {
@@ -63,7 +64,8 @@ impl ProofSystemCompiler for Barretenberg {
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
 
-        self.verify_with_vk(
+        Composer::verify_with_vk(
+            self,
             &circuit.into(),
             proof,
             flattened_public_inputs.into(),

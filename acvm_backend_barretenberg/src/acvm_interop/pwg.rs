@@ -6,6 +6,9 @@ use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 
 use std::collections::BTreeMap;
 
+use crate::pedersen::Pedersen;
+use crate::scalar_mul::ScalarMul;
+use crate::schnorr::SchnorrSig;
 use crate::Barretenberg;
 
 use blake2::{Blake2s, Digest};

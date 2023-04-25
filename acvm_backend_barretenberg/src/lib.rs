@@ -36,6 +36,8 @@ impl Default for Barretenberg {
 
 #[test]
 fn smoke() {
+    use crate::pedersen::Pedersen;
+
     let b = Barretenberg::new();
     let (x, y) = b.encrypt(vec![
         common::acvm::FieldElement::zero(),
