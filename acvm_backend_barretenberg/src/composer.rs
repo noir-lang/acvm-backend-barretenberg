@@ -411,19 +411,15 @@ impl Composer for Barretenberg {
 }
 
 fn pow2ceil(v: u32) -> u32 {
-    #[cfg(feature = "native")]
-    {
-        v.next_power_of_two()
+    if v > (u32::MAX >> 1) {
+        panic!("pow2ceil overflow");
     }
 
-    #[cfg(not(feature = "native"))]
-    {
-        let mut p = 1;
-        while p < v {
-            p <<= 1;
-        }
-        p
+    let mut p = 1;
+    while p < v {
+        p <<= 1;
     }
+    p
 }
 
 #[cfg(test)]
