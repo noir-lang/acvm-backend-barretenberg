@@ -128,7 +128,7 @@
         doCheck = false;
       };
 
-      # Combine the environment and other configuration needed for crane to build our Rust packages
+      # Combine the environment and other configuration needed for crane to build with the native feature
       nativeArgs = nativeEnvironment // commonArgs // {
         # Use our custom stdenv to build and test our Rust project
         inherit stdenv;
@@ -146,6 +146,7 @@
         ] ++ extraBuildInputs;
       };
 
+      # Combine the environment and other configuration needed for crane to build with the wasm feature
       wasmArgs = wasmEnvironment // commonArgs // {
         # We disable the default "native" feature and enable the "wasm" feature
         cargoExtraArgs = "--no-default-features --features='wasm'";
