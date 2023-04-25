@@ -29,13 +29,6 @@ impl Assignments {
         buffer
     }
 
-    pub fn push_i32(&mut self, value: i32) {
-        self.0.push(Scalar::from(value as i128));
-    }
-    pub fn push(&mut self, value: Scalar) {
-        self.0.push(value);
-    }
-
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
