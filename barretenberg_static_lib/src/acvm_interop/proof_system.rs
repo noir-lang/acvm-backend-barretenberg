@@ -52,7 +52,7 @@ impl ProofSystemCompiler for Plonk {
 
         let assignments = proof::flatten_witness_map(circuit, witness_values);
 
-        composer.create_proof_with_pk(assignments, proving_key)
+        composer.create_proof_with_pk(assignments, proving_key, false)
     }
 
     fn verify_with_vk(
@@ -68,6 +68,11 @@ impl ProofSystemCompiler for Plonk {
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
 
-        composer.verify_with_vk(proof, flattened_public_inputs.into(), verification_key)
+        composer.verify_with_vk(
+            proof,
+            flattened_public_inputs.into(),
+            verification_key,
+            false,
+        )
     }
 }

@@ -372,7 +372,7 @@ impl LogicConstraint {
 
 #[derive(Clone, Hash, Debug)]
 pub struct RecursionConstraint {
-    pub key: Vec<i32>, // UP size is 115
+    pub key: Vec<i32>,   // UP size is 115
     pub proof: Vec<i32>, // UP size is 94
     pub public_input: i32,
     pub key_hash: i32,
@@ -400,14 +400,12 @@ impl RecursionConstraint {
 
         buffer.extend_from_slice(&self.key_hash.to_be_bytes());
 
-        let input_agg_obj_len = (self.input_aggregation_object.len()) as u32;
-        buffer.extend_from_slice(&input_agg_obj_len.to_be_bytes());
+        // The aggregation objects are both array's in barretenberg
+        // Thus, we do not need to write the length
         for constraint in self.input_aggregation_object.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        let output_agg_obj_len = (self.output_aggregation_object.len()) as u32;
-        buffer.extend_from_slice(&output_agg_obj_len.to_be_bytes());
         for constraint in self.output_aggregation_object.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }

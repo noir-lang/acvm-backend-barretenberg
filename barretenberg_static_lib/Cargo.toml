@@ -11,8 +11,10 @@ rust-version.workspace = true
 [dependencies]
 
 common = { path = "../common" }
-barretenberg-sys = "0.1.1"
+# barretenberg-sys = "0.1.1"
+barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", branch = "mv/recursion-bindings" }
 
 [dev-dependencies]
 blake2 = "0.9.1"
 tempfile = "*"
+hex = "0.4.3"
