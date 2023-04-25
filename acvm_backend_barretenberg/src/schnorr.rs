@@ -1,11 +1,43 @@
-use std::convert::TryInto;
-use wasmer::Value;
-
 use super::Barretenberg;
-use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
 
-impl Barretenberg {
-    pub fn construct_signature(&mut self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
+pub(crate) trait SchnorrSig {
+    fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64];
+    fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64];
+    fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool;
+}
+
+#[cfg(feature = "native")]
+impl SchnorrSig for Barretenberg {
+    fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
+        let (sig_s, sig_e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
+
+        let sig_bytes: [u8; 64] = [sig_s, sig_e].concat().try_into().unwrap();
+        sig_bytes
+    }
+
+    fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64] {
+        barretenberg_sys::schnorr::construct_public_key(&private_key)
+    }
+
+    fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+        let (sig_s, sig_e) = sig.split_at(32);
+
+        let sig_s: [u8; 32] = sig_s.try_into().unwrap();
+        let sig_e: [u8; 32] = sig_e.try_into().unwrap();
+
+        barretenberg_sys::schnorr::verify_signature(pub_key, sig_s, sig_e, message)
+
+        // Note, currently for Barretenberg plonk, if the signature fails
+        // then the whole circuit fails.
+    }
+}
+
+#[cfg(not(feature = "native"))]
+impl SchnorrSig for Barretenberg {
+    fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
+        use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
+        use wasmer::Value;
+
         let sig_s_ptr: usize = 0;
         let sig_e_ptr: usize = sig_s_ptr + FIELD_BYTES;
         let private_key_ptr: usize = sig_e_ptr + FIELD_BYTES;
@@ -33,12 +65,17 @@ impl Barretenberg {
         let sig_s: [u8; 32] = sig_s_bytes.try_into().unwrap();
         let sig_e: [u8; 32] = sig_e_bytes.try_into().unwrap();
 
-        [sig_s, sig_e].concat().try_into().unwrap()
+        let sig_bytes: [u8; 64] = [sig_s, sig_e].concat().try_into().unwrap();
+        sig_bytes
     }
 
-    pub fn construct_public_key(&mut self, private_key: [u8; 32]) -> [u8; 64] {
+    #[allow(dead_code)]
+    fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64] {
+        use super::FIELD_BYTES;
+        use wasmer::Value;
+
         let private_key_ptr: usize = 0;
-        let result_ptr: usize = 32;
+        let result_ptr: usize = private_key_ptr + FIELD_BYTES;
 
         self.transfer_to_heap(&private_key, private_key_ptr);
 
@@ -55,7 +92,10 @@ impl Barretenberg {
             .unwrap()
     }
 
-    pub fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+    fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
+        use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
+        use wasmer::Value;
+
         let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
 
         let public_key_ptr: usize = 0;
@@ -95,7 +135,7 @@ impl Barretenberg {
 
 #[test]
 fn basic_interop() {
-    let mut barretenberg = Barretenberg::new();
+    let barretenberg = Barretenberg::new();
 
     // First case should pass, standard procedure for Schnorr
     let private_key = [2; 32];

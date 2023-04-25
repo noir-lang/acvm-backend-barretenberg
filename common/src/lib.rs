@@ -2,7 +2,6 @@
 #![warn(unreachable_pub)]
 
 pub mod barretenberg_structures;
-pub mod black_box_functions;
 
 #[cfg(feature = "std")]
 pub mod crs;

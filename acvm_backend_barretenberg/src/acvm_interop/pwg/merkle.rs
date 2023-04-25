@@ -1,11 +1,8 @@
-// TODO: remove once this module is used
-#![allow(dead_code)]
-use crate::Barretenberg;
-use common::acvm::FieldElement;
-use common::merkle::PathHasher;
+use crate::{pedersen::Pedersen, Barretenberg};
+use common::{acvm::FieldElement, merkle::PathHasher};
 
 impl PathHasher for Barretenberg {
-    fn hash(&mut self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         self.compress_native(left, right)
     }
 
@@ -13,6 +10,34 @@ impl PathHasher for Barretenberg {
         Barretenberg::new()
     }
 }
+
+// TODO: alter this method so that it only processes one hash per level rather than overriding
+// the one of leaves for each level of the hash path
+pub(super) fn check_membership(
+    path_hasher: &impl PathHasher,
+    hash_path: Vec<&FieldElement>,
+    root: &FieldElement,
+    index: &FieldElement,
+    leaf: &FieldElement,
+) -> bool {
+    let mut index_bits = index.bits();
+    index_bits.reverse();
+
+    let mut current = *leaf;
+
+    for (i, path_elem) in hash_path.into_iter().enumerate() {
+        let path_bit = index_bits[i];
+        let (hash_left, hash_right) = if !path_bit {
+            (current, *path_elem)
+        } else {
+            (*path_elem, current)
+        };
+        current = path_hasher.hash(&hash_left, &hash_right);
+    }
+
+    &current == root
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -183,12 +208,8 @@ mod tests {
                 hash_path_ref.push(hash);
             }
             let hash_path_ref = hash_path_ref.iter().collect();
-            let is_leaf_in_tree = common::merkle::check_membership::<Barretenberg>(
-                hash_path_ref,
-                &root,
-                &index,
-                &leaf,
-            );
+            let is_leaf_in_tree =
+                super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
 
             assert_eq!(
                 is_leaf_in_tree, test_vector.result,
@@ -196,5 +217,47 @@ mod tests {
                 test_vector.error_msg
             );
         }
+    }
+
+    // This test uses `update_leaf` directly rather than `update_message`
+    #[test]
+    fn simple_shield() {
+        use tempfile::tempdir;
+        let temp_dir = tempdir().unwrap();
+
+        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+
+        let barretenberg = Barretenberg::new();
+        let pubkey_x = FieldElement::from_hex(
+            "0x0bff8247aa94b08d1c680d7a3e10831bd8c8cf2ea2c756b0d1d89acdcad877ad",
+        )
+        .unwrap();
+        let pubkey_y = FieldElement::from_hex(
+            "0x2a5d7253a6ed48462fedb2d350cc768d13956310f54e73a8a47914f34a34c5c4",
+        )
+        .unwrap();
+        let (note_commitment_x, _) = barretenberg.encrypt(vec![pubkey_x, pubkey_y]);
+        dbg!(note_commitment_x.to_hex());
+        let leaf = note_commitment_x;
+
+        let index = FieldElement::try_from_str("0").unwrap();
+        let index_as_usize: usize = 0_usize;
+        let mut index_bits = index.bits();
+        index_bits.reverse();
+
+        let root = tree.update_leaf(index_as_usize, leaf);
+
+        let hash_path = tree.get_hash_path(index_as_usize);
+        let mut hash_path_ref = Vec::new();
+        for (i, path_pair) in hash_path.into_iter().enumerate() {
+            let path_bit = index_bits[i];
+            let hash = if !path_bit { path_pair.1 } else { path_pair.0 };
+            hash_path_ref.push(hash);
+        }
+        let hash_path_ref = hash_path_ref.iter().collect();
+        let is_leaf_in_tree =
+            super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
+
+        assert!(is_leaf_in_tree)
     }
 }
