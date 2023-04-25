@@ -9,7 +9,6 @@
 compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the same time");
 
 mod acvm_interop;
-mod blake2s;
 mod composer;
 #[cfg(all(feature = "native", test))]
 mod crs;
