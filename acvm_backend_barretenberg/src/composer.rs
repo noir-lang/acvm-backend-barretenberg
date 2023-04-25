@@ -1,5 +1,5 @@
 use common::barretenberg_structures::*;
-use common::crs::CRS;
+use common::crs::{CRS, G2};
 use common::proof;
 
 use crate::Barretenberg;
@@ -172,8 +172,7 @@ impl Composer for Barretenberg {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
-        let circuit_size = self.get_circuit_size(constraint_system);
-        let CRS { g2_data, .. } = CRS::new(circuit_size as usize);
+        let g2_data = G2::new().data;
 
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
@@ -373,9 +372,7 @@ impl Composer for Barretenberg {
         verification_key: &[u8],
     ) -> bool {
         use wasmer::Value;
-
-        let circuit_size = self.get_circuit_size(constraint_system);
-        let CRS { g2_data, .. } = CRS::new(circuit_size as usize);
+        let g2_data = G2::new().data;
 
         // Prepend the public inputs to the proof.
         // This is how Barretenberg expects it to be.
