@@ -68,10 +68,7 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-      environment = {
-        # rust-bindgen needs to know the location of libclang
-        LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-
+      sharedEnvironment = {
         # Barretenberg fails if tests are run on multiple threads, so we set the test thread
         # count to 1 throughout the entire project
         #
@@ -79,12 +76,19 @@
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         RUST_TEST_THREADS = "1";
 
-        # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
-
         # We provide `barretenberg-transcript00` from the overlay to the build.
         # This is necessary because the Nix sandbox is read-only and downloading during tests would fail
         BARRETENBERG_TRANSCRIPT = pkgs.barretenberg-transcript00;
+      };
+
+      nativeEnvironment = sharedEnvironment // {
+        # rust-bindgen needs to know the location of libclang
+        LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
+      };
+
+      wasmEnvironment = sharedEnvironment // {
+        # We set the environment variable because barretenberg must be compiled in a special way for wasm
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
@@ -101,16 +105,18 @@
         else
           pkgs.llvmPackages.stdenv;
 
-      # Combine the environment and other configuration needed for crane to build our Rust packages
-      commonArgs = environment // {
+      extraBuildInputs = pkgs.lib.optionals pkgs.stdenv.isDarwin [
+        # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
+        pkgs.libiconv
+        pkgs.darwin.apple_sdk.frameworks.Security
+      ];
+
+      commonArgs = {
         # TODO: Rename repository
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
         version = "0.0.0";
         # x-release-please-end
-
-        # Use our custom stdenv to build and test our Rust project
-        inherit stdenv;
 
         src = pkgs.lib.cleanSourceWith {
           src = craneLib.path ./.;
@@ -120,6 +126,12 @@
         # Running checks don't do much more than compiling itself and increase
         # the build time by a lot, so we disable them throughout all our flakes
         doCheck = false;
+      };
+
+      # Combine the environment and other configuration needed for crane to build our Rust packages
+      nativeArgs = nativeEnvironment // commonArgs // {
+        # Use our custom stdenv to build and test our Rust project
+        inherit stdenv;
 
         nativeBuildInputs = [
           # This provides the pkg-config tool to find barretenberg & other native libraries
@@ -131,36 +143,37 @@
         buildInputs = [
           pkgs.llvmPackages.openmp
           pkgs.barretenberg
-        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
-          pkgs.libiconv
-          pkgs.darwin.apple_sdk.frameworks.Security
-        ];
+        ] ++ extraBuildInputs;
+      };
+
+      wasmArgs = wasmEnvironment // commonArgs // {
+        # We disable the default "native" feature and enable the "wasm" feature
+        cargoExtraArgs = "--no-default-features --features='wasm'";
+
+        buildInputs = [ ] ++ extraBuildInputs;
       };
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
-      cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+      native-cargo-artifacts = craneLib.buildDepsOnly nativeArgs;
+      wasm-cargo-artifacts = craneLib.buildDepsOnly wasmArgs;
 
-      acvm-backend-barretenberg = craneLib.buildPackage (commonArgs // {
-        inherit cargoArtifacts;
+      acvm-backend-barretenberg-native = craneLib.buildPackage (nativeArgs // {
+        cargoArtifacts = native-cargo-artifacts;
+      });
+      acvm-backend-barretenberg-wasm = craneLib.buildPackage (wasmArgs // {
+        cargoArtifacts = native-cargo-artifacts;
       });
     in
     rec {
       checks = {
-        cargo-clippy-native = craneLib.cargoClippy (commonArgs // {
-          inherit cargoArtifacts;
+        cargo-clippy-native = craneLib.cargoClippy (nativeArgs // {
+          cargoArtifacts = native-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-clippy-wasm = craneLib.cargoClippy (commonArgs // {
-          inherit cargoArtifacts;
-
-          cargoClippyExtraArgs = "--all-targets --no-default-features --features='wasm' -- -D warnings";
-        });
-
-        cargo-test-native = craneLib.cargoTest (commonArgs // {
-          inherit cargoArtifacts;
+        cargo-test-native = craneLib.cargoTest (nativeArgs // {
+          cargoArtifacts = native-cargo-artifacts;
 
           cargoTestExtraArgs = "--workspace";
 
@@ -168,24 +181,37 @@
           doCheck = true;
         });
 
-        cargo-test-wasm = craneLib.cargoTest (commonArgs // {
-          inherit cargoArtifacts;
+        cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+          cargoArtifacts = wasm-cargo-artifacts;
 
-          cargoTestExtraArgs = "--workspace --no-default-features --features='wasm'";
+          cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        });
 
+        cargo-test-wasm = craneLib.cargoTest (wasmArgs // {
+          cargoArtifacts = wasm-cargo-artifacts;
+
+          cargoTestExtraArgs = "--workspace";
+
+          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
       };
 
-      packages.default = acvm-backend-barretenberg;
+      packages = {
+        inherit acvm-backend-barretenberg-native;
+        inherit acvm-backend-barretenberg-wasm;
 
-      # We expose the `cargo-artifacts` derivation so we can cache our cargo dependencies in CI
-      packages.cargo-artifacts = cargoArtifacts;
+        default = acvm-backend-barretenberg-native;
+
+        # We expose the `*-cargo-artifacts` derivations so we can cache our cargo dependencies in CI
+        inherit native-cargo-artifacts;
+        inherit wasm-cargo-artifacts;
+      };
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
       # and extra tooling via `nativeBuildInputs`
-      devShells.default = pkgs.mkShell.override { inherit stdenv; } (environment // {
+      devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // {
         inputsFrom = builtins.attrValues checks;
 
         nativeBuildInputs = with pkgs; [
