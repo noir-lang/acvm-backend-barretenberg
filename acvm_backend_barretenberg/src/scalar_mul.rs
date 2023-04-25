@@ -9,7 +9,7 @@ pub(crate) trait ScalarMul {
 #[cfg(feature = "native")]
 impl ScalarMul for Barretenberg {
     fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
-        use super::field_to_array;
+        use super::native::field_to_array;
 
         let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input));
 

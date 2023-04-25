@@ -35,7 +35,7 @@ impl SchnorrSig for Barretenberg {
 #[cfg(not(feature = "native"))]
 impl SchnorrSig for Barretenberg {
     fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
-        use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
+        use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
         use wasmer::Value;
 
         let sig_s_ptr: usize = 0;
@@ -93,7 +93,7 @@ impl SchnorrSig for Barretenberg {
     }
 
     fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
-        use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
+        use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
         use wasmer::Value;
 
         let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);

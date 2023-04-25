@@ -21,7 +21,7 @@ impl Pedersen for Barretenberg {
 
     #[allow(dead_code)]
     fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
-        use super::field_to_array;
+        use super::native::field_to_array;
 
         let mut inputs_buf = Vec::new();
         for f in inputs {
@@ -33,7 +33,7 @@ impl Pedersen for Barretenberg {
     }
 
     fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
-        use super::field_to_array;
+        use super::native::field_to_array;
 
         let mut inputs_buf = Vec::new();
         for f in inputs {

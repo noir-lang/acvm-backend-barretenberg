@@ -33,7 +33,7 @@ impl SmartContract for Barretenberg {
 #[cfg(not(feature = "native"))]
 impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
-        use crate::POINTER_BYTES;
+        use crate::wasm::POINTER_BYTES;
         use wasmer::Value;
 
         let g2 = G2::new();

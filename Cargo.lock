@@ -52,7 +52,6 @@ version = "0.1.0"
 dependencies = [
  "barretenberg-sys",
  "blake2",
- "cfg-if",
  "common",
  "getrandom",
  "pkg-config",

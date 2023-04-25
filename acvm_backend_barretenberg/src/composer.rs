@@ -240,7 +240,7 @@ impl Composer for Barretenberg {
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
-        use super::POINTER_BYTES;
+        use super::wasm::POINTER_BYTES;
         use wasmer::Value;
 
         let cs_buf = constraint_system.to_bytes();
@@ -272,7 +272,7 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        use super::POINTER_BYTES;
+        use super::wasm::POINTER_BYTES;
         use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);
@@ -316,7 +316,7 @@ impl Composer for Barretenberg {
         witness: WitnessAssignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        use super::POINTER_BYTES;
+        use super::wasm::POINTER_BYTES;
         use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);

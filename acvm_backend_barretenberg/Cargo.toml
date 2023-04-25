@@ -10,7 +10,6 @@ rust-version.workspace = true
 
 [dependencies]
 blake2 = "0.9.1"
-cfg-if = "1.0.0"
 common = { path = "../common", default-features = false }
 
 # Native
@@ -25,7 +24,6 @@ getrandom = { version = "0.2", optional = true }
 pkg-config = "0.3"
 
 [dev-dependencies]
-blake2 = "0.9.1"
 tempfile = "*"
 
 [features]
