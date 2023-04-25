@@ -101,8 +101,8 @@ impl Barretenberg {
             }
         }
 
-        let point_x = FieldElement::from_be_bytes_reduce(&point_x_bytes);
-        let point_y = FieldElement::from_be_bytes_reduce(&point_y_bytes);
+        let point_x = FieldElement::from_be_bytes_reduce(point_x_bytes);
+        let point_y = FieldElement::from_be_bytes_reduce(point_y_bytes);
 
         (point_x, point_y)
     }
