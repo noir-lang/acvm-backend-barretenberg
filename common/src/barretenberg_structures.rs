@@ -4,14 +4,14 @@ use acvm::acir::BlackBoxFunc;
 
 pub use acvm::FieldElement as Scalar;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Assignments(Vec<Scalar>);
 pub type WitnessAssignments = Assignments;
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl Assignments {
     pub fn new() -> Assignments {
-        Assignments(vec![])
+        Assignments::default()
     }
 }
 
@@ -46,12 +46,6 @@ impl IntoIterator for Assignments {
 impl From<Vec<Scalar>> for Assignments {
     fn from(w: Vec<Scalar>) -> Assignments {
         Assignments(w)
-    }
-}
-
-impl Default for Assignments {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
