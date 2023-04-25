@@ -178,7 +178,6 @@ impl Composer for Barretenberg {
         // This is how Barretenberg expects it to be.
         // This is non-standard however, so this Rust wrapper will strip the public inputs
         // from proofs created by Barretenberg. Then in Verify we prepend them again.
-        //
         let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
