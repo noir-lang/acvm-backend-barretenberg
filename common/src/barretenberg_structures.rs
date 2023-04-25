@@ -1,11 +1,10 @@
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
-
-pub use acvm::FieldElement as Scalar;
+use acvm::FieldElement;
 
 #[derive(Debug, Default, Clone)]
-pub struct Assignments(Vec<Scalar>);
+pub struct Assignments(Vec<FieldElement>);
 pub type WitnessAssignments = Assignments;
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
@@ -35,7 +34,7 @@ impl Assignments {
 }
 
 impl IntoIterator for Assignments {
-    type Item = Scalar;
+    type Item = FieldElement;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -43,8 +42,8 @@ impl IntoIterator for Assignments {
     }
 }
 
-impl From<Vec<Scalar>> for Assignments {
-    fn from(w: Vec<Scalar>) -> Assignments {
+impl From<Vec<FieldElement>> for Assignments {
+    fn from(w: Vec<FieldElement>) -> Assignments {
         Assignments(w)
     }
 }
@@ -54,11 +53,11 @@ pub struct Constraint {
     pub a: i32,
     pub b: i32,
     pub c: i32,
-    pub qm: Scalar,
-    pub ql: Scalar,
-    pub qr: Scalar,
-    pub qo: Scalar,
-    pub qc: Scalar,
+    pub qm: FieldElement,
+    pub ql: FieldElement,
+    pub qr: FieldElement,
+    pub qo: FieldElement,
+    pub qc: FieldElement,
 }
 
 impl Constraint {
@@ -928,10 +927,10 @@ fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut a = 0;
     let mut b = 0;
     let mut c = 0;
-    let mut qm = Scalar::zero();
-    let mut ql = Scalar::zero();
-    let mut qr = Scalar::zero();
-    let mut qo = Scalar::zero();
+    let mut qm = FieldElement::zero();
+    let mut ql = FieldElement::zero();
+    let mut qr = FieldElement::zero();
+    let mut qo = FieldElement::zero();
 
     // check mul gate
     if !gate.mul_terms.is_empty() {
