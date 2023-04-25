@@ -147,10 +147,16 @@
     in
     rec {
       checks = {
-        cargo-clippy = craneLib.cargoClippy (commonArgs // {
+        cargo-clippy-native = craneLib.cargoClippy (commonArgs // {
           inherit cargoArtifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        });
+
+        cargo-clippy-wasm = craneLib.cargoClippy (commonArgs // {
+          inherit cargoArtifacts;
+
+          cargoClippyExtraArgs = "--all-targets --no-default-features --features='wasm' -- -D warnings";
         });
 
         cargo-test-native = craneLib.cargoTest (commonArgs // {
