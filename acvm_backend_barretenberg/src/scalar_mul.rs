@@ -25,7 +25,7 @@ impl Barretenberg {
             }
         }
 
-        let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(32);
+        let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(FIELD_BYTES);
         assert!(pubkey_x_bytes.len() == FIELD_BYTES);
         assert!(pubkey_y_bytes.len() == FIELD_BYTES);
 

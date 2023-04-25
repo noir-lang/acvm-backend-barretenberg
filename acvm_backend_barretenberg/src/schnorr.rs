@@ -6,7 +6,6 @@ impl Barretenberg {
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
                 let (sig_s, sig_e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
-
             } else {
                 use wasmer::Value;
                 use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
@@ -54,7 +53,7 @@ impl Barretenberg {
                 use super::FIELD_BYTES;
 
                 let private_key_ptr: usize = 0;
-                let result_ptr: usize = 32;
+                let result_ptr: usize = private_key_ptr + FIELD_BYTES;
 
                 self.transfer_to_heap(&private_key, private_key_ptr);
 
@@ -83,6 +82,9 @@ impl Barretenberg {
 
         cfg_if::cfg_if! {
             if #[cfg(feature = "native")] {
+                let sig_s: [u8; 32] = sig_s.try_into().unwrap();
+                let sig_e: [u8; 32] = sig_e.try_into().unwrap();
+
                 barretenberg_sys::schnorr::verify_signature(
                     pub_key,
                     sig_s,

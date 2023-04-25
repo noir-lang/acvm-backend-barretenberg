@@ -18,6 +18,9 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
+/// The number of bytes necessary to store a `FieldElement`.
+const FIELD_BYTES: usize = 32;
+
 pub struct Barretenberg {
     #[cfg(feature = "wasm")]
     memory: Memory,
@@ -62,11 +65,6 @@ cfg_if::cfg_if! {
         use std::cell::Cell;
         use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
-        // We often need to allocate memory to store various data structures being passed to/from
-        // the wasm binary. These constants represent the bytes necessary to allocate to these objects.
-
-        /// The number of bytes necessary to store a `FieldElement`.
-        const FIELD_BYTES: usize = 32;
         /// The number of bytes necessary to represent a pointer to memory inside the wasm.
         const POINTER_BYTES: usize = 4;
 
