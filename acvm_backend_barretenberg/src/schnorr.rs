@@ -93,10 +93,10 @@ impl SchnorrSig for Barretenberg {
     }
 
     fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
-        use super::WASM_SCRATCH_BYTES;
+        use super::{FIELD_BYTES, WASM_SCRATCH_BYTES};
         use wasmer::Value;
 
-        let (sig_s, sig_e) = sig.split_at(32);
+        let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
 
         let public_key_ptr: usize = 0;
         let sig_s_ptr: usize = public_key_ptr + pub_key.len();
@@ -123,10 +123,10 @@ impl SchnorrSig for Barretenberg {
             ],
         );
         match wasm_value.into_i32() {
-                    0 => false,
-                    1 => true,
-                    _=> unreachable!("verify signature should return a boolean to indicate whether the signature + parameters were valid")
-                }
+            0 => false,
+            1 => true,
+            _=> unreachable!("verify signature should return a boolean to indicate whether the signature + parameters were valid")
+        }
 
         // Note, currently for Barretenberg plonk, if the signature fails
         // then the whole circuit fails.

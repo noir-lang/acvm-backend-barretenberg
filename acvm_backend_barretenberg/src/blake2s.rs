@@ -3,6 +3,7 @@ use common::acvm::FieldElement;
 use super::Barretenberg;
 
 pub(crate) trait Blake2s {
+    // TODO : Replace this call with a blake2s call and a field element reduce
     fn hash_to_field(&self, input: &[u8]) -> FieldElement;
 }
 

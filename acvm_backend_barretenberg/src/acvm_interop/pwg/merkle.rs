@@ -14,7 +14,7 @@ impl PathHasher for Barretenberg {
 // TODO: alter this method so that it only processes one hash per level rather than overriding
 // the one of leaves for each level of the hash path
 pub(super) fn check_membership(
-    barretenberg: &Barretenberg,
+    path_hasher: &impl PathHasher,
     hash_path: Vec<&FieldElement>,
     root: &FieldElement,
     index: &FieldElement,
@@ -32,7 +32,7 @@ pub(super) fn check_membership(
         } else {
             (*path_elem, current)
         };
-        current = barretenberg.hash(&hash_left, &hash_right);
+        current = path_hasher.hash(&hash_left, &hash_right);
     }
 
     &current == root
