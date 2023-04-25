@@ -1,8 +1,7 @@
 use common::barretenberg_structures::*;
 use common::crs::{CRS, G2};
-use common::proof;
 
-use crate::Barretenberg;
+use crate::{Barretenberg, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
@@ -160,7 +159,9 @@ impl Composer for Barretenberg {
             result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
 
-        proof::remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        // Barretenberg returns proofs which are prepended with the public inputs.
+        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
     fn verify_with_vk(
@@ -174,11 +175,8 @@ impl Composer for Barretenberg {
     ) -> bool {
         let g2_data = G2::new().data;
 
-        // Prepend the public inputs to the proof.
-        // This is how Barretenberg expects it to be.
-        // This is non-standard however, so this Rust wrapper will strip the public inputs
-        // from proofs created by Barretenberg. Then in Verify we prepend them again.
-        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
+        // Barretenberg expects public inputs to be prepended onto the proof
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
         let verification_key = verification_key.to_vec();
@@ -358,7 +356,9 @@ impl Composer for Barretenberg {
 
         let result = self.slice_memory(proof_ptr, proof_size);
 
-        proof::remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        // Barretenberg returns proofs which are prepended with the public inputs.
+        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
     fn verify_with_vk(
@@ -373,12 +373,8 @@ impl Composer for Barretenberg {
         use wasmer::Value;
         let g2_data = G2::new().data;
 
-        // Prepend the public inputs to the proof.
-        // This is how Barretenberg expects it to be.
-        // This is non-standard however, so this Rust wrapper will strip the public inputs
-        // from proofs created by Barretenberg. Then in Verify we prepend them again.
-        //
-        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
+        // Barretenberg expects public inputs to be prepended onto the proof
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
         let cs_ptr = self.allocate(&cs_buf);
@@ -419,6 +415,27 @@ fn pow2ceil(v: u32) -> u32 {
         p <<= 1;
     }
     p
+}
+
+/// Removes the public inputs which are prepended to a proof by Barretenberg.
+fn remove_public_inputs(num_pub_inputs: usize, proof: &[u8]) -> Vec<u8> {
+    // Barretenberg prepends the public inputs onto the proof so we need to remove
+    // the first `num_pub_inputs` field elements.
+    let num_bytes_to_remove = num_pub_inputs * FIELD_BYTES;
+    proof[num_bytes_to_remove..].to_vec()
+}
+
+/// Prepends a set of public inputs to a proof.
+fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> {
+    if public_inputs.is_empty() {
+        return proof;
+    }
+
+    let public_inputs_bytes = public_inputs
+        .into_iter()
+        .flat_map(|assignment| assignment.to_be_bytes());
+
+    public_inputs_bytes.chain(proof.into_iter()).collect()
 }
 
 #[cfg(test)]
