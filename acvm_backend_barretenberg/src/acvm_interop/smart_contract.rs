@@ -71,6 +71,7 @@ fn test_smart_contract() {
     use crate::composer::Composer;
     use crate::Barretenberg;
     use common::barretenberg_structures::*;
+    use common::acvm::FieldElement;
 
     let constraint = Constraint {
         a: 1,
