@@ -74,6 +74,21 @@ pub struct Constraint {
     pub qc: Scalar,
 }
 
+impl Default for Constraint {
+    fn default() -> Self {
+        Constraint {
+            a: 0,
+            b: 0,
+            c: 0,
+            qm: Scalar::zero(),
+            ql: Scalar::zero(),
+            qr: Scalar::zero(),
+            qo: Scalar::zero(),
+            qc: Scalar::zero(),
+        }
+    }
+}
+
 impl Constraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
@@ -90,6 +105,21 @@ impl Constraint {
         buffer.extend_from_slice(&self.qc.to_be_bytes());
 
         buffer
+    }
+
+    fn set_linear_term(&mut self, coef: Scalar, witness: i32) {
+        if self.a == 0 || self.a == witness {
+            self.a = witness;
+            self.ql = coef;
+        } else if self.b == 0 || self.b == witness {
+            self.b = witness;
+            self.qr = coef;
+        } else if self.c == 0 || self.c == witness {
+            self.c = witness;
+            self.qo = coef;
+        } else {
+            unreachable!("Cannot assign linear term to a constrain of width 3");
+        }
     }
 }
 
@@ -938,87 +968,81 @@ impl From<&Circuit> for ConstraintSystem {
 
 #[allow(non_snake_case)]
 fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
-    let mut a = 0;
-    let mut b = 0;
-    let mut c = 0;
-    let mut qm = Scalar::zero();
-    let mut ql = Scalar::zero();
-    let mut qr = Scalar::zero();
-    let mut qo = Scalar::zero();
-
+    let mut cs = Constraint::default();
     // check mul gate
     if !gate.mul_terms.is_empty() {
         let mul_term = &gate.mul_terms[0];
-        qm = mul_term.0;
+        cs.qm = mul_term.0;
 
         // Get wL term
         let wL = &mul_term.1;
-        a = wL.witness_index() as i32;
+        cs.a = wL.witness_index() as i32;
 
         // Get wR term
         let wR = &mul_term.2;
-        b = wR.witness_index() as i32;
+        cs.b = wR.witness_index() as i32;
     }
 
-    // If there is only one simplified fan term,
-    // then put it in qO * wO
-    // This is in case, the qM term is non-zero
-    if gate.linear_combinations.len() == 1 {
-        let qO_wO_term = &gate.linear_combinations[0];
-        qo = qO_wO_term.0;
-
-        let wO = &qO_wO_term.1;
-        c = wO.witness_index() as i32;
-    }
-
-    // XXX: This is a code smell. Refactor to be better. Maybe change Barretenberg to take vectors
-    // If there is more than one term,
-    // Then add normally
-    if gate.linear_combinations.len() == 2 {
-        let qL_wL_term = &gate.linear_combinations[0];
-        ql = qL_wL_term.0;
-
-        let wL = &qL_wL_term.1;
-        a = wL.witness_index() as i32;
-
-        let qR_wR_term = &gate.linear_combinations[1];
-        qr = qR_wR_term.0;
-
-        let wR = &qR_wR_term.1;
-        b = wR.witness_index() as i32;
-    }
-
-    if gate.linear_combinations.len() == 3 {
-        let qL_wL_term = &gate.linear_combinations[0];
-        ql = qL_wL_term.0;
-
-        let wL = &qL_wL_term.1;
-        a = wL.witness_index() as i32;
-
-        let qR_wR_term = &gate.linear_combinations[1];
-        qr = qR_wR_term.0;
-
-        let wR = &qR_wR_term.1;
-        b = wR.witness_index() as i32;
-
-        let qO_wO_term = &gate.linear_combinations[2];
-        qo = qO_wO_term.0;
-
-        let wO = &qO_wO_term.1;
-        c = wO.witness_index() as i32;
+    for term in &gate.linear_combinations {
+        cs.set_linear_term(term.0, term.1.witness_index() as i32);
     }
 
     // Add the qc term
-    let qc = gate.q_c;
+    cs.qc = gate.q_c;
+    cs
+}
 
-    Constraint {
-        a,
-        b,
-        c,
-        qm,
-        ql,
-        qr,
-        qo,
-        qc,
+#[cfg(test)]
+mod tests {
+    use crate::barretenberg_structures::serialize_arithmetic_gates;
+    use acvm::acir::native_types::{Expression, Witness};
+    use acvm::FieldElement as Scalar;
+
+    #[test]
+    fn serialize_expression() {
+        let x1 = Witness::new(1);
+        let x3 = Witness::new(3);
+        let two = Scalar::one() + Scalar::one();
+        let e = Expression {
+            mul_terms: vec![(Scalar::one(), x1, x1)],
+            linear_combinations: vec![(two, x1), (-Scalar::one(), x3)],
+            q_c: Scalar::one(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert!(constrain.a == 1);
+        assert!(constrain.b == 1);
+        assert!(constrain.c == 3);
+
+        let x2 = Witness::new(2);
+        let x8 = Witness::new(8);
+        let e = Expression {
+            mul_terms: vec![(-Scalar::one(), x1, x2)],
+            linear_combinations: vec![(-Scalar::one(), x8)],
+            q_c: Scalar::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert!(constrain.a == 1);
+        assert!(constrain.b == 2);
+        assert!(constrain.c == 8);
+
+        let e = Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![(Scalar::one(), x8)],
+            q_c: Scalar::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert!(constrain.a == 8);
+        assert!(constrain.b == 0);
+        assert!(constrain.c == 0);
+
+        let e = Expression {
+            mul_terms: vec![(Scalar::one(), x1, x2)],
+            linear_combinations: vec![(Scalar::one(), x8), (two, x2), (-Scalar::one(), x1)],
+            q_c: Scalar::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert!(constrain.a == 1);
+        assert!(constrain.b == 2);
+        assert!(constrain.c == 8);
     }
 }
