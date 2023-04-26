@@ -174,9 +174,13 @@ fn calculate_merkle_root(
     index: &FieldElement,
     leaf: &FieldElement,
 ) -> FieldElement {
-    let mut index_bits = index.bits();
+    let mut index_bits: Vec<bool> = index.bits();
     index_bits.reverse();
 
+    assert!(
+        hash_path.len() <= index_bits.len(),
+        "hash path exceeds max depth of tree"
+    );
     index_bits.into_iter().zip(hash_path.into_iter()).fold(
         *leaf,
         |current_node, (path_bit, path_elem)| {
