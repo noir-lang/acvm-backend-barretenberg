@@ -3,7 +3,7 @@ use crate::Barretenberg;
 use common::acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
 use common::acvm::FieldElement;
 use common::acvm::{Language, ProofSystemCompiler};
-use common::proof;
+use common::barretenberg_structures::Assignments;
 use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Barretenberg {
@@ -48,7 +48,7 @@ impl ProofSystemCompiler for Barretenberg {
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
     ) -> Vec<u8> {
-        let assignments = proof::flatten_witness_map(circuit, witness_values);
+        let assignments = flatten_witness_map(circuit, witness_values);
 
         self.create_proof_with_pk(&circuit.into(), assignments, proving_key)
     }
@@ -72,4 +72,25 @@ impl ProofSystemCompiler for Barretenberg {
             verification_key,
         )
     }
+}
+
+/// Flatten a witness map into a vector of witness assignments.
+fn flatten_witness_map(
+    circuit: &Circuit,
+    witness_values: BTreeMap<Witness, FieldElement>,
+) -> Assignments {
+    let num_witnesses = circuit.num_vars();
+
+    // Note: The witnesses are sorted via their witness index
+    // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
+    let witness_assignments: Vec<FieldElement> = (1..num_witnesses)
+        .map(|witness_index| {
+            // Get the value if it exists. If i does not, then we fill it with the zero value
+            witness_values
+                .get(&Witness(witness_index))
+                .map_or(FieldElement::zero(), |field| *field)
+        })
+        .collect();
+
+    Assignments::from(witness_assignments)
 }
