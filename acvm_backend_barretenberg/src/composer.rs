@@ -1,4 +1,4 @@
-use common::barretenberg_structures::ConstraintSystem;
+use common::barretenberg_structures::{Assignments, ConstraintSystem};
 use common::crs::{CRS, G2};
 use common::proof;
 
@@ -20,7 +20,7 @@ pub(crate) trait Composer {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8>;
 
@@ -123,7 +123,7 @@ impl Composer for Barretenberg {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
         let circuit_size = self.get_circuit_size(constraint_system);
@@ -312,7 +312,7 @@ impl Composer for Barretenberg {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
@@ -425,7 +425,10 @@ fn pow2ceil(v: u32) -> u32 {
 mod test {
 
     use super::*;
-    use common::barretenberg_structures::{Constraint, FieldElement, PedersenConstraint};
+    use common::acvm::FieldElement;
+    use common::barretenberg_structures::{
+        Constraint, LogicConstraint, PedersenConstraint, RangeConstraint, SchnorrConstraint,
+    };
 
     #[test]
     fn test_no_constraints_no_pub_inputs() {
@@ -659,10 +662,8 @@ mod test {
             192, 53, 138, 205, 69, 33, 236, 163, 83, 194, 84, 137, 184, 221, 176, 121, 179, 27, 63,
             70, 54, 16, 176, 250, 39, 239,
         ];
-        let mut sig_as_FieldElements = [FieldElement::zero(); 64];
-        for i in 0..64 {
-            sig_as_FieldElements[i] = sig[i].into()
-        }
+        let sig_as_scalars: Vec<FieldElement> = sig.into_iter().map(FieldElement::from).collect();
+
         let message: Vec<FieldElement> = vec![
             0_i128.into(),
             1_i128.into(),
@@ -679,7 +680,7 @@ mod test {
         witness_values.extend(message);
         witness_values.push(pub_x);
         witness_values.push(pub_y);
-        witness_values.extend(sig_as_FieldElements);
+        witness_values.extend(sig_as_scalars);
         witness_values.push(FieldElement::zero());
 
         let case_1 = WitnessResult {
@@ -836,7 +837,7 @@ mod test {
 
     #[derive(Clone, Debug)]
     struct WitnessResult {
-        witness: WitnessAssignments,
+        witness: Assignments,
         public_inputs: Assignments,
         result: bool,
     }

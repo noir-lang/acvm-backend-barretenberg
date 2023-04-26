@@ -5,7 +5,6 @@ use acvm::FieldElement;
 
 #[derive(Debug, Default, Clone)]
 pub struct Assignments(Vec<FieldElement>);
-pub type WitnessAssignments = Assignments;
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl Assignments {
