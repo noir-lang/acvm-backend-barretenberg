@@ -166,8 +166,6 @@ impl PartialWitnessGenerator for Barretenberg {
     }
 }
 
-// TODO: alter this method so that it only processes one hash per level rather than overriding
-// the one of leaves for each level of the hash path
 fn calculate_merkle_root(
     hash_func: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
     hash_path: Vec<&FieldElement>,
