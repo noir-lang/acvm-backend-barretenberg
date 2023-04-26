@@ -1,6 +1,7 @@
-use crate::{pedersen::Pedersen, Barretenberg};
-use common::acvm::FieldElement;
+use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
+
+use crate::{pedersen::Pedersen, Barretenberg};
 
 // Hashes the leaves up the path, on the way to the root
 pub(crate) trait PathHasher {

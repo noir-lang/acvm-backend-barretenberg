@@ -1,10 +1,11 @@
+use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
+use acvm::FieldElement;
+use acvm::{Language, ProofSystemCompiler};
+use std::collections::BTreeMap;
+
+use crate::barretenberg_structures::Assignments;
 use crate::composer::Composer;
 use crate::Barretenberg;
-use common::acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
-use common::acvm::FieldElement;
-use common::acvm::{Language, ProofSystemCompiler};
-use common::barretenberg_structures::Assignments;
-use std::collections::BTreeMap;
 
 impl ProofSystemCompiler for Barretenberg {
     fn np_language(&self) -> Language {
