@@ -193,7 +193,8 @@ impl StandardComposer {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
-
+        dbg!(self.constraint_system.public_inputs_size());
+        dbg!(result.len());
         proof::remove_public_inputs(self.constraint_system.public_inputs_size(), &result)
     }
 
@@ -214,13 +215,12 @@ impl StandardComposer {
         let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
 
         let cs_buf = self.constraint_system.to_bytes();
-        let verification_key = verification_key.to_vec();
 
         let verified;
         unsafe {
             verified = barretenberg_sys::composer::verify_with_vk(
                 &self.crs.g2_data,
-                &verification_key,
+                verification_key,
                 &cs_buf,
                 &proof,
                 is_recursive,

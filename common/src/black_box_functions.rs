@@ -17,6 +17,7 @@ pub trait BarretenbergShared: PathHasher {
     fn verify_signature(&mut self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool;
     fn fixed_base(&mut self, input: &FieldElement) -> (FieldElement, FieldElement);
     fn encrypt(&mut self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement);
+    // fn verify_proof(&mut self, key: Vec<FieldElement>, proof: Vec<FieldElement>, public_input: FieldElement, key_hash: FieldElement) -> [FieldElement; 16];
 }
 
 pub fn solve_black_box_func_call<B: BarretenbergShared>(
@@ -163,6 +164,40 @@ pub fn solve_black_box_func_call<B: BarretenbergShared>(
             acvm::pwg::logic::solve_logic_opcode(initial_witness, gadget_call)?
         }
         BlackBoxFunc::RANGE => acvm::pwg::range::solve_range_opcode(initial_witness, gadget_call)?,
+        BlackBoxFunc::VerifyProof => {
+            let mut inputs_iter = gadget_call.inputs.iter();
+
+            let mut key = Vec::with_capacity(115);
+            for (i, vk_i) in key.iter_mut().enumerate() {
+                let _vk_i = inputs_iter.next().unwrap_or_else(|| {
+                    panic!("missing rest of vkey. Tried to get field {i} but failed")
+                });
+                *vk_i = witness_to_value(initial_witness, _vk_i.witness);
+            }
+
+            let mut proof = Vec::with_capacity(115);
+            for (i, proof_i) in proof.iter_mut().enumerate() {
+                let _proof_i = inputs_iter.next().unwrap_or_else(|| {
+                    panic!("missing rest of proof. Tried to get field {i} but failed")
+                });
+                *proof_i = witness_to_value(initial_witness, _proof_i.witness);
+            }
+
+            let _public_input = inputs_iter.next().expect("expected `public_input`");
+            let public_input = witness_to_value(initial_witness, _public_input.witness)?;
+
+            let _key_hash = inputs_iter.next().expect("expected `key_hash`");
+            let key_hash = witness_to_value(initial_witness, _key_hash.witness)?;
+
+            // TODO: handle input_aggregation_object
+
+            assert_eq!(gadget_call.outputs.len(), 16);
+
+            // TODO: expose verify_proof from bberg that returns aggregation state
+            for i in 0..16 {
+                initial_witness.insert(gadget_call.outputs[i], FieldElement::one());
+            }
+        }
     }
 
     Ok(OpcodeResolution::Solved)

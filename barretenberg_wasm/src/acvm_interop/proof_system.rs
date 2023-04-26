@@ -30,7 +30,8 @@ impl ProofSystemCompiler for Plonk {
             | BlackBoxFunc::Pedersen
             | BlackBoxFunc::HashToField128Security
             | BlackBoxFunc::EcdsaSecp256k1
-            | BlackBoxFunc::FixedBaseScalarMul => true,
+            | BlackBoxFunc::FixedBaseScalarMul
+            | BlackBoxFunc::VerifyProof => true,
 
             BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
         }
