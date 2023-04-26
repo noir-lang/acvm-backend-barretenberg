@@ -174,8 +174,7 @@ mod tests {
             &index,
             &leaf,
         );
-        let is_leaf_in_tree = root == computed_merkle_root;
 
-        assert!(is_leaf_in_tree)
+        assert_eq!(root, computed_merkle_root)
     }
 }
