@@ -7,10 +7,5 @@ pub mod barretenberg_structures;
 pub mod crs;
 pub mod merkle;
 
-pub mod proof;
-
 // Re-export acvm
 pub use acvm;
-
-/// Embed the Solidity verifier file
-pub const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");

@@ -1,8 +1,10 @@
 use common::acvm::SmartContract;
 use common::crs::G2;
-use common::ULTRA_VERIFIER_CONTRACT;
 
 use crate::Barretenberg;
+
+/// Embed the Solidity verifier file
+const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
 
 #[cfg(feature = "native")]
 impl SmartContract for Barretenberg {
