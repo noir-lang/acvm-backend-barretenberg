@@ -1,4 +1,4 @@
-use common::acvm::SmartContract;
+use acvm::SmartContract;
 
 use crate::crs::G2;
 use crate::Barretenberg;
@@ -70,10 +70,10 @@ impl SmartContract for Barretenberg {
 
 #[test]
 fn test_smart_contract() {
+    use crate::barretenberg_structures::{Constraint, ConstraintSystem};
     use crate::composer::Composer;
     use crate::Barretenberg;
-    use common::acvm::FieldElement;
-    use common::barretenberg_structures::{Constraint, ConstraintSystem};
+    use acvm::FieldElement;
 
     let constraint = Constraint {
         a: 1,

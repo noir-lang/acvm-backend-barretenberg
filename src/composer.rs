@@ -1,5 +1,4 @@
-use common::barretenberg_structures::{Assignments, ConstraintSystem};
-
+use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::{CRS, G2};
 use crate::{Barretenberg, FIELD_BYTES};
 
@@ -440,10 +439,10 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> 
 
 #[cfg(test)]
 mod test {
+    use acvm::FieldElement;
 
     use super::*;
-    use common::acvm::FieldElement;
-    use common::barretenberg_structures::{
+    use crate::barretenberg_structures::{
         Constraint, LogicConstraint, PedersenConstraint, RangeConstraint, SchnorrConstraint,
     };
 

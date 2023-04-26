@@ -1,4 +1,4 @@
-use common::acvm::FieldElement;
+use acvm::FieldElement;
 
 pub(super) fn compute_merkle_root(
     hash_func: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
@@ -30,7 +30,7 @@ pub(super) fn compute_merkle_root(
 mod tests {
     use crate::merkle::{MerkleTree, MessageHasher};
     use crate::{pedersen::Pedersen, Barretenberg};
-    use common::acvm::FieldElement;
+    use acvm::FieldElement;
 
     #[test]
     fn test_check_membership() {
