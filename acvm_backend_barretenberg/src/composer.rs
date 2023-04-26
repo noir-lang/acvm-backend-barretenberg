@@ -1,6 +1,6 @@
 use common::barretenberg_structures::{Assignments, ConstraintSystem};
-use common::crs::{CRS, G2};
 
+use crate::crs::{CRS, G2};
 use crate::{Barretenberg, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
@@ -160,7 +160,7 @@ impl Composer for Barretenberg {
         }
 
         // Barretenberg returns proofs which are prepended with the public inputs.
-        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
         remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
@@ -357,7 +357,7 @@ impl Composer for Barretenberg {
         let result = self.slice_memory(proof_ptr, proof_size);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
-        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
         remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 

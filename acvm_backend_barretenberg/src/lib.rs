@@ -10,7 +10,7 @@ compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the
 
 mod acvm_interop;
 mod composer;
-#[cfg(all(feature = "native", test))]
+#[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
 #[cfg(test)]
 mod merkle;

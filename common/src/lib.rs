@@ -3,8 +3,5 @@
 
 pub mod barretenberg_structures;
 
-#[cfg(feature = "std")]
-pub mod crs;
-
 // Re-export acvm
 pub use acvm;

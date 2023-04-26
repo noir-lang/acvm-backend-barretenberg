@@ -1,6 +1,6 @@
 use common::acvm::SmartContract;
-use common::crs::G2;
 
+use crate::crs::G2;
 use crate::Barretenberg;
 
 /// Embed the Solidity verifier file
