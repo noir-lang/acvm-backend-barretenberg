@@ -1,6 +1,6 @@
 use common::barretenberg_structures::*;
-use common::crs::{CRS, G2};
 
+use crate::crs::{CRS, G2};
 use crate::{Barretenberg, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)

@@ -53,10 +53,15 @@ dependencies = [
  "barretenberg-sys",
  "blake2",
  "common",
+ "dirs 3.0.2",
+ "futures-util",
  "getrandom",
+ "indicatif",
  "pkg-config",
+ "reqwest",
  "rust-embed",
  "tempfile",
+ "tokio",
  "wasmer",
 ]
 
@@ -464,12 +469,7 @@ version = "0.1.0"
 dependencies = [
  "acvm",
  "blake2",
- "dirs 3.0.2",
- "futures-util",
- "indicatif",
- "reqwest",
  "sled",
- "tokio",
 ]
 
 [[package]]

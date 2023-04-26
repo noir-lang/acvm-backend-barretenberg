@@ -12,6 +12,13 @@ rust-version.workspace = true
 blake2 = "0.9.1"
 common = { path = "../common", default-features = false }
 
+# std
+dirs = { version = "3.0", optional = true }
+reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["stream", "rustls-tls"] }
+tokio = { version = "1.0", optional = true }
+futures-util = { version = "0.3.14", optional = true }
+indicatif = { version = "0.17.3", optional = true }
+
 # Native
 barretenberg-sys = { version = "0.1.2", optional = true }
 
@@ -28,15 +35,18 @@ tempfile = "*"
 
 [features]
 default = ["native"]
+
+std = ["dep:reqwest", "dep:tokio", "dep:futures-util", "dep:dirs", "dep:indicatif"]
+
 native = [
+    "std",
     "dep:barretenberg-sys",
-    "common/std",
 ]
 wasm = [
+    "std",
     "wasmer",
     "dep:rust-embed",
     "dep:getrandom",
-    "common/std",
     "wasmer/sys-default",
     "wasmer/cranelift",
     "wasmer/default-compiler",
