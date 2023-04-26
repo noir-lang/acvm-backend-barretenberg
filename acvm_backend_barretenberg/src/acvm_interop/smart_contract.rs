@@ -72,17 +72,18 @@ impl SmartContract for Barretenberg {
 fn test_smart_contract() {
     use crate::composer::Composer;
     use crate::Barretenberg;
-    use common::barretenberg_structures::*;
+    use common::acvm::FieldElement;
+    use common::barretenberg_structures::{Constraint, ConstraintSystem};
 
     let constraint = Constraint {
         a: 1,
         b: 2,
         c: 3,
-        qm: Scalar::zero(),
-        ql: Scalar::one(),
-        qr: Scalar::one(),
-        qo: -Scalar::one(),
-        qc: Scalar::zero(),
+        qm: FieldElement::zero(),
+        ql: FieldElement::one(),
+        qr: FieldElement::one(),
+        qo: -FieldElement::one(),
+        qc: FieldElement::zero(),
     };
 
     let constraint_system = ConstraintSystem::new()
