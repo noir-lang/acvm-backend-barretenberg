@@ -24,6 +24,7 @@ getrandom = { version = "0.2", optional = true }
 pkg-config = "0.3"
 
 [dev-dependencies]
+sled = "0.34.6"
 tempfile = "*"
 
 [features]

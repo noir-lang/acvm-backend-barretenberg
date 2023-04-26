@@ -56,6 +56,7 @@ dependencies = [
  "getrandom",
  "pkg-config",
  "rust-embed",
+ "sled",
  "tempfile",
  "wasmer",
 ]
@@ -463,12 +464,10 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "acvm",
- "blake2",
  "dirs 3.0.2",
  "futures-util",
  "indicatif",
  "reqwest",
- "sled",
  "tokio",
 ]
 
