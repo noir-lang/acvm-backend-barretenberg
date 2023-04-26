@@ -370,6 +370,50 @@ impl LogicConstraint {
     }
 }
 
+#[derive(Clone, Hash, Debug)]
+pub struct RecursionConstraint {
+    pub key: Vec<i32>,   // UP size is 115
+    pub proof: Vec<i32>, // UP size is 94
+    pub public_input: i32,
+    pub key_hash: i32,
+    pub input_aggregation_object: [i32; 16],
+    pub output_aggregation_object: [i32; 16],
+}
+
+impl RecursionConstraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let vk_len = (self.key.len()) as u32;
+        buffer.extend_from_slice(&vk_len.to_be_bytes());
+        for constraint in self.key.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        let proof_len = (self.proof.len()) as u32;
+        buffer.extend_from_slice(&proof_len.to_be_bytes());
+        for constraint in self.proof.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer.extend_from_slice(&self.public_input.to_be_bytes());
+
+        buffer.extend_from_slice(&self.key_hash.to_be_bytes());
+
+        // The aggregation objects are both array's in barretenberg
+        // Thus, we do not need to write the length
+        for constraint in self.input_aggregation_object.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        for constraint in self.output_aggregation_object.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer
+    }
+}
+
 #[derive(Clone, Hash, Debug, Default)]
 pub struct ConstraintSystem {
     var_num: u32,
@@ -385,6 +429,7 @@ pub struct ConstraintSystem {
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
+    recursion_constraints: Vec<RecursionConstraint>,
     constraints: Vec<Constraint>,
 }
 
@@ -467,6 +512,14 @@ impl ConstraintSystem {
         fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
     ) -> Self {
         self.fixed_base_scalar_mul_constraints = fixed_base_scalar_mul_constraints;
+        self
+    }
+
+    pub fn recursion_constraints(
+        mut self,
+        recursion_constraints: Vec<RecursionConstraint>,
+    ) -> Self {
+        self.recursion_constraints = recursion_constraints;
         self
     }
 
@@ -563,6 +616,12 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
+        let recursion_constraints_len = self.recursion_constraints.len() as u32;
+        buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
+        for constraint in self.recursion_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
         // Serialize each Arithmetic constraint
         let constraints_len = self.constraints.len() as u32;
         buffer.extend_from_slice(&constraints_len.to_be_bytes());
@@ -589,6 +648,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
+        let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
 
         for gate in circuit.opcodes.iter() {
             match gate {
@@ -904,6 +964,71 @@ impl From<&Circuit> for ConstraintSystem {
 
                             fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                         }
+                        BlackBoxFunc::VerifyProof => {
+                            dbg!(gadget_call.inputs.len());
+                            dbg!(gadget_call.outputs.len());
+                            let mut inputs_iter = gadget_call.inputs.iter();
+
+                            let mut key = Vec::with_capacity(115);
+                            for (i, vk_witness) in key.iter_mut().enumerate() {
+                                let vk_field = inputs_iter.next().unwrap_or_else(|| {
+                                    panic!(
+                                        "missing rest of vkey. Tried to get field {i} but failed"
+                                    )
+                                });
+                                let vk_field_index = vk_field.witness.witness_index() as i32;
+                                *vk_witness = vk_field_index;
+                            }
+
+                            let mut proof = Vec::with_capacity(94);
+                            for (i, proof_witness) in proof.iter_mut().enumerate() {
+                                let proof_field = inputs_iter.next().unwrap_or_else(|| {
+                                    panic!(
+                                        "missing rest of proof. Tried to get field {i} but failed"
+                                    )
+                                });
+                                let proof_field_index = proof_field.witness.witness_index() as i32;
+                                *proof_witness = proof_field_index;
+                            }
+
+                            let public_input = inputs_iter
+                                .next()
+                                .unwrap_or_else(|| panic!("there is no public input witness"))
+                                .witness
+                                .witness_index()
+                                as i32;
+
+                            // TODO: look into inserting this ourselves somewhere
+                            // we shouldn't be exposing this to the user
+                            let key_hash = inputs_iter
+                                .next()
+                                .unwrap_or_else(|| panic!("there is no key hash witness"))
+                                .witness
+                                .witness_index() as i32;
+
+                            // TODO: there is no input aggregation object handled yet, so we assign every value in the object a witness index of `0`
+                            let input_aggregation_object = [0i32; 16];
+
+                            let mut outputs_iter = gadget_call.outputs.iter();
+
+                            let mut output_aggregation_object = [0i32; 16];
+                            for (i, var) in output_aggregation_object.iter_mut().enumerate() {
+                                let var_field = outputs_iter.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
+                                let var_field_index = var_field.witness_index() as i32;
+                                *var = var_field_index;
+                            }
+
+                            let recursion_constraint = RecursionConstraint {
+                                key,
+                                proof,
+                                public_input,
+                                key_hash,
+                                input_aggregation_object,
+                                output_aggregation_object,
+                            };
+
+                            recursion_constraints.push(recursion_constraint);
+                        }
                         BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
                         BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                     };
@@ -930,8 +1055,9 @@ impl From<&Circuit> for ConstraintSystem {
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
             hash_to_field_constraints,
-            constraints,
             fixed_base_scalar_mul_constraints,
+            recursion_constraints,
+            constraints,
         }
     }
 }

@@ -13,7 +13,8 @@ blake2 = "0.9.1"
 common = { path = "../common", default-features = false }
 
 # Native
-barretenberg-sys = { version = "0.1.2", optional = true }
+# barretenberg-sys = { version = "0.1.2", optional = true }
+barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", branch = "mv/recursion-bindings", optional = true }
 
 # Wasm
 wasmer = { version = "*", optional = true, default-features = false }

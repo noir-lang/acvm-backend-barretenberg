@@ -1,5 +1,6 @@
 use common::barretenberg_structures::*;
 use common::crs::{CRS, G2};
+use std::slice;
 
 use crate::{Barretenberg, FIELD_BYTES};
 
@@ -8,6 +9,9 @@ const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanis
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32;
     fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32;
+
+    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8>;
+    fn verification_key_as_fields(&self, verification_key: &[u8]) -> (Vec<u8>, Vec<u8>);
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8>;
     fn compute_verification_key(
@@ -21,6 +25,7 @@ pub(crate) trait Composer {
         constraint_system: &ConstraintSystem,
         witness: WitnessAssignments,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Vec<u8>;
 
     fn verify_with_vk(
@@ -31,6 +36,7 @@ pub(crate) trait Composer {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> bool;
 }
 
@@ -62,6 +68,63 @@ impl Composer for Barretenberg {
         let cs_buf = constraint_system.to_bytes();
 
         unsafe { barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr()) }
+    }
+
+    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
+        let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
+
+        let proof_fields_size;
+        unsafe {
+            proof_fields_size = barretenberg_sys::composer::serialize_proof_into_field_elements(
+                &proof,
+                p_proof_fields,
+                proof.len(),
+            )
+        }
+
+        std::mem::forget(proof);
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(proof_fields_addr, proof_fields_size, proof_fields_size);
+        }
+
+        result
+    }
+
+    fn verification_key_as_fields(&self, verification_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        let g2_data = G2::new().data;
+
+        let mut vk_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_fields = &mut vk_fields_addr as *mut *mut u8;
+
+        let mut vk_hash_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_hash_fields = &mut vk_hash_fields_addr as *mut *mut u8;
+
+        let vk_fields_size;
+        unsafe {
+            vk_fields_size =
+                barretenberg_sys::composer::serialize_verification_key_into_field_elements(
+                    &g2_data,
+                    verification_key,
+                    p_vk_fields,
+                    p_vk_hash_fields,
+                )
+        }
+
+        std::mem::forget(g2_data);
+        std::mem::forget(verification_key);
+
+        let vk_result;
+        let vk_hash_result;
+        unsafe {
+            vk_result = Vec::from_raw_parts(vk_fields_addr, vk_fields_size, vk_fields_size);
+            vk_hash_result = slice::from_raw_parts(vk_hash_fields_addr, 32);
+        }
+
+        (vk_result.to_vec(), vk_hash_result.to_vec())
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
@@ -119,11 +182,14 @@ impl Composer for Barretenberg {
         result.to_vec()
     }
 
+    // TODO: possibly change this interface depending on how we integrate with nargo
+    // the flag was initially made to quickly test our Rust Composer against the bberg changes, but might still be required
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
         witness: WitnessAssignments,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Vec<u8> {
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
@@ -146,6 +212,7 @@ impl Composer for Barretenberg {
                 &cs_buf,
                 &witness_buf,
                 p_proof,
+                is_recursive,
             );
         }
 
@@ -172,6 +239,7 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> bool {
         let g2_data = G2::new().data;
 
@@ -179,15 +247,14 @@ impl Composer for Barretenberg {
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
-        let verification_key = verification_key.to_vec();
-
         let verified;
         unsafe {
             verified = barretenberg_sys::composer::verify_with_vk(
                 &g2_data,
-                &verification_key,
+                verification_key,
                 &cs_buf,
                 &proof,
+                is_recursive,
             );
         }
         verified
@@ -741,6 +808,12 @@ mod test {
 
     #[test]
     fn test_logic_constraints() {
+        let (constraint_system, case_1) = create_logic_constraint_circuit();
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
+
+    fn create_logic_constraint_circuit() -> (ConstraintSystem, WitnessResult) {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -820,13 +893,120 @@ mod test {
             scalar_5_inverse,
             Scalar::one(),
         ];
-        let case_1 = WitnessResult {
+        let case = WitnessResult {
             witness: witness_values.into(),
             public_inputs: vec![scalar_10].into(),
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        (constraint_system, case)
+    }
+
+    #[test]
+    fn test_recursion_constraint() {
+        let (inner_constraint_system, inner_witness_res) = create_logic_constraint_circuit();
+
+        let bb = Barretenberg::new();
+
+        let proving_key = bb.compute_proving_key(&inner_constraint_system);
+        let verification_key = bb.compute_verification_key(&inner_constraint_system, &proving_key);
+
+        let proof = bb.create_proof_with_pk(
+            &inner_constraint_system,
+            inner_witness_res.witness,
+            &proving_key,
+            true,
+        );
+
+        let verified = bb.verify_with_vk(
+            &inner_constraint_system,
+            &proof,
+            inner_witness_res.public_inputs.clone(),
+            &verification_key,
+            true,
+        );
+        assert_eq!(verified, inner_witness_res.result);
+
+        // NOTE: We need to get the field bytes in non-montgomery form to read them in correctly using the acir_field API
+        let proof_fields_as_bytes = bb.proof_as_fields(&proof, inner_witness_res.public_inputs);
+
+        let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+        let mut proof_witness_values: Vec<Scalar> = Vec::new();
+        for proof_field_bytes in proof_fields_bytes_slices {
+            proof_witness_values.push(Scalar::from_be_bytes_reduce(proof_field_bytes));
+        }
+
+        let (vk_fields_as_bytes, vk_hash_as_bytes) =
+            bb.verification_key_as_fields(&verification_key);
+
+        let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+        let mut vk_witness_values: Vec<Scalar> = Vec::new();
+        for vk_field_bytes in vk_fields_as_bytes_slices {
+            vk_witness_values.push(Scalar::from_be_bytes_reduce(vk_field_bytes));
+        }
+        let vk_hash_value = Scalar::from_be_bytes_reduce(&vk_hash_as_bytes);
+
+        let proof_size = proof_witness_values.len() as i32;
+        let mut proof_indices = Vec::new();
+        for i in 0..proof_size {
+            proof_indices.push(i + 19);
+        }
+
+        let mut key_indices = Vec::new();
+        for i in 0..vk_witness_values.len() as i32 {
+            key_indices.push(i + 19 + proof_size);
+        }
+
+        let mut output_vars = [0_i32; 16];
+        for i in 0..16 {
+            output_vars[i] = i as i32 + 3;
+        }
+
+        let recurison_constraint = RecursionConstraint {
+            key: key_indices,
+            proof: proof_indices,
+            public_input: 1,
+            key_hash: 2,
+            input_aggregation_object: [0; 16], // Set all indices to `0` when there is no `input_aggregation_object`
+            output_aggregation_object: output_vars,
+        };
+
+        // Add a constraint that fixes the vk hash to be the expected value
+        let vk_equality_constraint = Constraint {
+            a: recurison_constraint.key_hash,
+            b: 0,
+            c: 0,
+            qm: Scalar::zero(),
+            ql: Scalar::one(),
+            qr: Scalar::zero(),
+            qo: Scalar::zero(),
+            qc: -vk_hash_value,
+        };
+        let mut witness: Vec<Scalar> = Vec::new();
+        witness.extend(vec![Scalar::zero(); 18]);
+
+        for witness_val in proof_witness_values {
+            witness.push(witness_val);
+        }
+
+        for witness_val in vk_witness_values {
+            witness.push(witness_val);
+        }
+
+        let outer_constraint_system = ConstraintSystem::new()
+            .var_num(witness.len() as u32 + 1)
+            .public_inputs(vec![1])
+            .recursion_constraints(vec![recurison_constraint])
+            .constraints(vec![vk_equality_constraint]);
+
+        let scalar_10 = Scalar::from_hex("0x0a").unwrap();
+        let outer_witness_res = WitnessResult {
+            witness: witness.into(),
+            public_inputs: vec![scalar_10].into(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(outer_constraint_system, vec![outer_witness_res]);
     }
 
     #[derive(Clone, Debug)]
@@ -847,12 +1027,13 @@ mod test {
 
         for test_case in test_cases.into_iter() {
             let proof =
-                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key);
+                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key, false);
             let verified = bb.verify_with_vk(
                 &constraint_system,
                 &proof,
                 test_case.public_inputs,
                 &verification_key,
+                false,
             );
             assert_eq!(verified, test_case.result);
         }

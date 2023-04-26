@@ -27,7 +27,8 @@ impl ProofSystemCompiler for Barretenberg {
             | BlackBoxFunc::Pedersen
             | BlackBoxFunc::HashToField128Security
             | BlackBoxFunc::EcdsaSecp256k1
-            | BlackBoxFunc::FixedBaseScalarMul => true,
+            | BlackBoxFunc::FixedBaseScalarMul
+            | BlackBoxFunc::VerifyProof => true,
 
             BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
         }
@@ -50,7 +51,7 @@ impl ProofSystemCompiler for Barretenberg {
     ) -> Vec<u8> {
         let assignments = flatten_witness_map(circuit, witness_values);
 
-        self.create_proof_with_pk(&circuit.into(), assignments, proving_key)
+        self.create_proof_with_pk(&circuit.into(), assignments, proving_key, false)
     }
 
     fn verify_with_vk(
@@ -70,6 +71,7 @@ impl ProofSystemCompiler for Barretenberg {
             proof,
             flattened_public_inputs.into(),
             verification_key,
+            false,
         )
     }
 }
