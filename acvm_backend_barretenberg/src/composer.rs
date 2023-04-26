@@ -1,4 +1,4 @@
-use common::barretenberg_structures::*;
+use common::barretenberg_structures::ConstraintSystem;
 use common::crs::{CRS, G2};
 use common::proof;
 
