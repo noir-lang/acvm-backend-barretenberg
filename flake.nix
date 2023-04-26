@@ -112,7 +112,6 @@
       ];
 
       commonArgs = {
-        # TODO: Rename repository
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
         version = "0.0.0";
