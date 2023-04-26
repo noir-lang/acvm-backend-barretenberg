@@ -9,6 +9,3 @@ pub mod merkle;
 
 // Re-export acvm
 pub use acvm;
-
-/// Embed the Solidity verifier file
-pub const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
