@@ -2,9 +2,7 @@ use acvm::acir::{circuit::Circuit, native_types::WitnessMap, BlackBoxFunc};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 
-use crate::barretenberg_structures::Assignments;
-use crate::composer::Composer;
-use crate::{BackendError, Barretenberg};
+use crate::{barretenberg_structures::Assignments, composer::Composer, BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
@@ -39,28 +37,40 @@ impl ProofSystemCompiler for Barretenberg {
         }
     }
 
-    fn preprocess(&self, circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
+    fn preprocess(
+        &self,
+        reference_string: &[u8],
+        circuit: &Circuit,
+    ) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
         let constraint_system = &circuit.try_into()?;
 
         let proving_key = self.compute_proving_key(constraint_system)?;
-        let verification_key = self.compute_verification_key(constraint_system, &proving_key)?;
+        let verification_key =
+            self.compute_verification_key(&reference_string.into(), &proving_key)?;
 
         Ok((proving_key, verification_key))
     }
 
     fn prove_with_pk(
         &self,
+        reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
     ) -> Result<Vec<u8>, Self::Error> {
         let assignments = flatten_witness_map(circuit, witness_values);
 
-        Ok(self.create_proof_with_pk(&circuit.try_into()?, assignments, proving_key)?)
+        Ok(self.create_proof_with_pk(
+            &reference_string.into(),
+            &circuit.try_into()?,
+            assignments,
+            proving_key,
+        )?)
     }
 
     fn verify_with_vk(
         &self,
+        reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
@@ -73,6 +83,7 @@ impl ProofSystemCompiler for Barretenberg {
 
         Ok(Composer::verify_with_vk(
             self,
+            &reference_string.into(),
             &circuit.try_into()?,
             proof,
             flattened_public_inputs.into(),

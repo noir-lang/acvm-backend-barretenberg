@@ -1,7 +1,6 @@
 use acvm::SmartContract;
 
-use crate::crs::G2;
-use crate::{BackendError, Barretenberg};
+use crate::{crs::CRS, BackendError, Barretenberg};
 
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
@@ -10,10 +9,14 @@ const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error> {
+    fn eth_contract_from_vk(
+        &self,
+        reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error> {
         use std::slice;
 
-        let g2 = G2::new();
+        let CRS { g2_data, .. } = reference_string.into();
 
         let mut contract_ptr: *mut u8 = std::ptr::null_mut();
         let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
@@ -22,7 +25,7 @@ impl SmartContract for Barretenberg {
         let contract_size;
         unsafe {
             contract_size = barretenberg_sys::composer::get_solidity_verifier(
-                &g2.data,
+                &g2_data,
                 &verification_key,
                 p_contract_ptr,
             );
@@ -40,10 +43,14 @@ impl SmartContract for Barretenberg {
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error> {
-        let g2 = G2::new();
+    fn eth_contract_from_vk(
+        &self,
+        reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error> {
+        let CRS { g2_data, .. } = reference_string.into();
 
-        let g2_ptr = self.allocate(&g2.data)?;
+        let g2_ptr = self.allocate(&g2_data)?;
         let vk_ptr = self.allocate(verification_key)?;
 
         // The smart contract string is not actually written to this pointer.
@@ -92,11 +99,14 @@ fn test_smart_contract() -> Result<(), BackendError> {
         .constraints(vec![constraint]);
 
     let bb = Barretenberg::new();
+    let crs = bb.get_reference_string(&constraint_system).unwrap();
 
     let proving_key = bb.compute_proving_key(&constraint_system)?;
-    let verification_key = bb.compute_verification_key(&constraint_system, &proving_key)?;
+    let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
 
-    let contract = bb.eth_contract_from_vk(&verification_key)?;
+    let reference_string: Vec<u8> = crs.into();
+
+    let contract = bb.eth_contract_from_vk(&reference_string, &verification_key)?;
 
     assert!(contract.contains("contract BaseUltraVerifier"));
     assert!(contract.contains("contract UltraVerifier"));

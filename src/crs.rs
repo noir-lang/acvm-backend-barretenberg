@@ -1,5 +1,7 @@
 use std::{env, fs::File, io::Write, path::PathBuf};
 
+use serde::{Deserialize, Serialize};
+
 use futures_util::StreamExt;
 
 // TODO(blaine): Use manifest parsing in BB instead of hardcoding these
@@ -25,11 +27,11 @@ fn transcript_location() -> PathBuf {
 }
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Serialize, Deserialize)]
 pub(crate) struct CRS {
     pub(crate) g1_data: Vec<u8>,
     pub(crate) g2_data: Vec<u8>,
-    // num_points: usize,
+    pub(crate) num_points: usize,
 }
 
 impl CRS {
@@ -56,40 +58,26 @@ impl CRS {
         CRS {
             g1_data,
             g2_data,
-            // num_points,
+            num_points,
         }
     }
 }
 
-// TODO(blaine): Come up with a better abstraction for the CRS so we don't need to read the
-// file everytime we need the G2
-pub(crate) struct G2 {
-    pub(crate) data: Vec<u8>,
-}
-
-impl G2 {
-    pub(crate) fn new() -> G2 {
-        // If the CRS does not exist, then download it from S3
-        if !transcript_location().exists() {
-            download_crs(transcript_location()).unwrap();
-        }
-
-        // Read CRS, if it's incomplete, download it
-        let mut crs = read_crs(transcript_location());
-        if crs.len() < G2_END + 1 {
-            download_crs(transcript_location()).unwrap();
-            crs = read_crs(transcript_location());
-        }
-
-        let data = crs[G2_START..=G2_END].to_vec();
-
-        G2 { data }
+impl From<&[u8]> for CRS {
+    fn from(value: &[u8]) -> Self {
+        bincode::deserialize(value).unwrap()
     }
 }
 
-impl Default for G2 {
-    fn default() -> Self {
-        Self::new()
+impl From<Vec<u8>> for CRS {
+    fn from(value: Vec<u8>) -> Self {
+        bincode::deserialize(&value).unwrap()
+    }
+}
+
+impl From<CRS> for Vec<u8> {
+    fn from(value: CRS) -> Self {
+        bincode::serialize(&value).unwrap()
     }
 }
 
