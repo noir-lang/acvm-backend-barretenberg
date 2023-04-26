@@ -160,7 +160,7 @@ impl Composer for Barretenberg {
         }
 
         // Barretenberg returns proofs which are prepended with the public inputs.
-        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
         remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
@@ -357,7 +357,7 @@ impl Composer for Barretenberg {
         let result = self.slice_memory(proof_ptr, proof_size);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
-        // This behaviour is nonstandard so we strip the public inputs from the proof.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
         remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
