@@ -46,14 +46,14 @@ impl PartialWitnessGenerator for Barretenberg {
                     .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
 
-                let calculated_merkle_root = calculate_merkle_root(
+                let computed_merkle_root = compute_merkle_root(
                     |left, right| self.compress_native(left, right),
                     hash_path?,
                     index,
                     leaf,
                 );
 
-                let result = if &calculated_merkle_root == root {
+                let result = if &computed_merkle_root == root {
                     FieldElement::one()
                 } else {
                     FieldElement::zero()
@@ -166,7 +166,7 @@ impl PartialWitnessGenerator for Barretenberg {
     }
 }
 
-fn calculate_merkle_root(
+fn compute_merkle_root(
     hash_func: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
     hash_path: Vec<&FieldElement>,
     index: &FieldElement,
@@ -375,13 +375,13 @@ mod tests {
             let hash_path_ref = hash_path_ref.iter().collect();
 
             let bb = Barretenberg::new();
-            let calculated_merkle_root = super::calculate_merkle_root(
+            let computed_merkle_root = super::compute_merkle_root(
                 |left, right| bb.compress_native(left, right),
                 hash_path_ref,
                 &index,
                 &leaf,
             );
-            let is_leaf_in_tree = root == calculated_merkle_root;
+            let is_leaf_in_tree = root == computed_merkle_root;
 
             assert_eq!(
                 is_leaf_in_tree, test_vector.result,
@@ -428,13 +428,13 @@ mod tests {
         }
         let hash_path_ref = hash_path_ref.iter().collect();
         let bb = Barretenberg::new();
-        let calculated_merkle_root = super::calculate_merkle_root(
+        let computed_merkle_root = super::compute_merkle_root(
             |left, right| bb.compress_native(left, right),
             hash_path_ref,
             &index,
             &leaf,
         );
-        let is_leaf_in_tree = root == calculated_merkle_root;
+        let is_leaf_in_tree = root == computed_merkle_root;
 
         assert!(is_leaf_in_tree)
     }
