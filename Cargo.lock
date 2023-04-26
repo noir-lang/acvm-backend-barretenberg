@@ -60,6 +60,7 @@ dependencies = [
  "pkg-config",
  "reqwest",
  "rust-embed",
+ "sled",
  "tempfile",
  "tokio",
  "wasmer",
@@ -468,8 +469,6 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "acvm",
- "blake2",
- "sled",
 ]
 
 [[package]]

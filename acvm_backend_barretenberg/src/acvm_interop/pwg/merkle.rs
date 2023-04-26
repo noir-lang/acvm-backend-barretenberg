@@ -1,131 +1,36 @@
-use crate::{pedersen::Pedersen, Barretenberg};
-use common::{acvm::FieldElement, merkle::PathHasher};
+use common::acvm::FieldElement;
 
-impl PathHasher for Barretenberg {
-    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
-        self.compress_native(left, right)
-    }
-
-    fn new() -> Self {
-        Barretenberg::new()
-    }
-}
-
-// TODO: alter this method so that it only processes one hash per level rather than overriding
-// the one of leaves for each level of the hash path
-pub(super) fn check_membership(
-    path_hasher: &impl PathHasher,
+pub(super) fn compute_merkle_root(
+    hash_func: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
     hash_path: Vec<&FieldElement>,
-    root: &FieldElement,
     index: &FieldElement,
     leaf: &FieldElement,
-) -> bool {
-    let mut index_bits = index.bits();
+) -> FieldElement {
+    let mut index_bits: Vec<bool> = index.bits();
     index_bits.reverse();
 
-    let mut current = *leaf;
-
-    for (i, path_elem) in hash_path.into_iter().enumerate() {
-        let path_bit = index_bits[i];
-        let (hash_left, hash_right) = if !path_bit {
-            (current, *path_elem)
-        } else {
-            (*path_elem, current)
-        };
-        current = path_hasher.hash(&hash_left, &hash_right);
-    }
-
-    &current == root
+    assert!(
+        hash_path.len() <= index_bits.len(),
+        "hash path exceeds max depth of tree"
+    );
+    index_bits.into_iter().zip(hash_path.into_iter()).fold(
+        *leaf,
+        |current_node, (path_bit, path_elem)| {
+            let (left, right) = if !path_bit {
+                (&current_node, path_elem)
+            } else {
+                (path_elem, &current_node)
+            };
+            hash_func(left, right)
+        },
+    )
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use common::merkle::{MerkleTree, MessageHasher};
-
-    #[test]
-    fn basic_interop_initial_root() {
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
-        // Test that the initial root is computed correctly
-        let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
-        // Copied from barretenberg by copying the stdout from MemoryTree
-        let expected_hex = "04ccfbbb859b8605546e03dcaf41393476642859ff7f99446c054b841f0e05c8";
-        assert_eq!(tree.root().to_hex(), expected_hex)
-    }
-    #[test]
-    fn basic_interop_hashpath() {
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
-        // Test that the hashpath is correct
-        let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
-
-        let path = tree.get_hash_path(0);
-
-        let expected_hash_path = vec![
-            (
-                "1cdcf02431ba623767fe389337d011df1048dcc24b98ed81cec97627bab454a0",
-                "1cdcf02431ba623767fe389337d011df1048dcc24b98ed81cec97627bab454a0",
-            ),
-            (
-                "0b5e9666e7323ce925c28201a97ddf4144ac9d148448ed6f49f9008719c1b85b",
-                "0b5e9666e7323ce925c28201a97ddf4144ac9d148448ed6f49f9008719c1b85b",
-            ),
-            (
-                "22ec636f8ad30ef78c42b7fe2be4a4cacf5a445cfb5948224539f59a11d70775",
-                "22ec636f8ad30ef78c42b7fe2be4a4cacf5a445cfb5948224539f59a11d70775",
-            ),
-        ];
-
-        for (got, expected_segment) in path.into_iter().zip(expected_hash_path) {
-            assert_eq!(got.0.to_hex().as_str(), expected_segment.0);
-            assert_eq!(got.1.to_hex().as_str(), expected_segment.1)
-        }
-    }
-
-    #[test]
-    fn basic_interop_update() {
-        // Test that computing the HashPath is correct
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
-
-        tree.update_message(0, &[0; 64]);
-        tree.update_message(1, &[1; 64]);
-        tree.update_message(2, &[2; 64]);
-        tree.update_message(3, &[3; 64]);
-        tree.update_message(4, &[4; 64]);
-        tree.update_message(5, &[5; 64]);
-        tree.update_message(6, &[6; 64]);
-        let root = tree.update_message(7, &[7; 64]);
-
-        assert_eq!(
-            "0ef8e14db4762ebddadb23b2225f93ca200a4c9bd37130b4d028c971bbad16b5",
-            root.to_hex()
-        );
-
-        let path = tree.get_hash_path(2);
-
-        let expected_hash_path = vec![
-            (
-                "06c2335d6f7acb84bbc7d0892cefebb7ca31169a89024f24814d5785e0d05324",
-                "12dc36b01cbd8a6248b04e08f0ec91aa6d11a91f030b4a7b1460281859942185",
-            ),
-            (
-                "1f399ea0d6aaf602c7cbcb6ae8cda0e6b6487836c017163888ed4fd38b548389",
-                "220dd1b310caa4a6af755b4c893d956c48f31642b487164b258f2973aac2c28f",
-            ),
-            (
-                "25cbb3084647221ffcb535945bb65bd70e0809834dc7a6d865a3f2bb046cdc29",
-                "2cc463fc8c9a4eda416f3e490876672f644708dd0330a915f6835d8396fa8f20",
-            ),
-        ];
-
-        for (got, expected_segment) in path.into_iter().zip(expected_hash_path) {
-            assert_eq!(got.0.to_hex().as_str(), expected_segment.0);
-            assert_eq!(got.1.to_hex().as_str(), expected_segment.1)
-        }
-    }
+    use crate::merkle::{MerkleTree, MessageHasher};
+    use crate::{pedersen::Pedersen, Barretenberg};
+    use common::acvm::FieldElement;
 
     #[test]
     fn test_check_membership() {
@@ -208,8 +113,15 @@ mod tests {
                 hash_path_ref.push(hash);
             }
             let hash_path_ref = hash_path_ref.iter().collect();
-            let is_leaf_in_tree =
-                super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
+
+            let bb = Barretenberg::new();
+            let computed_merkle_root = super::compute_merkle_root(
+                |left, right| bb.compress_native(left, right),
+                hash_path_ref,
+                &index,
+                &leaf,
+            );
+            let is_leaf_in_tree = root == computed_merkle_root;
 
             assert_eq!(
                 is_leaf_in_tree, test_vector.result,
@@ -255,9 +167,14 @@ mod tests {
             hash_path_ref.push(hash);
         }
         let hash_path_ref = hash_path_ref.iter().collect();
-        let is_leaf_in_tree =
-            super::check_membership(&Barretenberg::new(), hash_path_ref, &root, &index, &leaf);
+        let bb = Barretenberg::new();
+        let computed_merkle_root = super::compute_merkle_root(
+            |left, right| bb.compress_native(left, right),
+            hash_path_ref,
+            &index,
+            &leaf,
+        );
 
-        assert!(is_leaf_in_tree)
+        assert_eq!(root, computed_merkle_root)
     }
 }

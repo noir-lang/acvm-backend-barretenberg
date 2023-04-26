@@ -3,7 +3,5 @@
 
 pub mod barretenberg_structures;
 
-pub mod merkle;
-
 // Re-export acvm
 pub use acvm;

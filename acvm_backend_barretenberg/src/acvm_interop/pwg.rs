@@ -48,9 +48,14 @@ impl PartialWitnessGenerator for Barretenberg {
                     .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
 
-                let valid_proof = merkle::check_membership(self, hash_path?, root, index, leaf);
+                let computed_merkle_root = merkle::compute_merkle_root(
+                    |left, right| self.compress_native(left, right),
+                    hash_path?,
+                    index,
+                    leaf,
+                );
 
-                let result = if valid_proof {
+                let result = if &computed_merkle_root == root {
                     FieldElement::one()
                 } else {
                     FieldElement::zero()
