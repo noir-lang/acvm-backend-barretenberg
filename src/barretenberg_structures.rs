@@ -510,8 +510,8 @@ impl ConstraintSystem {
         }
 
         // Serialize each Compute Merkle Root constraint
-        let compute_merkle_root_constraints = self.compute_merkle_root_constraints.len() as u32;
-        buffer.extend_from_slice(&compute_merkle_root_constraints.to_be_bytes());
+        let compute_merkle_root_constraints_len = self.compute_merkle_root_constraints.len() as u32;
+        buffer.extend_from_slice(&compute_merkle_root_constraints_len.to_be_bytes());
         for constraint in self.compute_merkle_root_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
