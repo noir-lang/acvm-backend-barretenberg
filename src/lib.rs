@@ -9,9 +9,12 @@
 compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the same time");
 
 mod acvm_interop;
+mod barretenberg_structures;
 mod composer;
-#[cfg(all(feature = "native", test))]
+#[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
+#[cfg(test)]
+mod merkle;
 mod pedersen;
 mod pippenger;
 mod scalar_mul;
@@ -38,10 +41,7 @@ fn smoke() {
     use crate::pedersen::Pedersen;
 
     let b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![
-        common::acvm::FieldElement::zero(),
-        common::acvm::FieldElement::one(),
-    ]);
+    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()]);
     dbg!(x.to_hex(), y.to_hex());
 }
 
@@ -55,7 +55,7 @@ mod native {
         }
     }
 
-    pub(super) fn field_to_array(f: &common::acvm::FieldElement) -> [u8; 32] {
+    pub(super) fn field_to_array(f: &acvm::FieldElement) -> [u8; 32] {
         let v = f.to_be_bytes();
         let result: [u8; 32] = v.try_into().unwrap_or_else(|v: Vec<u8>| {
             panic!("Expected a Vec of length {} but it was {}", 32, v.len())

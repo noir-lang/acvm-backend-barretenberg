@@ -1,4 +1,4 @@
-use common::acvm::FieldElement;
+use acvm::FieldElement;
 
 use super::Barretenberg;
 
@@ -77,7 +77,7 @@ impl Pedersen for Barretenberg {
     #[allow(dead_code)]
     fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
         use super::FIELD_BYTES;
-        use common::barretenberg_structures::Assignments;
+        use crate::barretenberg_structures::Assignments;
         use wasmer::Value;
 
         let input_buf = Assignments::from(inputs).to_bytes();
@@ -95,7 +95,7 @@ impl Pedersen for Barretenberg {
 
     fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
         use super::FIELD_BYTES;
-        use common::barretenberg_structures::Assignments;
+        use crate::barretenberg_structures::Assignments;
         use wasmer::Value;
 
         let input_buf = Assignments::from(inputs).to_bytes();

@@ -1,8 +1,6 @@
-use common::barretenberg_structures::*;
-use common::crs::{CRS, G2};
-use common::proof;
-
-use crate::Barretenberg;
+use crate::barretenberg_structures::{Assignments, ConstraintSystem};
+use crate::crs::{CRS, G2};
+use crate::{Barretenberg, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
@@ -20,7 +18,7 @@ pub(crate) trait Composer {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8>;
 
@@ -123,7 +121,7 @@ impl Composer for Barretenberg {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
         let circuit_size = self.get_circuit_size(constraint_system);
@@ -160,7 +158,9 @@ impl Composer for Barretenberg {
             result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
 
-        proof::remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        // Barretenberg returns proofs which are prepended with the public inputs.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
+        remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
     fn verify_with_vk(
@@ -174,11 +174,8 @@ impl Composer for Barretenberg {
     ) -> bool {
         let g2_data = G2::new().data;
 
-        // Prepend the public inputs to the proof.
-        // This is how Barretenberg expects it to be.
-        // This is non-standard however, so this Rust wrapper will strip the public inputs
-        // from proofs created by Barretenberg. Then in Verify we prepend them again.
-        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
+        // Barretenberg expects public inputs to be prepended onto the proof
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
         let verification_key = verification_key.to_vec();
@@ -312,7 +309,7 @@ impl Composer for Barretenberg {
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
-        witness: WitnessAssignments,
+        witness: Assignments,
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
@@ -358,7 +355,9 @@ impl Composer for Barretenberg {
 
         let result = self.slice_memory(proof_ptr, proof_size);
 
-        proof::remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        // Barretenberg returns proofs which are prepended with the public inputs.
+        // This behavior is nonstandard so we strip the public inputs from the proof.
+        remove_public_inputs(constraint_system.public_inputs_size(), &result)
     }
 
     fn verify_with_vk(
@@ -373,12 +372,8 @@ impl Composer for Barretenberg {
         use wasmer::Value;
         let g2_data = G2::new().data;
 
-        // Prepend the public inputs to the proof.
-        // This is how Barretenberg expects it to be.
-        // This is non-standard however, so this Rust wrapper will strip the public inputs
-        // from proofs created by Barretenberg. Then in Verify we prepend them again.
-        //
-        let proof = proof::prepend_public_inputs(proof.to_vec(), public_inputs);
+        // Barretenberg expects public inputs to be prepended onto the proof
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
         let cs_ptr = self.allocate(&cs_buf);
@@ -421,11 +416,35 @@ fn pow2ceil(v: u32) -> u32 {
     p
 }
 
+/// Removes the public inputs which are prepended to a proof by Barretenberg.
+fn remove_public_inputs(num_pub_inputs: usize, proof: &[u8]) -> Vec<u8> {
+    // Barretenberg prepends the public inputs onto the proof so we need to remove
+    // the first `num_pub_inputs` field elements.
+    let num_bytes_to_remove = num_pub_inputs * FIELD_BYTES;
+    proof[num_bytes_to_remove..].to_vec()
+}
+
+/// Prepends a set of public inputs to a proof.
+fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> {
+    if public_inputs.is_empty() {
+        return proof;
+    }
+
+    let public_inputs_bytes = public_inputs
+        .into_iter()
+        .flat_map(|assignment| assignment.to_be_bytes());
+
+    public_inputs_bytes.chain(proof.into_iter()).collect()
+}
+
 #[cfg(test)]
 mod test {
+    use acvm::FieldElement;
 
     use super::*;
-    use common::barretenberg_structures::{Constraint, PedersenConstraint, Scalar};
+    use crate::barretenberg_structures::{
+        Constraint, LogicConstraint, PedersenConstraint, RangeConstraint, SchnorrConstraint,
+    };
 
     #[test]
     fn test_no_constraints_no_pub_inputs() {
@@ -447,11 +466,11 @@ mod test {
             a: 1,
             b: 2,
             c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
         };
 
         let constraint_system = ConstraintSystem::new()
@@ -464,7 +483,12 @@ mod test {
             result: true,
         };
         let case_2 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
+            witness: vec![
+                FieldElement::zero(),
+                FieldElement::zero(),
+                FieldElement::zero(),
+            ]
+            .into(),
             public_inputs: Assignments::default(),
             result: true,
         };
@@ -474,12 +498,17 @@ mod test {
             result: true,
         };
         let case_4 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
+            witness: vec![
+                FieldElement::zero(),
+                FieldElement::zero(),
+                FieldElement::one(),
+            ]
+            .into(),
             public_inputs: Assignments::default(),
             result: false,
         };
         let case_5 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
+            witness: vec![FieldElement::one(), 2_i128.into(), 6_i128.into()].into(),
             public_inputs: Assignments::default(),
             result: false,
         };
@@ -493,11 +522,11 @@ mod test {
             a: 1,
             b: 2,
             c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
         };
 
         let constraint_system = ConstraintSystem::new()
@@ -514,33 +543,43 @@ mod test {
             result: false,
         };
         let case_2 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
-            public_inputs: vec![Scalar::zero(), Scalar::zero()].into(),
+            witness: vec![
+                FieldElement::zero(),
+                FieldElement::zero(),
+                FieldElement::zero(),
+            ]
+            .into(),
+            public_inputs: vec![FieldElement::zero(), FieldElement::zero()].into(),
             result: true,
         };
 
         let case_3 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
+            witness: vec![FieldElement::one(), 2_i128.into(), 6_i128.into()].into(),
+            public_inputs: vec![FieldElement::one(), 3_i128.into()].into(),
             result: false,
         };
 
         // Not enough public inputs
         let _case_4 = WitnessResult {
-            witness: vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)].into(),
-            public_inputs: vec![Scalar::one()].into(),
+            witness: vec![
+                FieldElement::one(),
+                FieldElement::from(2_i128),
+                FieldElement::from(6_i128),
+            ]
+            .into(),
+            public_inputs: vec![FieldElement::one()].into(),
             result: false,
         };
 
         let case_5 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 2_i128.into()].into(),
+            witness: vec![FieldElement::one(), 2_i128.into(), 3_i128.into()].into(),
+            public_inputs: vec![FieldElement::one(), 2_i128.into()].into(),
             result: true,
         };
 
         let case_6 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
+            witness: vec![FieldElement::one(), 2_i128.into(), 3_i128.into()].into(),
+            public_inputs: vec![FieldElement::one(), 3_i128.into()].into(),
             result: false,
         };
         let test_cases = vec![
@@ -556,21 +595,21 @@ mod test {
             a: 1,
             b: 2,
             c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
         };
         let constraint2 = Constraint {
             a: 2,
             b: 3,
             c: 4,
-            qm: Scalar::one(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: -Scalar::one(),
-            qc: Scalar::one(),
+            qm: FieldElement::one(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::one(),
         };
 
         let constraint_system = ConstraintSystem::new()
@@ -580,12 +619,12 @@ mod test {
 
         let case_1 = WitnessResult {
             witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one()].into(),
+            public_inputs: vec![FieldElement::one()].into(),
             result: true,
         };
         let case_2 = WitnessResult {
             witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()].into(),
-            public_inputs: vec![Scalar::one()].into(),
+            public_inputs: vec![FieldElement::one()].into(),
             result: false,
         };
 
@@ -612,11 +651,11 @@ mod test {
             a: result_index,
             b: result_index,
             c: result_index,
-            qm: Scalar::zero(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: Scalar::one(),
-            qc: -Scalar::one(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::one(),
+            qc: -FieldElement::one(),
         };
 
         let constraint_system = ConstraintSystem::new()
@@ -624,12 +663,14 @@ mod test {
             .schnorr_constraints(vec![constraint])
             .constraints(vec![arith_constraint]);
 
-        let pub_x =
-            Scalar::from_hex("0x17cbd3ed3151ccfd170efe1d54280a6a4822640bf5c369908ad74ea21518a9c5")
-                .unwrap();
-        let pub_y =
-            Scalar::from_hex("0x0e0456e3795c1a31f20035b741cd6158929eeccd320d299cfcac962865a6bc74")
-                .unwrap();
+        let pub_x = FieldElement::from_hex(
+            "0x17cbd3ed3151ccfd170efe1d54280a6a4822640bf5c369908ad74ea21518a9c5",
+        )
+        .unwrap();
+        let pub_y = FieldElement::from_hex(
+            "0x0e0456e3795c1a31f20035b741cd6158929eeccd320d299cfcac962865a6bc74",
+        )
+        .unwrap();
 
         let sig: [i128; 64] = [
             5, 202, 31, 146, 81, 242, 246, 69, 43, 107, 249, 153, 198, 44, 14, 111, 191, 121, 137,
@@ -637,11 +678,9 @@ mod test {
             192, 53, 138, 205, 69, 33, 236, 163, 83, 194, 84, 137, 184, 221, 176, 121, 179, 27, 63,
             70, 54, 16, 176, 250, 39, 239,
         ];
-        let mut sig_as_scalars = [Scalar::zero(); 64];
-        for i in 0..64 {
-            sig_as_scalars[i] = sig[i].into()
-        }
-        let message: Vec<Scalar> = vec![
+        let sig_as_scalars: Vec<FieldElement> = sig.into_iter().map(FieldElement::from).collect();
+
+        let message: Vec<FieldElement> = vec![
             0_i128.into(),
             1_i128.into(),
             2_i128.into(),
@@ -658,7 +697,7 @@ mod test {
         witness_values.push(pub_x);
         witness_values.push(pub_y);
         witness_values.extend(sig_as_scalars);
-        witness_values.push(Scalar::zero());
+        witness_values.push(FieldElement::zero());
 
         let case_1 = WitnessResult {
             witness: witness_values.into(),
@@ -681,11 +720,11 @@ mod test {
             a: 3,
             b: 3,
             c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::zero(),
-            qo: Scalar::zero(),
-            qc: -Scalar::from_hex(
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: -FieldElement::from_hex(
                 "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
             )
             .unwrap(),
@@ -694,11 +733,11 @@ mod test {
             a: 4,
             b: 4,
             c: 4,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::zero(),
-            qo: Scalar::zero(),
-            qc: -Scalar::from_hex(
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: -FieldElement::from_hex(
                 "0x0ecf9d98be4597a88c46a7e0fa8836b57a7dcb41ee30f8d8787b11cc259c83fa",
             )
             .unwrap(),
@@ -709,8 +748,8 @@ mod test {
             .pedersen_constraints(vec![constraint])
             .constraints(vec![x_constraint, y_constraint]);
 
-        let scalar_0 = Scalar::from_hex("0x00").unwrap();
-        let scalar_1 = Scalar::from_hex("0x01").unwrap();
+        let scalar_0 = FieldElement::from_hex("0x00").unwrap();
+        let scalar_1 = FieldElement::from_hex("0x01").unwrap();
         let witness_values = vec![scalar_0, scalar_1];
 
         let case_1 = WitnessResult {
@@ -747,41 +786,41 @@ mod test {
             a: 3,
             b: 4,
             c: 0,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: -Scalar::one(),
-            qo: Scalar::zero(),
-            qc: -Scalar::from_hex("0x0a").unwrap(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: -FieldElement::one(),
+            qo: FieldElement::zero(),
+            qc: -FieldElement::from_hex("0x0a").unwrap(),
         };
         let expr_b = Constraint {
             a: 4,
             b: 5,
             c: 6,
-            qm: Scalar::one(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
+            qm: FieldElement::one(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
         };
         let expr_c = Constraint {
             a: 4,
             b: 6,
             c: 4,
-            qm: Scalar::one(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
+            qm: FieldElement::one(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
         };
         let expr_d = Constraint {
             a: 6,
             b: 0,
             c: 0,
-            qm: Scalar::zero(),
-            ql: -Scalar::one(),
-            qr: Scalar::zero(),
-            qo: Scalar::zero(),
-            qc: Scalar::one(),
+            qm: FieldElement::zero(),
+            ql: -FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::one(),
         };
 
         let constraint_system = ConstraintSystem::new()
@@ -791,9 +830,9 @@ mod test {
             .logic_constraints(vec![logic_constraint])
             .constraints(vec![expr_a, expr_b, expr_c, expr_d]);
 
-        let scalar_5 = Scalar::from_hex("0x05").unwrap();
-        let scalar_10 = Scalar::from_hex("0x0a").unwrap();
-        let scalar_15 = Scalar::from_hex("0x0f").unwrap();
+        let scalar_5 = FieldElement::from_hex("0x05").unwrap();
+        let scalar_10 = FieldElement::from_hex("0x0a").unwrap();
+        let scalar_15 = FieldElement::from_hex("0x0f").unwrap();
         let scalar_5_inverse = scalar_5.inverse();
         let witness_values = vec![
             scalar_5,
@@ -801,7 +840,7 @@ mod test {
             scalar_15,
             scalar_5,
             scalar_5_inverse,
-            Scalar::one(),
+            FieldElement::one(),
         ];
         let case_1 = WitnessResult {
             witness: witness_values.into(),
@@ -814,7 +853,7 @@ mod test {
 
     #[derive(Clone, Debug)]
     struct WitnessResult {
-        witness: WitnessAssignments,
+        witness: Assignments,
         public_inputs: Assignments,
         result: bool,
     }

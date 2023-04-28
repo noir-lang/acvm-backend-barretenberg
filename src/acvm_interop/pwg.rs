@@ -1,8 +1,8 @@
-use common::acvm::acir::BlackBoxFunc;
-use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use common::acvm::pwg::{hash, logic, range, signature, witness_to_value};
-use common::acvm::{FieldElement, OpcodeResolution};
-use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
+use acvm::acir::BlackBoxFunc;
+use acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
+use acvm::pwg::{hash, logic, range, signature, witness_to_value};
+use acvm::{FieldElement, OpcodeResolution};
+use acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 
 use std::collections::BTreeMap;
 
@@ -48,9 +48,14 @@ impl PartialWitnessGenerator for Barretenberg {
                     .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
 
-                let valid_proof = merkle::check_membership(self, hash_path?, root, index, leaf);
+                let computed_merkle_root = merkle::compute_merkle_root(
+                    |left, right| self.compress_native(left, right),
+                    hash_path?,
+                    index,
+                    leaf,
+                );
 
-                let result = if valid_proof {
+                let result = if &computed_merkle_root == root {
                     FieldElement::one()
                 } else {
                     FieldElement::zero()
