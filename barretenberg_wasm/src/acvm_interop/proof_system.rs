@@ -32,7 +32,7 @@ impl ProofSystemCompiler for Plonk {
             common::acvm::acir::BlackBoxFunc::HashToField128Security => true,
             common::acvm::acir::BlackBoxFunc::EcdsaSecp256k1 => true,
             common::acvm::acir::BlackBoxFunc::FixedBaseScalarMul => true,
-            common::acvm::acir::BlackBoxFunc::Keccak256 => false,
+            common::acvm::acir::BlackBoxFunc::Keccak256 => true,
         }
     }
 

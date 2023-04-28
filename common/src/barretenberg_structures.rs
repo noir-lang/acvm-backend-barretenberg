@@ -286,6 +286,34 @@ impl HashToFieldConstraint {
         buffer
     }
 }
+
+#[derive(Clone, Hash, Debug)]
+pub(crate) struct HashConstraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
+}
+
+impl HashConstraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let inputs_len = self.inputs.len() as u32;
+        buffer.extend_from_slice(&inputs_len.to_be_bytes());
+        for constraint in self.inputs.iter() {
+            buffer.extend_from_slice(&constraint.0.to_be_bytes());
+            buffer.extend_from_slice(&constraint.1.to_be_bytes());
+        }
+
+        let result_len = self.result.len() as u32;
+        buffer.extend_from_slice(&result_len.to_be_bytes());
+        for constraint in self.result.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer
+    }
+}
+
 #[derive(Clone, Hash, Debug)]
 pub struct PedersenConstraint {
     pub inputs: Vec<i32>,
@@ -382,6 +410,7 @@ pub struct ConstraintSystem {
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
+    keccak_constraints: Vec<HashConstraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -583,6 +612,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
+        let mut keccak_constraints: Vec<HashConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut merkle_membership_constraints: Vec<MerkleMembershipConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
@@ -904,7 +934,35 @@ impl From<&Circuit> for ConstraintSystem {
 
                             fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                         }
-                        BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
+                        BlackBoxFunc::Keccak256 => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in gadget_call.inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
+
+                            assert_eq!(gadget_call.outputs.len(), 32);
+
+                            let mut outputs_iter = gadget_call.outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte = outputs_iter.next().unwrap_or_else(|| {
+                                    panic!(
+                                        "missing rest of output. Tried to get byte {i} but failed"
+                                    )
+                                });
+
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_constraint = HashConstraint {
+                                inputs: keccak_inputs,
+                                result,
+                            };
+
+                            keccak_constraints.push(keccak_constraint);
+                        }
                         BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                     };
                 }
@@ -929,6 +987,7 @@ impl From<&Circuit> for ConstraintSystem {
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
+            keccak_constraints,
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
