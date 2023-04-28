@@ -190,9 +190,6 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
         is_recursive: bool,
     ) -> Vec<u8> {
-        // dbg!(constraint_system.clone());
-        // dbg!(witness.clone());
-
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
             g1_data, g2_data, ..
@@ -243,8 +240,6 @@ impl Composer for Barretenberg {
         verification_key: &[u8],
         is_recursive: bool,
     ) -> bool {
-        // dbg!(constraint_system.clone());
-
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
