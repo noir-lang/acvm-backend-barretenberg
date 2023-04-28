@@ -1001,9 +1001,9 @@ mod tests {
         let x3 = Witness::new(3);
         let two = FieldElement::one() + FieldElement::one();
         let e = Expression {
-            mul_terms: vec![(Scalar::one(), x1, x1)],
-            linear_combinations: vec![(two, x1), (-Scalar::one(), x3)],
-            q_c: Scalar::one(),
+            mul_terms: vec![(FieldElement::one(), x1, x1)],
+            linear_combinations: vec![(two, x1), (-FieldElement::one(), x3)],
+            q_c: FieldElement::one(),
         };
         let constrain = serialize_arithmetic_gates(&e);
         assert_eq!(constrain.a, 1);
@@ -1033,7 +1033,7 @@ mod tests {
         assert_eq!(constrain.c, 0);
 
         let e = Expression {
-            mul_terms: vec![(Scalar::one(), x1, x2)],
+            mul_terms: vec![(FieldElement::one(), x1, x2)],
             linear_combinations: vec![
                 (FieldElement::one(), x8),
                 (two, x2),
