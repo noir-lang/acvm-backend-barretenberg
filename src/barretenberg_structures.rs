@@ -170,15 +170,14 @@ impl SchnorrConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub(crate) struct MerkleMembershipConstraint {
+pub(crate) struct ComputeMerkleRootConstraint {
     pub(crate) hash_path: Vec<i32>,
-    pub(crate) root: i32,
     pub(crate) leaf: i32,
     pub(crate) index: i32,
     pub(crate) result: i32,
 }
 
-impl MerkleMembershipConstraint {
+impl ComputeMerkleRootConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
@@ -189,7 +188,6 @@ impl MerkleMembershipConstraint {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        buffer.extend_from_slice(&self.root.to_be_bytes());
         buffer.extend_from_slice(&self.leaf.to_be_bytes());
         buffer.extend_from_slice(&self.result.to_be_bytes());
         buffer.extend_from_slice(&self.index.to_be_bytes());
@@ -408,7 +406,7 @@ pub(crate) struct ConstraintSystem {
     logic_constraints: Vec<LogicConstraint>,
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
-    merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
+    compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
@@ -456,11 +454,11 @@ impl ConstraintSystem {
         self
     }
 
-    pub(crate) fn merkle_membership_constraints(
+    pub(crate) fn compute_merkle_root_constraints(
         mut self,
-        merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
+        compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
     ) -> Self {
-        self.merkle_membership_constraints = merkle_membership_constraints;
+        self.compute_merkle_root_constraints = compute_merkle_root_constraints;
         self
     }
 
@@ -564,10 +562,10 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialize each Merkle Membership constraint
-        let merkle_membership_constraints_len = self.merkle_membership_constraints.len() as u32;
-        buffer.extend_from_slice(&merkle_membership_constraints_len.to_be_bytes());
-        for constraint in self.merkle_membership_constraints.iter() {
+        // Serialize each Compute Merkle Root constraint
+        let compute_merkle_root_constraints_len = self.compute_merkle_root_constraints.len() as u32;
+        buffer.extend_from_slice(&compute_merkle_root_constraints_len.to_be_bytes());
+        for constraint in self.compute_merkle_root_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -640,7 +638,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
-        let mut merkle_membership_constraints: Vec<MerkleMembershipConstraint> = Vec::new();
+        let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
@@ -762,14 +760,9 @@ impl From<&Circuit> for ConstraintSystem {
 
                             blake2s_constraints.push(blake2s_constraint);
                         }
-                        BlackBoxFunc::MerkleMembership => {
+                        BlackBoxFunc::ComputeMerkleRoot => {
                             let mut inputs_iter = gadget_call.inputs.iter().peekable();
 
-                            // root
-                            let root = {
-                                let root_input = inputs_iter.next().expect("missing Merkle root");
-                                root_input.witness.witness_index() as i32
-                            };
                             // leaf
                             let leaf = {
                                 let leaf_input = inputs_iter
@@ -795,18 +788,17 @@ impl From<&Circuit> for ConstraintSystem {
                                 hash_path.push(path_elem_index);
                             }
 
-                            // result
+                            // computed root
                             let result = gadget_call.outputs[0].witness_index() as i32;
 
-                            let constraint = MerkleMembershipConstraint {
+                            let constraint = ComputeMerkleRootConstraint {
                                 hash_path,
-                                root,
                                 leaf,
                                 index,
                                 result,
                             };
 
-                            merkle_membership_constraints.push(constraint);
+                            compute_merkle_root_constraints.push(constraint);
                         }
                         BlackBoxFunc::SchnorrVerify => {
                             let mut inputs_iter = gadget_call.inputs.iter();
@@ -1046,7 +1038,7 @@ impl From<&Circuit> for ConstraintSystem {
             logic_constraints,
             range_constraints,
             sha256_constraints,
-            merkle_membership_constraints,
+            compute_merkle_root_constraints,
             pedersen_constraints,
             schnorr_constraints,
             ecdsa_secp256k1_constraints,

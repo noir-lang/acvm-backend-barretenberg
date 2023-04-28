@@ -26,18 +26,18 @@ impl PartialWitnessGenerator for Barretenberg {
             BlackBoxFunc::SHA256 => hash::sha256(initial_witness, func_call),
             BlackBoxFunc::Blake2s => hash::blake2s(initial_witness, func_call),
             BlackBoxFunc::EcdsaSecp256k1 => {
-                signature::ecdsa::secp256k1_prehashed(initial_witness, func_call)?
+                signature::ecdsa::secp256k1_prehashed(initial_witness, func_call)
             }
-            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => {
-                return Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(
-                    func_call.name,
-                ))
-            }
-            BlackBoxFunc::MerkleMembership => {
-                let mut inputs_iter = func_call.inputs.iter();
 
-                let _root = inputs_iter.next().expect("expected a root");
-                let root = witness_to_value(initial_witness, _root.witness)?;
+            BlackBoxFunc::AND | BlackBoxFunc::XOR => {
+                logic::solve_logic_opcode(initial_witness, func_call)
+            }
+            BlackBoxFunc::RANGE => range::solve_range_opcode(initial_witness, func_call),
+            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => Err(
+                OpcodeResolutionError::UnsupportedBlackBoxFunc(func_call.name),
+            ),
+            BlackBoxFunc::ComputeMerkleRoot => {
+                let mut inputs_iter = func_call.inputs.iter();
 
                 let _leaf = inputs_iter.next().expect("expected a leaf");
                 let leaf = witness_to_value(initial_witness, _leaf.witness)?;
@@ -56,13 +56,8 @@ impl PartialWitnessGenerator for Barretenberg {
                     leaf,
                 );
 
-                let result = if &computed_merkle_root == root {
-                    FieldElement::one()
-                } else {
-                    FieldElement::zero()
-                };
-
-                initial_witness.insert(func_call.outputs[0], result);
+                initial_witness.insert(func_call.outputs[0], computed_merkle_root);
+                Ok(OpcodeResolution::Solved)
             }
             BlackBoxFunc::SchnorrVerify => {
                 // In barretenberg, if the signature fails, then the whole thing fails.
@@ -117,6 +112,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 };
 
                 initial_witness.insert(func_call.outputs[0], result);
+                Ok(OpcodeResolution::Solved)
             }
             BlackBoxFunc::Pedersen => {
                 let inputs_iter = func_call.inputs.iter();
@@ -129,6 +125,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 let (res_x, res_y) = self.encrypt(scalars);
                 initial_witness.insert(func_call.outputs[0], res_x);
                 initial_witness.insert(func_call.outputs[1], res_y);
+                Ok(OpcodeResolution::Solved)
             }
             BlackBoxFunc::HashToField128Security => {
                 let mut hasher = <Blake2s as blake2::Digest>::new();
@@ -150,6 +147,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 assert_eq!(func_call.outputs.len(), 1);
 
                 initial_witness.insert(func_call.outputs[0], reduced_res);
+                Ok(OpcodeResolution::Solved)
             }
             BlackBoxFunc::FixedBaseScalarMul => {
                 let scalar = witness_to_value(initial_witness, func_call.inputs[0].witness)?;
@@ -158,11 +156,8 @@ impl PartialWitnessGenerator for Barretenberg {
 
                 initial_witness.insert(func_call.outputs[0], pub_x);
                 initial_witness.insert(func_call.outputs[1], pub_y);
+                Ok(OpcodeResolution::Solved)
             }
-            BlackBoxFunc::AND | BlackBoxFunc::XOR => {
-                logic::solve_logic_opcode(initial_witness, func_call)?
-            }
-            BlackBoxFunc::RANGE => range::solve_range_opcode(initial_witness, func_call)?,
             BlackBoxFunc::VerifyProof => {
                 let mut inputs_iter = func_call.inputs.iter();
 
@@ -188,6 +183,8 @@ impl PartialWitnessGenerator for Barretenberg {
                 let _public_input = inputs_iter.next().expect("expected `public_input`");
                 let public_input = *witness_to_value(initial_witness, _public_input.witness)?;
 
+                // TODO: I think this is unneeded for simulation? but will need to use next() on the inputs_iter anyway
+                // to fetch the input_aggregation_object
                 let _key_hash = inputs_iter.next().expect("expected `key_hash`");
                 let key_hash = *witness_to_value(initial_witness, _key_hash.witness)?;
 
@@ -201,9 +198,8 @@ impl PartialWitnessGenerator for Barretenberg {
                 for i in 0..output_aggregation_object.len() {
                     initial_witness.insert(func_call.outputs[i], output_aggregation_object[i]);
                 }
+                Ok(OpcodeResolution::Solved)
             }
         }
-
-        Ok(OpcodeResolution::Solved)
     }
 }
