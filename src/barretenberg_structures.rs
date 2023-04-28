@@ -66,11 +66,11 @@ impl Default for Constraint {
             a: 0,
             b: 0,
             c: 0,
-            qm: Scalar::zero(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: Scalar::zero(),
-            qc: Scalar::zero(),
+            qm: FieldElement::zero(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
         }
     }
 }
@@ -93,16 +93,16 @@ impl Constraint {
         buffer
     }
 
-    fn set_linear_term(&mut self, coef: Scalar, witness: i32) {
+    fn set_linear_term(&mut self, x: FieldElement, witness: i32) {
         if self.a == 0 || self.a == witness {
             self.a = witness;
-            self.ql = coef;
+            self.ql = x;
         } else if self.b == 0 || self.b == witness {
             self.b = witness;
-            self.qr = coef;
+            self.qr = x;
         } else if self.c == 0 || self.c == witness {
             self.c = witness;
-            self.qo = coef;
+            self.qo = x;
         } else {
             unreachable!("Cannot assign linear term to a constrain of width 3");
         }
@@ -993,53 +993,57 @@ fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
 mod tests {
     use crate::barretenberg_structures::serialize_arithmetic_gates;
     use acvm::acir::native_types::{Expression, Witness};
-    use acvm::FieldElement as Scalar;
+    use acvm::FieldElement;
 
     #[test]
     fn serialize_expression() {
         let x1 = Witness::new(1);
         let x3 = Witness::new(3);
-        let two = Scalar::one() + Scalar::one();
+        let two = FieldElement::one() + FieldElement::one();
         let e = Expression {
             mul_terms: vec![(Scalar::one(), x1, x1)],
             linear_combinations: vec![(two, x1), (-Scalar::one(), x3)],
             q_c: Scalar::one(),
         };
         let constrain = serialize_arithmetic_gates(&e);
-        assert!(constrain.a == 1);
-        assert!(constrain.b == 1);
-        assert!(constrain.c == 3);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 1);
+        assert_eq!(constrain.c, 3);
 
         let x2 = Witness::new(2);
         let x8 = Witness::new(8);
         let e = Expression {
-            mul_terms: vec![(-Scalar::one(), x1, x2)],
-            linear_combinations: vec![(-Scalar::one(), x8)],
-            q_c: Scalar::zero(),
+            mul_terms: vec![(-FieldElement::one(), x1, x2)],
+            linear_combinations: vec![(-FieldElement::one(), x8)],
+            q_c: FieldElement::zero(),
         };
         let constrain = serialize_arithmetic_gates(&e);
-        assert!(constrain.a == 1);
-        assert!(constrain.b == 2);
-        assert!(constrain.c == 8);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 2);
+        assert_eq!(constrain.c, 8);
 
         let e = Expression {
             mul_terms: vec![],
-            linear_combinations: vec![(Scalar::one(), x8)],
-            q_c: Scalar::zero(),
+            linear_combinations: vec![(FieldElement::one(), x8)],
+            q_c: FieldElement::zero(),
         };
         let constrain = serialize_arithmetic_gates(&e);
-        assert!(constrain.a == 8);
-        assert!(constrain.b == 0);
-        assert!(constrain.c == 0);
+        assert_eq!(constrain.a, 8);
+        assert_eq!(constrain.b, 0);
+        assert_eq!(constrain.c, 0);
 
         let e = Expression {
             mul_terms: vec![(Scalar::one(), x1, x2)],
-            linear_combinations: vec![(Scalar::one(), x8), (two, x2), (-Scalar::one(), x1)],
-            q_c: Scalar::zero(),
+            linear_combinations: vec![
+                (FieldElement::one(), x8),
+                (two, x2),
+                (-FieldElement::one(), x1),
+            ],
+            q_c: FieldElement::zero(),
         };
         let constrain = serialize_arithmetic_gates(&e);
-        assert!(constrain.a == 1);
-        assert!(constrain.b == 2);
-        assert!(constrain.c == 8);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 2);
+        assert_eq!(constrain.c, 8);
     }
 }
