@@ -19,6 +19,7 @@
         "linearization",
         "logstr",
         "merkle",
+        "nargo",
         "PAIRINGSBN",
         "pedersen",
         "peekable",
@@ -49,6 +50,10 @@
         "subarray",
         "ESUCCESS",
         "clippy",
+        "direnv",
+        "nixpkgs",
+        "envrc",
+        "subshell",
         // In Solidity
         //
         "addmod",

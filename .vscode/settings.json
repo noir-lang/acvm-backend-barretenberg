@@ -1,24 +1,16 @@
 {
-    "editor.tokenColorCustomizations": {
-        "textMateRules": [
-            {
-                "scope": "googletest.failed",
-                "settings": {
-                    "foreground": "#f00"
-                }
-            },
-            {
-                "scope": "googletest.passed",
-                "settings": {
-                    "foreground": "#0f0"
-                }
-            },
-            {
-                "scope": "googletest.run",
-                "settings": {
-                    "foreground": "#0f0"
-                }
+    "direnv.restart.automatic": true,
+    "redhat.telemetry.enabled": false,
+    "yaml.recommendations.show": false,
+    "nix.serverPath": "nil",
+    "nix.enableLanguageServer": true,
+    "nix.serverSettings": {
+        "nil": {
+            "formatting": {
+                "command": [
+                    "nixpkgs-fmt"
+                ]
             }
-        ]
-    }
+        }
+    },
 }
