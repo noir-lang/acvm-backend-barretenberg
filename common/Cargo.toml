@@ -10,8 +10,8 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# acvm = { version = "0.9.0", features = ["bn254"] }
-acvm = { version = "0.9.0", features = ["bn254"], path = "/Users/maximvezenov/Documents/dev/noir-lang/acvm/acvm" }
+acvm = { version = "0.9.0", features = ["bn254"], git = "https://github.com/noir-lang/acvm.git", branch = "mv/verify_proof" }
+# acvm = { version = "0.9.0", features = ["bn254"], path = "/Users/maximvezenov/Documents/dev/noir-lang/acvm/acvm" }
 
 sled = "0.34.6"
 blake2 = "0.9.1"

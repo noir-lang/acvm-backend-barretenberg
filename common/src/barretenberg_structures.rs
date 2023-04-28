@@ -965,12 +965,10 @@ impl From<&Circuit> for ConstraintSystem {
                             fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                         }
                         BlackBoxFunc::VerifyProof => {
-                            dbg!(gadget_call.inputs.len());
-                            dbg!(gadget_call.outputs.len());
                             let mut inputs_iter = gadget_call.inputs.iter();
 
-                            let mut key = Vec::with_capacity(115);
-                            for (i, vk_witness) in key.iter_mut().enumerate() {
+                            let mut key_array = [0i32; 114];
+                            for (i, vk_witness) in key_array.iter_mut().enumerate() {
                                 let vk_field = inputs_iter.next().unwrap_or_else(|| {
                                     panic!(
                                         "missing rest of vkey. Tried to get field {i} but failed"
@@ -979,9 +977,10 @@ impl From<&Circuit> for ConstraintSystem {
                                 let vk_field_index = vk_field.witness.witness_index() as i32;
                                 *vk_witness = vk_field_index;
                             }
+                            let key = key_array.to_vec();
 
-                            let mut proof = Vec::with_capacity(94);
-                            for (i, proof_witness) in proof.iter_mut().enumerate() {
+                            let mut proof_array = [0i32; 94];
+                            for (i, proof_witness) in proof_array.iter_mut().enumerate() {
                                 let proof_field = inputs_iter.next().unwrap_or_else(|| {
                                     panic!(
                                         "missing rest of proof. Tried to get field {i} but failed"
@@ -990,6 +989,7 @@ impl From<&Circuit> for ConstraintSystem {
                                 let proof_field_index = proof_field.witness.witness_index() as i32;
                                 *proof_witness = proof_field_index;
                             }
+                            let proof = proof_array.to_vec();
 
                             let public_input = inputs_iter
                                 .next()
@@ -998,8 +998,8 @@ impl From<&Circuit> for ConstraintSystem {
                                 .witness_index()
                                 as i32;
 
-                            // TODO: look into inserting this ourselves somewhere
-                            // we shouldn't be exposing this to the user
+                            // TODO: look into inserting this ourselves
+                            // we don't have to expose this to the user
                             let key_hash = inputs_iter
                                 .next()
                                 .unwrap_or_else(|| panic!("there is no key hash witness"))

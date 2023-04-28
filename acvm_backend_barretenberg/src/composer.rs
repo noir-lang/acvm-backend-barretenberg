@@ -191,6 +191,9 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
         is_recursive: bool,
     ) -> Vec<u8> {
+        // dbg!(constraint_system.clone());
+        // dbg!(witness.clone());
+
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
             g1_data, g2_data, ..
@@ -241,6 +244,8 @@ impl Composer for Barretenberg {
         verification_key: &[u8],
         is_recursive: bool,
     ) -> bool {
+        // dbg!(constraint_system.clone());
+        
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
@@ -809,7 +814,7 @@ mod test {
     #[test]
     fn test_logic_constraints() {
         let (constraint_system, case_1) = create_logic_constraint_circuit();
-
+        
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
 
@@ -944,6 +949,7 @@ mod test {
         for vk_field_bytes in vk_fields_as_bytes_slices {
             vk_witness_values.push(Scalar::from_be_bytes_reduce(vk_field_bytes));
         }
+
         let vk_hash_value = Scalar::from_be_bytes_reduce(&vk_hash_as_bytes);
 
         let proof_size = proof_witness_values.len() as i32;

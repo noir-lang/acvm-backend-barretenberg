@@ -16,6 +16,7 @@ mod pedersen;
 mod pippenger;
 mod scalar_mul;
 mod schnorr;
+mod recursion;
 
 /// The number of bytes necessary to store a `FieldElement`.
 const FIELD_BYTES: usize = 32;

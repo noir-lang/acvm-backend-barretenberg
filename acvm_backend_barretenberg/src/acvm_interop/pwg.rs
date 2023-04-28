@@ -7,6 +7,7 @@ use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 use std::collections::BTreeMap;
 
 use crate::pedersen::Pedersen;
+use crate::recursion::Recursion;
 use crate::scalar_mul::ScalarMul;
 use crate::schnorr::SchnorrSig;
 use crate::Barretenberg;
@@ -160,35 +161,39 @@ impl PartialWitnessGenerator for Barretenberg {
             BlackBoxFunc::VerifyProof => {
                 let mut inputs_iter = func_call.inputs.iter();
 
-                let mut key = Vec::with_capacity(115);
-                for (i, vk_i) in key.iter_mut().enumerate() {
+                let mut key_array = [FieldElement::zero(); 114];               
+                for (i, vk_i) in key_array.iter_mut().enumerate() {
                     let _vk_i = inputs_iter.next().unwrap_or_else(|| {
                         panic!("missing rest of vkey. Tried to get field {i} but failed")
                     });
-                    *vk_i = witness_to_value(initial_witness, _vk_i.witness);
+                    *vk_i = *witness_to_value(initial_witness, _vk_i.witness)?;
                 }
+                let key = key_array.to_vec();
 
-                let mut proof = Vec::with_capacity(115);
-                for (i, proof_i) in proof.iter_mut().enumerate() {
+                let mut proof_array = [FieldElement::zero(); 94];               
+                for (i, proof_i) in proof_array.iter_mut().enumerate() {
                     let _proof_i = inputs_iter.next().unwrap_or_else(|| {
                         panic!("missing rest of proof. Tried to get field {i} but failed")
                     });
-                    *proof_i = witness_to_value(initial_witness, _proof_i.witness);
+                    *proof_i = *witness_to_value(initial_witness, _proof_i.witness)?;
                 }
+                let proof = proof_array.to_vec();
 
+                // TODO: update once we handle multiple public inputs in bberg
                 let _public_input = inputs_iter.next().expect("expected `public_input`");
-                let public_input = witness_to_value(initial_witness, _public_input.witness)?;
+                let public_input = *witness_to_value(initial_witness, _public_input.witness)?;
 
                 let _key_hash = inputs_iter.next().expect("expected `key_hash`");
-                let key_hash = witness_to_value(initial_witness, _key_hash.witness)?;
+                let key_hash = *witness_to_value(initial_witness, _key_hash.witness)?;
+                
+                // TODO: handle input_aggregation_object once we enable arbitrary depth recursion in bberg
 
-                // TODO: handle input_aggregation_object
+                let output_aggregation_object = self.verify_proof(key, proof, public_input, [FieldElement::zero(); 16]);
 
                 assert_eq!(func_call.outputs.len(), 16);
 
-                // TODO: expose verify_proof from bberg that returns aggregation state
-                for i in 0..16 {
-                    initial_witness.insert(func_call.outputs[i], FieldElement::one());
+                for i in 0..output_aggregation_object.len() {
+                    initial_witness.insert(func_call.outputs[i], output_aggregation_object[i]);
                 }
             }
         }
