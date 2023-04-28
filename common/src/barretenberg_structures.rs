@@ -945,7 +945,7 @@ fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut ql = Scalar::zero();
     let mut qr = Scalar::zero();
     let mut qo = Scalar::zero();
-
+dbg!("hello");
     // check mul gate
     if !gate.mul_terms.is_empty() {
         let mul_term = &gate.mul_terms[0];
