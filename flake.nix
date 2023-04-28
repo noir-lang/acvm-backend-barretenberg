@@ -112,7 +112,6 @@
       ];
 
       commonArgs = {
-        # TODO: Rename repository
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
         version = "0.0.0";
@@ -176,8 +175,6 @@
         cargo-test-native = craneLib.cargoTest (nativeArgs // {
           cargoArtifacts = native-cargo-artifacts;
 
-          cargoTestExtraArgs = "--workspace";
-
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
@@ -190,8 +187,6 @@
 
         cargo-test-wasm = craneLib.cargoTest (wasmArgs // {
           cargoArtifacts = wasm-cargo-artifacts;
-
-          cargoTestExtraArgs = "--workspace";
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;

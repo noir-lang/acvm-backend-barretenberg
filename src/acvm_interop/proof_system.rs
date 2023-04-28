@@ -1,11 +1,11 @@
+use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
+use acvm::FieldElement;
+use acvm::{Language, ProofSystemCompiler};
+use std::collections::BTreeMap;
+
+use crate::barretenberg_structures::Assignments;
 use crate::composer::Composer;
 use crate::Barretenberg;
-use common::acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
-use common::acvm::FieldElement;
-use common::acvm::{Language, ProofSystemCompiler};
-use common::barretenberg_structures::Assignments;
-use std::collections::BTreeMap;
-use std::num;
 
 impl ProofSystemCompiler for Barretenberg {
     fn np_language(&self) -> Language {
@@ -83,7 +83,7 @@ fn flatten_witness_map(
     witness_values: BTreeMap<Witness, FieldElement>,
 ) -> Assignments {
     let num_witnesses = circuit.num_vars();
-    
+
     // Note: The witnesses are sorted via their witness index
     // witness_values may not have all the witness indexes, e.g for unused witness which are not solved by the solver
     let witness_assignments: Vec<FieldElement> = (1..num_witnesses)

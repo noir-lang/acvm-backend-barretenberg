@@ -26,14 +26,14 @@ fn transcript_location() -> PathBuf {
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Default)]
-pub struct CRS {
-    pub g1_data: Vec<u8>,
-    pub g2_data: Vec<u8>,
-    pub num_points: usize,
+pub(crate) struct CRS {
+    pub(crate) g1_data: Vec<u8>,
+    pub(crate) g2_data: Vec<u8>,
+    // num_points: usize,
 }
 
 impl CRS {
-    pub fn new(num_points: usize) -> CRS {
+    pub(crate) fn new(num_points: usize) -> CRS {
         // UltraPlonk requires a CRS equal to circuit size plus one!
         // We need to bump our polynomial degrees by 1 to handle zero knowledge
         let g1_end = G1_START + ((num_points + 1) * 64) - 1;
@@ -56,19 +56,19 @@ impl CRS {
         CRS {
             g1_data,
             g2_data,
-            num_points,
+            // num_points,
         }
     }
 }
 
 // TODO(blaine): Come up with a better abstraction for the CRS so we don't need to read the
 // file everytime we need the G2
-pub struct G2 {
-    pub data: Vec<u8>,
+pub(crate) struct G2 {
+    pub(crate) data: Vec<u8>,
 }
 
 impl G2 {
-    pub fn new() -> G2 {
+    pub(crate) fn new() -> G2 {
         // If the CRS does not exist, then download it from S3
         if !transcript_location().exists() {
             download_crs(transcript_location()).unwrap();
@@ -111,7 +111,7 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
 
 // XXX: Below is the logic to download the CRS if it is not already present
 
-pub fn download_crs(path_to_transcript: PathBuf) -> Result<(), String> {
+pub(crate) fn download_crs(path_to_transcript: PathBuf) -> Result<(), String> {
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -178,29 +178,27 @@ async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
     Ok(())
 }
 
-// #[test]
-// fn does_not_panic() {
-//     let num_points = 4 * 1024;
+#[cfg(feature = "native")]
+#[test]
+fn does_not_panic() {
+    let num_points = 4 * 1024;
 
-//     let crs = CRS::new(num_points);
+    let crs = CRS::new(num_points);
 
-//     let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
+    let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
 
-//     unsafe {
-//         Vec::from_raw_parts(
-//             p_points as *mut u8,
-//             num_points * 32 as usize,
-//             num_points * 32 as usize,
-//         );
-//     }
-//     //TODO check that p_points memory is properly free
-// }
-// #[test]
-// #[ignore]
-// fn downloading() {
-//     use tempfile::tempdir;
-//     let dir = tempdir().unwrap();
+    unsafe {
+        Vec::from_raw_parts(p_points as *mut u8, num_points * 32, num_points * 32);
+    }
+    //TODO check that p_points memory is properly free
+}
+#[test]
+#[ignore]
+fn downloading() {
+    use tempfile::tempdir;
+    let dir = tempdir().unwrap();
 
-//     let file_path = dir.path().to_path_buf().join("transcript00.dat");
-//     download_crs(file_path);
-// }
+    let file_path = dir.path().to_path_buf().join("transcript00.dat");
+    let res = download_crs(file_path);
+    assert_eq!(res, Ok(()));
+}

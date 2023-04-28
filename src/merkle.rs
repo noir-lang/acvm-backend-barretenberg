@@ -1,14 +1,26 @@
 use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
 
+use crate::{pedersen::Pedersen, Barretenberg};
+
 // Hashes the leaves up the path, on the way to the root
-pub trait PathHasher {
+pub(crate) trait PathHasher {
     fn new() -> Self;
     fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement;
 }
 
+impl PathHasher for Barretenberg {
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+        self.compress_native(left, right)
+    }
+
+    fn new() -> Self {
+        Barretenberg::new()
+    }
+}
+
 // Hashes the message into a leaf
-pub trait MessageHasher {
+pub(crate) trait MessageHasher {
     fn new() -> Self;
     fn hash(&mut self, msg: &[u8]) -> FieldElement;
 }
@@ -36,15 +48,16 @@ impl MessageHasher for blake2::Blake2s {
 //
 // With sparse merkle, one can update at any index
 
-pub(crate) type HashPath = Vec<(FieldElement, FieldElement)>;
+type HashPath = Vec<(FieldElement, FieldElement)>;
 
-pub fn flatten_path(path: Vec<(FieldElement, FieldElement)>) -> Vec<FieldElement> {
+#[allow(dead_code)]
+fn flatten_path(path: Vec<(FieldElement, FieldElement)>) -> Vec<FieldElement> {
     path.into_iter()
         .flat_map(|(left, right)| std::iter::once(left).chain(std::iter::once(right)))
         .collect()
 }
 
-pub struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
+pub(crate) struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     depth: u32,
     total_size: u32,
     db: sled::Db,
@@ -95,6 +108,7 @@ fn insert_preimage(db: &mut sled::Db, index: u32, value: Vec<u8>) {
     tree.insert(index.to_be_bytes(), value).unwrap();
 }
 
+#[allow(dead_code)]
 fn fetch_preimage(db: &sled::Db, index: usize) -> Vec<u8> {
     let tree = db.open_tree("preimages").unwrap();
 
@@ -122,6 +136,7 @@ fn insert_hash(db: &mut sled::Db, index: u32, hash: FieldElement) {
         .unwrap();
 }
 
+#[allow(dead_code)]
 fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128> {
     let tree = db.open_tree("hashes").unwrap();
 
@@ -137,7 +152,8 @@ fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128
 }
 
 impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
-    pub fn from_path<P: AsRef<Path>>(
+    #[allow(dead_code)]
+    pub(crate) fn from_path<P: AsRef<Path>>(
         path: P,
         barretenberg: PH,
         msg_hasher: MH,
@@ -159,7 +175,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             msg_hasher,
         }
     }
-    pub fn new<P: AsRef<Path>>(depth: u32, path: P) -> MerkleTree<MH, PH> {
+
+    pub(crate) fn new<P: AsRef<Path>>(depth: u32, path: P) -> MerkleTree<MH, PH> {
         let barretenberg = PH::new();
         let mut msg_hasher = MH::new();
 
@@ -213,7 +230,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
     }
 
-    pub fn get_hash_path(&self, mut index: usize) -> HashPath {
+    pub(crate) fn get_hash_path(&self, mut index: usize) -> HashPath {
         let mut path = HashPath::with_capacity(self.depth as usize);
 
         let mut offset = 0usize;
@@ -231,7 +248,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         path
     }
     /// Updates the message at index and computes the new tree root
-    pub fn update_message(&mut self, index: usize, new_message: &[u8]) -> FieldElement {
+    pub(crate) fn update_message(&mut self, index: usize, new_message: &[u8]) -> FieldElement {
         let current = self.msg_hasher.hash(new_message);
 
         insert_preimage(&mut self.db, index as u32, new_message.to_vec());
@@ -250,19 +267,25 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
     }
 
-    pub fn find_index_from_leaf(&self, leaf_value: &FieldElement) -> Option<usize> {
+    #[allow(dead_code)]
+    pub(crate) fn find_index_from_leaf(&self, leaf_value: &FieldElement) -> Option<usize> {
         let index = find_hash_from_value(&self.db, leaf_value);
         index.map(|val| val as usize)
     }
 
+    #[allow(dead_code)]
     // TODO: this gets updated to be -1 on the latest barretenberg branch
-    pub fn find_index_for_empty_leaf(&self) -> usize {
+    pub(crate) fn find_index_for_empty_leaf(&self) -> usize {
         let index = fetch_empty_index(&self.db);
         index as usize
     }
 
     /// Update the element at index and compute the new tree root
-    pub fn update_leaf(&mut self, mut index: usize, mut current: FieldElement) -> FieldElement {
+    pub(crate) fn update_leaf(
+        &mut self,
+        mut index: usize,
+        mut current: FieldElement,
+    ) -> FieldElement {
         // Note that this method does not update the list of messages [preimages]|
         // use `update_message` to do this
         self.check_if_index_valid_and_increment(index);
@@ -286,15 +309,104 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         insert_root(&mut self.db, current);
         current
     }
+
+    #[allow(dead_code)]
     /// Gets a message at `index`. This is not the leaf
-    pub fn get_message_at_index(&self, index: usize) -> Vec<u8> {
+    pub(crate) fn get_message_at_index(&self, index: usize) -> Vec<u8> {
         fetch_preimage(&self.db, index)
     }
 
-    pub fn root(&self) -> FieldElement {
+    pub(crate) fn root(&self) -> FieldElement {
         fetch_root(&self.db)
     }
-    pub fn depth(&self) -> u32 {
+
+    #[allow(dead_code)]
+    pub(crate) fn depth(&self) -> u32 {
         self.depth
+    }
+}
+
+#[test]
+fn basic_interop_initial_root() {
+    use tempfile::tempdir;
+    let temp_dir = tempdir().unwrap();
+    // Test that the initial root is computed correctly
+    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    // Copied from barretenberg by copying the stdout from MemoryTree
+    let expected_hex = "04ccfbbb859b8605546e03dcaf41393476642859ff7f99446c054b841f0e05c8";
+    assert_eq!(tree.root().to_hex(), expected_hex)
+}
+
+#[test]
+fn basic_interop_hashpath() {
+    use tempfile::tempdir;
+    let temp_dir = tempdir().unwrap();
+    // Test that the hashpath is correct
+    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+
+    let path = tree.get_hash_path(0);
+
+    let expected_hash_path = vec![
+        (
+            "1cdcf02431ba623767fe389337d011df1048dcc24b98ed81cec97627bab454a0",
+            "1cdcf02431ba623767fe389337d011df1048dcc24b98ed81cec97627bab454a0",
+        ),
+        (
+            "0b5e9666e7323ce925c28201a97ddf4144ac9d148448ed6f49f9008719c1b85b",
+            "0b5e9666e7323ce925c28201a97ddf4144ac9d148448ed6f49f9008719c1b85b",
+        ),
+        (
+            "22ec636f8ad30ef78c42b7fe2be4a4cacf5a445cfb5948224539f59a11d70775",
+            "22ec636f8ad30ef78c42b7fe2be4a4cacf5a445cfb5948224539f59a11d70775",
+        ),
+    ];
+
+    for (got, expected_segment) in path.into_iter().zip(expected_hash_path) {
+        assert_eq!(got.0.to_hex().as_str(), expected_segment.0);
+        assert_eq!(got.1.to_hex().as_str(), expected_segment.1)
+    }
+}
+
+#[test]
+fn basic_interop_update() {
+    // Test that computing the HashPath is correct
+    use tempfile::tempdir;
+    let temp_dir = tempdir().unwrap();
+    let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+
+    tree.update_message(0, &[0; 64]);
+    tree.update_message(1, &[1; 64]);
+    tree.update_message(2, &[2; 64]);
+    tree.update_message(3, &[3; 64]);
+    tree.update_message(4, &[4; 64]);
+    tree.update_message(5, &[5; 64]);
+    tree.update_message(6, &[6; 64]);
+    let root = tree.update_message(7, &[7; 64]);
+
+    assert_eq!(
+        "0ef8e14db4762ebddadb23b2225f93ca200a4c9bd37130b4d028c971bbad16b5",
+        root.to_hex()
+    );
+
+    let path = tree.get_hash_path(2);
+
+    let expected_hash_path = vec![
+        (
+            "06c2335d6f7acb84bbc7d0892cefebb7ca31169a89024f24814d5785e0d05324",
+            "12dc36b01cbd8a6248b04e08f0ec91aa6d11a91f030b4a7b1460281859942185",
+        ),
+        (
+            "1f399ea0d6aaf602c7cbcb6ae8cda0e6b6487836c017163888ed4fd38b548389",
+            "220dd1b310caa4a6af755b4c893d956c48f31642b487164b258f2973aac2c28f",
+        ),
+        (
+            "25cbb3084647221ffcb535945bb65bd70e0809834dc7a6d865a3f2bb046cdc29",
+            "2cc463fc8c9a4eda416f3e490876672f644708dd0330a915f6835d8396fa8f20",
+        ),
+    ];
+
+    for (got, expected_segment) in path.into_iter().zip(expected_hash_path) {
+        assert_eq!(got.0.to_hex().as_str(), expected_segment.0);
+        assert_eq!(got.1.to_hex().as_str(), expected_segment.1)
     }
 }

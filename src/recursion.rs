@@ -1,21 +1,26 @@
-use common::acvm::FieldElement;
+use acvm::FieldElement;
 
 use super::{Barretenberg, FIELD_BYTES};
 
 pub(crate) trait Recursion {
-    fn verify_proof(&self, key: Vec<FieldElement>, proof: Vec<FieldElement>, public_input: FieldElement, input_aggregation_object: [FieldElement; 16]) -> [FieldElement; 16];
+    fn verify_proof(
+        &self,
+        key: Vec<FieldElement>,
+        proof: Vec<FieldElement>,
+        public_input: FieldElement,
+        input_aggregation_object: [FieldElement; 16],
+    ) -> [FieldElement; 16];
 }
 
 #[cfg(feature = "native")]
 impl Recursion for Barretenberg {
     fn verify_proof(
-        &self, 
-        key: Vec<FieldElement>, 
-        proof: Vec<FieldElement>, 
-        public_input: FieldElement, 
+        &self,
+        key: Vec<FieldElement>,
+        proof: Vec<FieldElement>,
+        public_input: FieldElement,
         input_aggregation_object: [FieldElement; 16],
     ) -> [FieldElement; 16] {
-
         let mut vk_as_bytes = Vec::new();
         for vk_field in key {
             vk_as_bytes.extend(vk_field.to_be_bytes());
@@ -43,16 +48,18 @@ impl Recursion for Barretenberg {
                 &proof_fields_as_bytes,
                 &public_input_as_bytes,
                 &input_agg_obj_bytes,
-                p_output_agg_obj
+                p_output_agg_obj,
             );
         }
 
         let output_agg_as_bytes;
         unsafe {
-            output_agg_as_bytes = Vec::from_raw_parts(output_agg_obj_addr, output_agg_size, output_agg_size);
+            output_agg_as_bytes =
+                Vec::from_raw_parts(output_agg_obj_addr, output_agg_size, output_agg_size);
         }
 
-        let output_agg_obj_byte_slices = output_agg_as_bytes.chunks(FIELD_BYTES).collect::<Vec<_>>();
+        let output_agg_obj_byte_slices =
+            output_agg_as_bytes.chunks(FIELD_BYTES).collect::<Vec<_>>();
         let mut output_aggregation_obj: [FieldElement; 16] = [FieldElement::zero(); 16];
         for (i, output_agg_bytes) in output_agg_obj_byte_slices.into_iter().enumerate() {
             output_aggregation_obj[i] = FieldElement::from_be_bytes_reduce(output_agg_bytes);

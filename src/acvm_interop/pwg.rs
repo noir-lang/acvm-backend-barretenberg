@@ -1,8 +1,8 @@
-use common::acvm::acir::BlackBoxFunc;
-use common::acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
-use common::acvm::pwg::{hash, logic, range, signature, witness_to_value};
-use common::acvm::{FieldElement, OpcodeResolution};
-use common::acvm::{OpcodeResolutionError, PartialWitnessGenerator};
+use acvm::acir::BlackBoxFunc;
+use acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
+use acvm::pwg::{hash, logic, range, signature, witness_to_value};
+use acvm::{FieldElement, OpcodeResolution};
+use acvm::{OpcodeResolutionError, PartialWitnessGenerator};
 
 use std::collections::BTreeMap;
 
@@ -49,9 +49,14 @@ impl PartialWitnessGenerator for Barretenberg {
                     .map(|input| witness_to_value(initial_witness, input.witness))
                     .collect();
 
-                let valid_proof = merkle::check_membership(self, hash_path?, root, index, leaf);
+                let computed_merkle_root = merkle::compute_merkle_root(
+                    |left, right| self.compress_native(left, right),
+                    hash_path?,
+                    index,
+                    leaf,
+                );
 
-                let result = if valid_proof {
+                let result = if &computed_merkle_root == root {
                     FieldElement::one()
                 } else {
                     FieldElement::zero()
@@ -161,7 +166,7 @@ impl PartialWitnessGenerator for Barretenberg {
             BlackBoxFunc::VerifyProof => {
                 let mut inputs_iter = func_call.inputs.iter();
 
-                let mut key_array = [FieldElement::zero(); 114];               
+                let mut key_array = [FieldElement::zero(); 114];
                 for (i, vk_i) in key_array.iter_mut().enumerate() {
                     let _vk_i = inputs_iter.next().unwrap_or_else(|| {
                         panic!("missing rest of vkey. Tried to get field {i} but failed")
@@ -170,7 +175,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 }
                 let key = key_array.to_vec();
 
-                let mut proof_array = [FieldElement::zero(); 94];               
+                let mut proof_array = [FieldElement::zero(); 94];
                 for (i, proof_i) in proof_array.iter_mut().enumerate() {
                     let _proof_i = inputs_iter.next().unwrap_or_else(|| {
                         panic!("missing rest of proof. Tried to get field {i} but failed")
@@ -185,10 +190,11 @@ impl PartialWitnessGenerator for Barretenberg {
 
                 let _key_hash = inputs_iter.next().expect("expected `key_hash`");
                 let key_hash = *witness_to_value(initial_witness, _key_hash.witness)?;
-                
+
                 // TODO: handle input_aggregation_object once we enable arbitrary depth recursion in bberg
 
-                let output_aggregation_object = self.verify_proof(key, proof, public_input, [FieldElement::zero(); 16]);
+                let output_aggregation_object =
+                    self.verify_proof(key, proof, public_input, [FieldElement::zero(); 16]);
 
                 assert_eq!(func_call.outputs.len(), 16);
 

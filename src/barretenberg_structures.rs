@@ -1,22 +1,21 @@
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
+use acvm::FieldElement;
 
-pub use acvm::FieldElement as Scalar;
-
-#[derive(Debug, Clone)]
-pub struct Assignments(Vec<Scalar>);
-pub type WitnessAssignments = Assignments;
+#[derive(Debug, Default, Clone)]
+pub(crate) struct Assignments(Vec<FieldElement>);
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl Assignments {
-    pub fn new() -> Assignments {
-        Assignments(vec![])
+    #[allow(dead_code)]
+    pub(crate) fn new() -> Assignments {
+        Assignments::default()
     }
 }
 
 impl Assignments {
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
         let witness_len = self.0.len() as u32;
@@ -29,20 +28,13 @@ impl Assignments {
         buffer
     }
 
-    pub fn push_i32(&mut self, value: i32) {
-        self.0.push(Scalar::from(value as i128));
-    }
-    pub fn push(&mut self, value: Scalar) {
-        self.0.push(value);
-    }
-
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 }
 
 impl IntoIterator for Assignments {
-    type Item = Scalar;
+    type Item = FieldElement;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -50,28 +42,22 @@ impl IntoIterator for Assignments {
     }
 }
 
-impl From<Vec<Scalar>> for Assignments {
-    fn from(w: Vec<Scalar>) -> Assignments {
+impl From<Vec<FieldElement>> for Assignments {
+    fn from(w: Vec<FieldElement>) -> Assignments {
         Assignments(w)
     }
 }
 
-impl Default for Assignments {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[derive(Clone, Hash, Debug)]
-pub struct Constraint {
-    pub a: i32,
-    pub b: i32,
-    pub c: i32,
-    pub qm: Scalar,
-    pub ql: Scalar,
-    pub qr: Scalar,
-    pub qo: Scalar,
-    pub qc: Scalar,
+pub(crate) struct Constraint {
+    pub(crate) a: i32,
+    pub(crate) b: i32,
+    pub(crate) c: i32,
+    pub(crate) qm: FieldElement,
+    pub(crate) ql: FieldElement,
+    pub(crate) qr: FieldElement,
+    pub(crate) qo: FieldElement,
+    pub(crate) qc: FieldElement,
 }
 
 impl Constraint {
@@ -94,9 +80,9 @@ impl Constraint {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub struct RangeConstraint {
-    pub a: i32,
-    pub num_bits: i32,
+pub(crate) struct RangeConstraint {
+    pub(crate) a: i32,
+    pub(crate) num_bits: i32,
 }
 
 impl RangeConstraint {
@@ -110,12 +96,12 @@ impl RangeConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct EcdsaConstraint {
-    pub hashed_message: Vec<i32>,
-    pub signature: [i32; 64],
-    pub public_key_x: [i32; 32],
-    pub public_key_y: [i32; 32],
-    pub result: i32,
+pub(crate) struct EcdsaConstraint {
+    pub(crate) hashed_message: Vec<i32>,
+    pub(crate) signature: [i32; 64],
+    pub(crate) public_key_x: [i32; 32],
+    pub(crate) public_key_y: [i32; 32],
+    pub(crate) result: i32,
 }
 
 impl EcdsaConstraint {
@@ -152,12 +138,12 @@ impl EcdsaConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct SchnorrConstraint {
-    pub message: Vec<i32>,
-    pub signature: [i32; 64],
-    pub public_key_x: i32,
-    pub public_key_y: i32,
-    pub result: i32,
+pub(crate) struct SchnorrConstraint {
+    pub(crate) message: Vec<i32>,
+    pub(crate) signature: [i32; 64],
+    pub(crate) public_key_x: i32,
+    pub(crate) public_key_y: i32,
+    pub(crate) result: i32,
 }
 
 impl SchnorrConstraint {
@@ -184,12 +170,12 @@ impl SchnorrConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct MerkleMembershipConstraint {
-    pub hash_path: Vec<i32>,
-    pub root: i32,
-    pub leaf: i32,
-    pub index: i32,
-    pub result: i32,
+pub(crate) struct MerkleMembershipConstraint {
+    pub(crate) hash_path: Vec<i32>,
+    pub(crate) root: i32,
+    pub(crate) leaf: i32,
+    pub(crate) index: i32,
+    pub(crate) result: i32,
 }
 
 impl MerkleMembershipConstraint {
@@ -213,9 +199,9 @@ impl MerkleMembershipConstraint {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub struct Sha256Constraint {
-    pub inputs: Vec<(i32, i32)>,
-    pub result: [i32; 32],
+pub(crate) struct Sha256Constraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
 }
 
 impl Sha256Constraint {
@@ -239,9 +225,9 @@ impl Sha256Constraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct Blake2sConstraint {
-    pub inputs: Vec<(i32, i32)>,
-    pub result: [i32; 32],
+pub(crate) struct Blake2sConstraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
 }
 
 impl Blake2sConstraint {
@@ -265,9 +251,9 @@ impl Blake2sConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct HashToFieldConstraint {
-    pub inputs: Vec<(i32, i32)>,
-    pub result: i32,
+pub(crate) struct HashToFieldConstraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: i32,
 }
 
 impl HashToFieldConstraint {
@@ -287,10 +273,10 @@ impl HashToFieldConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct PedersenConstraint {
-    pub inputs: Vec<i32>,
-    pub result_x: i32,
-    pub result_y: i32,
+pub(crate) struct PedersenConstraint {
+    pub(crate) inputs: Vec<i32>,
+    pub(crate) result_x: i32,
+    pub(crate) result_y: i32,
 }
 
 impl PedersenConstraint {
@@ -310,10 +296,10 @@ impl PedersenConstraint {
     }
 }
 #[derive(Clone, Hash, Debug)]
-pub struct FixedBaseScalarMulConstraint {
-    pub scalar: i32,
-    pub pubkey_x: i32,
-    pub pubkey_y: i32,
+pub(crate) struct FixedBaseScalarMulConstraint {
+    pub(crate) scalar: i32,
+    pub(crate) pubkey_x: i32,
+    pub(crate) pubkey_y: i32,
 }
 
 impl FixedBaseScalarMulConstraint {
@@ -329,16 +315,16 @@ impl FixedBaseScalarMulConstraint {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub struct LogicConstraint {
-    pub a: i32,
-    pub b: i32,
-    pub result: i32,
-    pub num_bits: i32,
-    pub is_xor_gate: bool,
+pub(crate) struct LogicConstraint {
+    pub(crate) a: i32,
+    pub(crate) b: i32,
+    pub(crate) result: i32,
+    pub(crate) num_bits: i32,
+    pub(crate) is_xor_gate: bool,
 }
 
 impl LogicConstraint {
-    pub fn and(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
+    pub(crate) fn and(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
         LogicConstraint {
             a,
             b,
@@ -347,7 +333,7 @@ impl LogicConstraint {
             is_xor_gate: false,
         }
     }
-    pub fn xor(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
+    pub(crate) fn xor(a: i32, b: i32, result: i32, num_bits: i32) -> LogicConstraint {
         LogicConstraint {
             a,
             b,
@@ -415,7 +401,7 @@ impl RecursionConstraint {
 }
 
 #[derive(Clone, Hash, Debug, Default)]
-pub struct ConstraintSystem {
+pub(crate) struct ConstraintSystem {
     var_num: u32,
     public_inputs: Vec<u32>,
 
@@ -435,40 +421,42 @@ pub struct ConstraintSystem {
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
 impl ConstraintSystem {
-    pub fn new() -> Self {
+    #[allow(dead_code)]
+    pub(crate) fn new() -> Self {
         ConstraintSystem::default()
     }
 }
 
 // Builder-style impl, but we use all data types that can be defaulted so we don't need a separate builder struct
-// TODO(blaine): Add #[cfg(test)] once this project is merged into a single crate
+#[allow(dead_code)]
+#[cfg(test)]
 impl ConstraintSystem {
-    pub fn var_num(mut self, var_num: u32) -> Self {
+    pub(crate) fn var_num(mut self, var_num: u32) -> Self {
         self.var_num = var_num;
         self
     }
 
-    pub fn public_inputs(mut self, public_inputs: Vec<u32>) -> Self {
+    pub(crate) fn public_inputs(mut self, public_inputs: Vec<u32>) -> Self {
         self.public_inputs = public_inputs;
         self
     }
 
-    pub fn logic_constraints(mut self, logic_constraints: Vec<LogicConstraint>) -> Self {
+    pub(crate) fn logic_constraints(mut self, logic_constraints: Vec<LogicConstraint>) -> Self {
         self.logic_constraints = logic_constraints;
         self
     }
 
-    pub fn range_constraints(mut self, range_constraints: Vec<RangeConstraint>) -> Self {
+    pub(crate) fn range_constraints(mut self, range_constraints: Vec<RangeConstraint>) -> Self {
         self.range_constraints = range_constraints;
         self
     }
 
-    pub fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
+    pub(crate) fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
         self.sha256_constraints = sha256_constraints;
         self
     }
 
-    pub fn merkle_membership_constraints(
+    pub(crate) fn merkle_membership_constraints(
         mut self,
         merkle_membership_constraints: Vec<MerkleMembershipConstraint>,
     ) -> Self {
@@ -476,12 +464,15 @@ impl ConstraintSystem {
         self
     }
 
-    pub fn schnorr_constraints(mut self, schnorr_constraints: Vec<SchnorrConstraint>) -> Self {
+    pub(crate) fn schnorr_constraints(
+        mut self,
+        schnorr_constraints: Vec<SchnorrConstraint>,
+    ) -> Self {
         self.schnorr_constraints = schnorr_constraints;
         self
     }
 
-    pub fn ecdsa_secp256k1_constraints(
+    pub(crate) fn ecdsa_secp256k1_constraints(
         mut self,
         ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     ) -> Self {
@@ -489,17 +480,23 @@ impl ConstraintSystem {
         self
     }
 
-    pub fn blake2s_constraints(mut self, blake2s_constraints: Vec<Blake2sConstraint>) -> Self {
+    pub(crate) fn blake2s_constraints(
+        mut self,
+        blake2s_constraints: Vec<Blake2sConstraint>,
+    ) -> Self {
         self.blake2s_constraints = blake2s_constraints;
         self
     }
 
-    pub fn pedersen_constraints(mut self, pedersen_constraints: Vec<PedersenConstraint>) -> Self {
+    pub(crate) fn pedersen_constraints(
+        mut self,
+        pedersen_constraints: Vec<PedersenConstraint>,
+    ) -> Self {
         self.pedersen_constraints = pedersen_constraints;
         self
     }
 
-    pub fn hash_to_field_constraints(
+    pub(crate) fn hash_to_field_constraints(
         mut self,
         hash_to_field_constraints: Vec<HashToFieldConstraint>,
     ) -> Self {
@@ -507,7 +504,7 @@ impl ConstraintSystem {
         self
     }
 
-    pub fn fixed_base_scalar_mul_constraints(
+    pub(crate) fn fixed_base_scalar_mul_constraints(
         mut self,
         fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
     ) -> Self {
@@ -515,7 +512,7 @@ impl ConstraintSystem {
         self
     }
 
-    pub fn recursion_constraints(
+    pub(crate) fn recursion_constraints(
         mut self,
         recursion_constraints: Vec<RecursionConstraint>,
     ) -> Self {
@@ -523,18 +520,18 @@ impl ConstraintSystem {
         self
     }
 
-    pub fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
+    pub(crate) fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
         self.constraints = constraints;
         self
     }
 }
 
 impl ConstraintSystem {
-    pub fn public_inputs_size(&self) -> usize {
+    pub(crate) fn public_inputs_size(&self) -> usize {
         self.public_inputs.len()
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 
         // Push lengths onto the buffer
@@ -1067,10 +1064,10 @@ fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
     let mut a = 0;
     let mut b = 0;
     let mut c = 0;
-    let mut qm = Scalar::zero();
-    let mut ql = Scalar::zero();
-    let mut qr = Scalar::zero();
-    let mut qo = Scalar::zero();
+    let mut qm = FieldElement::zero();
+    let mut ql = FieldElement::zero();
+    let mut qr = FieldElement::zero();
+    let mut qo = FieldElement::zero();
 
     // check mul gate
     if !gate.mul_terms.is_empty() {

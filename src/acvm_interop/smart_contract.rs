@@ -1,6 +1,6 @@
-use common::acvm::SmartContract;
-use common::crs::G2;
+use acvm::SmartContract;
 
+use crate::crs::G2;
 use crate::Barretenberg;
 
 /// Embed the Solidity verifier file
@@ -70,19 +70,20 @@ impl SmartContract for Barretenberg {
 
 #[test]
 fn test_smart_contract() {
+    use crate::barretenberg_structures::{Constraint, ConstraintSystem};
     use crate::composer::Composer;
     use crate::Barretenberg;
-    use common::barretenberg_structures::*;
+    use acvm::FieldElement;
 
     let constraint = Constraint {
         a: 1,
         b: 2,
         c: 3,
-        qm: Scalar::zero(),
-        ql: Scalar::one(),
-        qr: Scalar::one(),
-        qo: -Scalar::one(),
-        qc: Scalar::zero(),
+        qm: FieldElement::zero(),
+        ql: FieldElement::one(),
+        qr: FieldElement::one(),
+        qo: -FieldElement::one(),
+        qc: FieldElement::zero(),
     };
 
     let constraint_system = ConstraintSystem::new()

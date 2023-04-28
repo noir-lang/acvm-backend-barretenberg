@@ -1,4 +1,4 @@
-use common::acvm::FieldElement;
+use acvm::FieldElement;
 
 use super::{Barretenberg, FIELD_BYTES};
 
