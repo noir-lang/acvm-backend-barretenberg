@@ -643,6 +643,7 @@ impl ConstraintSystem {
     }
 }
 
+// TODO: TryFrom
 impl From<&Circuit> for ConstraintSystem {
     /// Converts an `IR` into the `StandardFormat` constraint system
     fn from(circuit: &Circuit) -> Self {

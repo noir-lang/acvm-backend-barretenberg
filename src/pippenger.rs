@@ -1,4 +1,4 @@
-use crate::Barretenberg;
+use crate::{Barretenberg, Error};
 
 pub(crate) struct Pippenger {
     #[cfg(feature = "native")]
@@ -23,26 +23,29 @@ impl Pippenger {
 
 #[cfg(feature = "native")]
 impl Barretenberg {
-    pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Pippenger {
+    pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Result<Pippenger, Error> {
         let pippenger_ptr = barretenberg_sys::pippenger::new(crs_data);
 
-        Pippenger { pippenger_ptr }
+        Ok(Pippenger { pippenger_ptr })
     }
 }
 
 #[cfg(not(feature = "native"))]
 impl Barretenberg {
-    pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Pippenger {
+    pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Result<Pippenger, Error> {
         use super::FIELD_BYTES;
 
         let num_points = crs_data.len() / (2 * FIELD_BYTES);
 
-        let crs_ptr = self.allocate(crs_data);
+        let crs_ptr = self.allocate(crs_data)?;
 
+        // This doesn't unwrap the result because we need to free even if there is a failure
         let pippenger_ptr = self.call_multiple("new_pippenger", vec![&crs_ptr, &num_points.into()]);
 
-        self.free(crs_ptr);
+        self.free(crs_ptr)?;
 
-        Pippenger { pippenger_ptr }
+        Ok(Pippenger {
+            pippenger_ptr: pippenger_ptr?.value()?,
+        })
     }
 }

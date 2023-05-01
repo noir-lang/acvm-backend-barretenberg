@@ -1,11 +1,13 @@
 use acvm::FieldElement;
 
+use crate::Error;
+
 pub(super) fn compute_merkle_root(
-    hash_func: impl Fn(&FieldElement, &FieldElement) -> FieldElement,
+    hash_func: impl Fn(&FieldElement, &FieldElement) -> Result<FieldElement, Error>,
     hash_path: Vec<&FieldElement>,
     index: &FieldElement,
     leaf: &FieldElement,
-) -> FieldElement {
+) -> Result<FieldElement, Error> {
     let mut index_bits: Vec<bool> = index.bits();
     index_bits.reverse();
 
@@ -14,14 +16,17 @@ pub(super) fn compute_merkle_root(
         "hash path exceeds max depth of tree"
     );
     index_bits.into_iter().zip(hash_path.into_iter()).fold(
-        *leaf,
-        |current_node, (path_bit, path_elem)| {
-            let (left, right) = if !path_bit {
-                (&current_node, path_elem)
-            } else {
-                (path_elem, &current_node)
-            };
-            hash_func(left, right)
+        Ok(*leaf),
+        |current_node, (path_bit, path_elem)| match current_node {
+            Ok(current_node) => {
+                let (left, right) = if !path_bit {
+                    (&current_node, path_elem)
+                } else {
+                    (path_elem, &current_node)
+                };
+                hash_func(left, right)
+            }
+            Err(_) => current_node,
         },
     )
 }
@@ -29,11 +34,12 @@ pub(super) fn compute_merkle_root(
 #[cfg(test)]
 mod tests {
     use crate::merkle::{MerkleTree, MessageHasher};
+    use crate::Error;
     use crate::{pedersen::Pedersen, Barretenberg};
     use acvm::FieldElement;
 
     #[test]
-    fn test_check_membership() {
+    fn test_check_membership() -> Result<(), Error> {
         struct Test<'a> {
             // Index of the leaf in the MerkleTree
             index: &'a str,
@@ -49,42 +55,42 @@ mod tests {
         // Note these test cases are not independent.
         // i.e. If you update index 0, then this will be saved for the next test
         let tests = vec![
-        Test {
-            index : "0",
-            result : true,
-            message : vec![0;64],
-            should_update_tree: false,
-            error_msg : "this should always be true, since the tree is initialized with 64 zeroes"
-        },
-        Test {
-            index : "0",
-            result : false,
-            message : vec![10;64],
-            should_update_tree: false,
-            error_msg : "this should be false, since the tree was not updated, however the message which derives the leaf has changed"
-        },
-        Test {
-            index : "0",
-            result : true,
-            message : vec![1;64],
-            should_update_tree: true,
-            error_msg : "this should be true, since we are updating the tree"
-        },
-        Test {
-            index : "0",
-            result : true,
-            message : vec![1;64],
-            should_update_tree: false,
-            error_msg : "this should be true since the index at 4 has not been changed yet, so it would be [0;64]"
-        },
-        Test {
-            index : "4",
-            result : true,
-            message : vec![0;64],
-            should_update_tree: false,
-            error_msg : "this should be true since the index at 4 has not been changed yet, so it would be [0;64]"
-        },
-    ];
+            Test {
+                index : "0",
+                result : true,
+                message : vec![0;64],
+                should_update_tree: false,
+                error_msg : "this should always be true, since the tree is initialized with 64 zeroes"
+            },
+            Test {
+                index : "0",
+                result : false,
+                message : vec![10;64],
+                should_update_tree: false,
+                error_msg : "this should be false, since the tree was not updated, however the message which derives the leaf has changed"
+            },
+            Test {
+                index : "0",
+                result : true,
+                message : vec![1;64],
+                should_update_tree: true,
+                error_msg : "this should be true, since we are updating the tree"
+            },
+            Test {
+                index : "0",
+                result : true,
+                message : vec![1;64],
+                should_update_tree: false,
+                error_msg : "this should be true since the index at 4 has not been changed yet, so it would be [0;64]"
+            },
+            Test {
+                index : "4",
+                result : true,
+                message : vec![0;64],
+                should_update_tree: false,
+                error_msg : "this should be true since the index at 4 has not been changed yet, so it would be [0;64]"
+            },
+        ];
 
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
@@ -102,7 +108,7 @@ mod tests {
 
             let mut root = tree.root();
             if test_vector.should_update_tree {
-                root = tree.update_message(index_as_usize, &test_vector.message);
+                root = tree.update_message(index_as_usize, &test_vector.message)?;
             }
 
             let hash_path = tree.get_hash_path(index_as_usize);
@@ -120,7 +126,7 @@ mod tests {
                 hash_path_ref,
                 &index,
                 &leaf,
-            );
+            )?;
             let is_leaf_in_tree = root == computed_merkle_root;
 
             assert_eq!(
@@ -129,11 +135,13 @@ mod tests {
                 test_vector.error_msg
             );
         }
+
+        Ok(())
     }
 
     // This test uses `update_leaf` directly rather than `update_message`
     #[test]
-    fn simple_shield() {
+    fn simple_shield() -> Result<(), Error> {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
 
@@ -148,7 +156,7 @@ mod tests {
             "0x2a5d7253a6ed48462fedb2d350cc768d13956310f54e73a8a47914f34a34c5c4",
         )
         .unwrap();
-        let (note_commitment_x, _) = barretenberg.encrypt(vec![pubkey_x, pubkey_y]);
+        let (note_commitment_x, _) = barretenberg.encrypt(vec![pubkey_x, pubkey_y])?;
         dbg!(note_commitment_x.to_hex());
         let leaf = note_commitment_x;
 
@@ -157,7 +165,7 @@ mod tests {
         let mut index_bits = index.bits();
         index_bits.reverse();
 
-        let root = tree.update_leaf(index_as_usize, leaf);
+        let root = tree.update_leaf(index_as_usize, leaf)?;
 
         let hash_path = tree.get_hash_path(index_as_usize);
         let mut hash_path_ref = Vec::new();
@@ -173,8 +181,10 @@ mod tests {
             hash_path_ref,
             &index,
             &leaf,
-        );
+        )?;
 
-        assert_eq!(root, computed_merkle_root)
+        assert_eq!(root, computed_merkle_root);
+
+        Ok(())
     }
 }

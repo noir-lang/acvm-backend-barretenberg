@@ -10,6 +10,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 acvm = { version = "0.10.3", features = ["bn254"] }
+thiserror = "1.0.21"
 
 blake2 = "0.9.1"
 sha3 = "0.9.1"
@@ -67,3 +68,6 @@ wasm = [
     "dep:indicatif",
 ]
 js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]
+
+[patch.crates-io]
+acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", rev = "ba79379b4087a51a027f991ba6f7e6dff9c1c2a7" }

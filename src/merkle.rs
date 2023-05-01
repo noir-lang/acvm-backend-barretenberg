@@ -1,16 +1,16 @@
 use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
 
-use crate::{pedersen::Pedersen, Barretenberg};
+use crate::{pedersen::Pedersen, Barretenberg, Error};
 
 // Hashes the leaves up the path, on the way to the root
 pub(crate) trait PathHasher {
     fn new() -> Self;
-    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement;
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> Result<FieldElement, Error>;
 }
 
 impl PathHasher for Barretenberg {
-    fn hash(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
+    fn hash(&self, left: &FieldElement, right: &FieldElement) -> Result<FieldElement, Error> {
         self.compress_native(left, right)
     }
 
@@ -65,6 +65,7 @@ pub(crate) struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     msg_hasher: MH,
 }
 
+// TODO: Rework this module to return results
 fn insert_root(db: &mut sled::Db, value: FieldElement) {
     db.insert("ROOT".as_bytes(), value.to_be_bytes()).unwrap();
 }
@@ -202,7 +203,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             for i in 0..layer_size {
                 hashes[offset + i] = current;
             }
-            current = barretenberg.hash(&current, &current);
+            // TODO: no unwrap
+            current = barretenberg.hash(&current, &current).unwrap();
 
             offset += layer_size;
             layer_size /= 2;
@@ -248,7 +250,11 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         path
     }
     /// Updates the message at index and computes the new tree root
-    pub(crate) fn update_message(&mut self, index: usize, new_message: &[u8]) -> FieldElement {
+    pub(crate) fn update_message(
+        &mut self,
+        index: usize,
+        new_message: &[u8],
+    ) -> Result<FieldElement, Error> {
         let current = self.msg_hasher.hash(new_message);
 
         insert_preimage(&mut self.db, index as u32, new_message.to_vec());
@@ -285,7 +291,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         &mut self,
         mut index: usize,
         mut current: FieldElement,
-    ) -> FieldElement {
+    ) -> Result<FieldElement, Error> {
         // Note that this method does not update the list of messages [preimages]|
         // use `update_message` to do this
         self.check_if_index_valid_and_increment(index);
@@ -299,7 +305,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             current = self.barretenberg.hash(
                 &fetch_hash(&self.db, offset + index),
                 &fetch_hash(&self.db, offset + index + 1),
-            );
+            )?;
 
             offset += layer_size as usize;
             layer_size /= 2;
@@ -307,7 +313,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
 
         insert_root(&mut self.db, current);
-        current
+        Ok(current)
     }
 
     #[allow(dead_code)]
@@ -368,20 +374,20 @@ fn basic_interop_hashpath() {
 }
 
 #[test]
-fn basic_interop_update() {
+fn basic_interop_update() -> Result<(), Error> {
     // Test that computing the HashPath is correct
     use tempfile::tempdir;
     let temp_dir = tempdir().unwrap();
     let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
-    tree.update_message(0, &[0; 64]);
-    tree.update_message(1, &[1; 64]);
-    tree.update_message(2, &[2; 64]);
-    tree.update_message(3, &[3; 64]);
-    tree.update_message(4, &[4; 64]);
-    tree.update_message(5, &[5; 64]);
-    tree.update_message(6, &[6; 64]);
-    let root = tree.update_message(7, &[7; 64]);
+    tree.update_message(0, &[0; 64])?;
+    tree.update_message(1, &[1; 64])?;
+    tree.update_message(2, &[2; 64])?;
+    tree.update_message(3, &[3; 64])?;
+    tree.update_message(4, &[4; 64])?;
+    tree.update_message(5, &[5; 64])?;
+    tree.update_message(6, &[6; 64])?;
+    let root = tree.update_message(7, &[7; 64])?;
 
     assert_eq!(
         "0ef8e14db4762ebddadb23b2225f93ca200a4c9bd37130b4d028c971bbad16b5",
@@ -409,4 +415,6 @@ fn basic_interop_update() {
         assert_eq!(got.0.to_hex().as_str(), expected_segment.0);
         assert_eq!(got.1.to_hex().as_str(), expected_segment.1)
     }
+
+    Ok(())
 }
