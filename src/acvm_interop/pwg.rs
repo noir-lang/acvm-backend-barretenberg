@@ -1,10 +1,8 @@
 use acvm::acir::BlackBoxFunc;
-use acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
+use acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::WitnessMap};
 use acvm::pwg::{hash, logic, range, signature, witness_to_value};
 use acvm::{FieldElement, OpcodeResolution};
 use acvm::{OpcodeResolutionError, PartialWitnessGenerator};
-
-use std::collections::BTreeMap;
 
 use crate::pedersen::Pedersen;
 use crate::scalar_mul::ScalarMul;
@@ -18,7 +16,7 @@ mod merkle;
 impl PartialWitnessGenerator for Barretenberg {
     fn solve_black_box_function_call(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         func_call: &BlackBoxFuncCall,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         match func_call.name {

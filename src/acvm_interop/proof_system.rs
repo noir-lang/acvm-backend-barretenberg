@@ -1,7 +1,6 @@
-use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
+use acvm::acir::{circuit::Circuit, native_types::WitnessMap, BlackBoxFunc};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
-use std::collections::BTreeMap;
 
 use crate::barretenberg_structures::Assignments;
 use crate::composer::Composer;
@@ -46,7 +45,7 @@ impl ProofSystemCompiler for Barretenberg {
     fn prove_with_pk(
         &self,
         circuit: &Circuit,
-        witness_values: BTreeMap<Witness, FieldElement>,
+        witness_values: WitnessMap,
         proving_key: &[u8],
     ) -> Vec<u8> {
         let assignments = flatten_witness_map(circuit, witness_values);
@@ -57,13 +56,13 @@ impl ProofSystemCompiler for Barretenberg {
     fn verify_with_vk(
         &self,
         proof: &[u8],
-        public_inputs: BTreeMap<Witness, FieldElement>,
+        public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> bool {
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
-        let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
+        let flattened_public_inputs: Vec<FieldElement> = public_inputs.into();
 
         Composer::verify_with_vk(
             self,
@@ -76,10 +75,7 @@ impl ProofSystemCompiler for Barretenberg {
 }
 
 /// Flatten a witness map into a vector of witness assignments.
-fn flatten_witness_map(
-    circuit: &Circuit,
-    witness_values: BTreeMap<Witness, FieldElement>,
-) -> Assignments {
+fn flatten_witness_map(circuit: &Circuit, witness_values: WitnessMap) -> Assignments {
     let num_witnesses = circuit.num_vars();
 
     // Note: The witnesses are sorted via their witness index
@@ -88,10 +84,10 @@ fn flatten_witness_map(
         .map(|witness_index| {
             // Get the value if it exists. If i does not, then we fill it with the zero value
             witness_values
-                .get(&Witness(witness_index))
+                .get_index(witness_index)
                 .map_or(FieldElement::zero(), |field| *field)
         })
         .collect();
 
-    Assignments::from(witness_assignments)
+    witness_assignments.into()
 }
