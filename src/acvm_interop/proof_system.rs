@@ -62,7 +62,8 @@ impl ProofSystemCompiler for Barretenberg {
     ) -> bool {
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
-        let flattened_public_inputs: Vec<FieldElement> = public_inputs.into();
+        let flattened_public_inputs: Vec<FieldElement> =
+            public_inputs.into_iter().map(|(_, el)| el).collect();
 
         Composer::verify_with_vk(
             self,
