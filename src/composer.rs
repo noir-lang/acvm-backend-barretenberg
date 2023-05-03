@@ -20,7 +20,7 @@ pub(crate) trait Composer {
     }
 
     fn is_crs_valid(&self, crs: &CRS, constraint_system: &ConstraintSystem) -> Result<bool, Error> {
-        let num_points = self.get_circuit_size(&constraint_system)?;
+        let num_points = self.get_circuit_size(constraint_system)?;
 
         // TODO: This probably needs more validation on g1_data and g2_data
         Ok(crs.num_points >= num_points as usize)
