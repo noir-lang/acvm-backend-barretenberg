@@ -81,6 +81,7 @@ fn test_smart_contract() -> Result<(), BackendError> {
     use crate::composer::Composer;
     use crate::Barretenberg;
     use acvm::FieldElement;
+    use tokio::runtime::Builder;
 
     let constraint = Constraint {
         a: 1,
@@ -99,7 +100,11 @@ fn test_smart_contract() -> Result<(), BackendError> {
         .constraints(vec![constraint]);
 
     let bb = Barretenberg::new();
-    let crs = bb.get_reference_string(&constraint_system).unwrap();
+    let crs = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(bb.get_crs(&constraint_system))?;
 
     let proving_key = bb.compute_proving_key(&constraint_system)?;
     let verification_key = bb.compute_verification_key(&crs, &proving_key)?;

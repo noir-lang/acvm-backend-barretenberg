@@ -1,18 +1,29 @@
+use acvm::async_trait;
+
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
+use crate::crs::download_crs;
 use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
+#[async_trait]
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
     fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
-    fn get_reference_string(&self, constraint_system: &ConstraintSystem) -> Result<CRS, Error> {
+    async fn get_crs(&self, constraint_system: &ConstraintSystem) -> Result<CRS, Error> {
         let num_points = self.get_circuit_size(constraint_system)?;
 
         // TODO: Consume num_points to fetch the range
-        Ok(CRS::new(num_points as usize))
+        download_crs(num_points as usize).await
+    }
+
+    fn is_crs_valid(&self, crs: &CRS, constraint_system: &ConstraintSystem) -> Result<bool, Error> {
+        let num_points = self.get_circuit_size(&constraint_system)?;
+
+        // TODO: This probably needs more validation on g1_data and g2_data
+        Ok(crs.num_points >= num_points as usize)
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
@@ -1024,8 +1035,14 @@ mod test {
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) -> Result<(), Error> {
+        use tokio::runtime::Builder;
+
         let bb = Barretenberg::new();
-        let crs = Composer::get_reference_string(&bb, &constraint_system).unwrap();
+        let crs = Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(bb.get_crs(&constraint_system))?;
 
         let proving_key = bb.compute_proving_key(&constraint_system)?;
         let verification_key = bb.compute_verification_key(&crs, &proving_key)?;

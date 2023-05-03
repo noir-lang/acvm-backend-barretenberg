@@ -78,6 +78,15 @@ enum Error {
 
     #[error(transparent)]
     FromFeature(#[from] FeatureError),
+
+    #[error("Failed to build request '{url}' ({source})")]
+    CRSRequest { url: String, source: reqwest::Error },
+    #[error("Failed to GET from '{url}' ({source})")]
+    CRSFetch { url: String, source: reqwest::Error },
+    #[error("Failed to get content length from '{url}'")]
+    CRSLength { url: String },
+    #[error("Error while downloading file")]
+    CRSDownload { source: reqwest::Error },
 }
 
 #[derive(Debug, Error)]

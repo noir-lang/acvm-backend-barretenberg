@@ -55,6 +55,7 @@
         "envrc",
         "subshell",
         "thiserror",
+        "bincode",
         // In Solidity
         //
         "addmod",
