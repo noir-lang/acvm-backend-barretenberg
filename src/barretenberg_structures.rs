@@ -1,3 +1,4 @@
+use acvm::acir::circuit::opcodes::MemoryBlock;
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
@@ -396,6 +397,7 @@ pub(crate) struct ConstraintSystem {
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
+    block_constraints: Vec<BlockConstraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -595,7 +597,86 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
+        // Serialize each Block constraint
+        let len = self.block_constraints.len() as u32;
+        buffer.extend_from_slice(&len.to_be_bytes());
+        for constraint in self.block_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
         buffer
+    }
+}
+
+#[derive(Clone, Hash, Debug)]
+pub(crate) struct MemOpBarretenberg {
+    index: Constraint,
+    value: Constraint,
+    is_store: i8,
+}
+impl MemOpBarretenberg {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        buffer.extend_from_slice(&self.index.to_bytes());
+        buffer.extend_from_slice(&self.value.to_bytes());
+        buffer.extend_from_slice(&self.is_store.to_be_bytes());
+
+        buffer
+    }
+}
+
+#[derive(Clone, Hash, Debug)]
+pub(crate) struct BlockConstraint {
+    pub(crate) init: Vec<Constraint>,
+    pub(crate) trace: Vec<MemOpBarretenberg>,
+    pub(crate) is_ram: i8,
+}
+
+impl BlockConstraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let len = self.init.len() as u32;
+        buffer.extend_from_slice(&len.to_be_bytes());
+        for value in self.init.iter() {
+            buffer.extend_from_slice(&value.to_bytes());
+        }
+
+        let len = self.init.len() as u32;
+        buffer.extend_from_slice(&len.to_be_bytes());
+        for op in self.trace.iter() {
+            buffer.extend_from_slice(&op.to_bytes());
+        }
+        buffer.extend_from_slice(&self.is_ram.to_be_bytes());
+
+        buffer
+    }
+
+    fn from_memory_block(b: &MemoryBlock, is_ram_block: bool) -> BlockConstraint {
+        let mut init = Vec::new();
+        let mut trace = Vec::new();
+        let len = b.len as usize;
+        for op in b.trace.iter().take(len) {
+            assert_eq!(op.operation, Expression::one());
+            init.push(serialize_arithmetic_gates(&op.value));
+        }
+        for op in b.trace.iter().skip(len) {
+            let index = serialize_arithmetic_gates(&op.index);
+            let value = serialize_arithmetic_gates(&op.value);
+            let bb_op = MemOpBarretenberg {
+                is_store: op.operation.to_const().unwrap().to_u128() as i8,
+                index,
+                value,
+            };
+            trace.push(bb_op);
+        }
+        let is_ram = i8::from(is_ram_block);
+        BlockConstraint {
+            init,
+            trace,
+            is_ram,
+        }
     }
 }
 
@@ -608,6 +689,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
+        let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
@@ -930,8 +1012,14 @@ impl From<&Circuit> for ConstraintSystem {
                 Opcode::Directive(_) | Opcode::Oracle(_) => {
                     // Directives & Oracles are only needed by the pwg
                 }
-                Opcode::Block(_) | Opcode::RAM(_) | Opcode::ROM(_) => {
-                    // TODO: implement serialization to match BB's interface
+                Opcode::Block(_) => {
+                    // Block is managed by ACVM
+                }
+                Opcode::RAM(block) => {
+                    block_constraints.push(BlockConstraint::from_memory_block(block, true))
+                }
+                Opcode::ROM(block) => {
+                    block_constraints.push(BlockConstraint::from_memory_block(block, false))
                 }
             }
         }
@@ -948,6 +1036,7 @@ impl From<&Circuit> for ConstraintSystem {
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
+            block_constraints,
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
