@@ -223,10 +223,11 @@ mod wasm {
         }
     }
 
-    // TODO: try_into
-    impl From<WASMValue> for Value {
-        fn from(value: WASMValue) -> Self {
-            value.0.unwrap()
+    impl TryFrom<WASMValue> for Value {
+        type Error = WasmError;
+
+        fn try_from(x: WASMValue) -> Result<Self, Self::Error> {
+            x.value()
         }
 
         pub(super) fn bool(self) -> bool {
@@ -322,19 +323,22 @@ mod wasm {
             // We take in a reference to values, since they do not implement Copy.
             // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
-            let params: Vec<Value> = params.into_iter().cloned().map(|val| val.into()).collect();
+            let mut args: Vec<Value> = vec![];
+            for param in params.into_iter().cloned() {
+                args.push(param.try_into()?)
+            }
             let func = self.instance.exports.get_function(name).map_err(|source| {
                 WasmError::InvalidExport {
                     name: name.to_string(),
                     source,
                 }
             })?;
-            let boxed_value =
-                func.call(&params)
-                    .map_err(|source| WasmError::FunctionCallFailed {
-                        name: name.to_string(),
-                        source,
-                    })?;
+            let boxed_value = func
+                .call(&args)
+                .map_err(|source| WasmError::FunctionCallFailed {
+                    name: name.to_string(),
+                    source,
+                })?;
             let option_value = boxed_value.first().cloned();
 
             Ok(WASMValue(option_value))
