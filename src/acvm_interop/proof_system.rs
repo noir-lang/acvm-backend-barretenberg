@@ -1,3 +1,4 @@
+use acvm::acir::circuit::Opcode;
 use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
@@ -16,21 +17,29 @@ impl ProofSystemCompiler for Barretenberg {
         Composer::get_exact_circuit_size(self, &circuit.into())
     }
 
-    fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool {
+    fn opcode_supported(&self, opcode: &Opcode) -> bool {
         match opcode {
-            BlackBoxFunc::AND
-            | BlackBoxFunc::XOR
-            | BlackBoxFunc::RANGE
-            | BlackBoxFunc::SHA256
-            | BlackBoxFunc::Blake2s
-            | BlackBoxFunc::ComputeMerkleRoot
-            | BlackBoxFunc::SchnorrVerify
-            | BlackBoxFunc::Pedersen
-            | BlackBoxFunc::HashToField128Security
-            | BlackBoxFunc::EcdsaSecp256k1
-            | BlackBoxFunc::FixedBaseScalarMul => true,
+            Opcode::Arithmetic(_) => true,
+            Opcode::Directive(_) => true,
+            Opcode::Block(_) => false,
+            Opcode::ROM(_) => true,
+            Opcode::RAM(_) => true,
+            Opcode::Oracle(_) => true,
+            Opcode::BlackBoxFuncCall(func) => match func {
+                BlackBoxFunc::AND
+                | BlackBoxFunc::XOR
+                | BlackBoxFunc::RANGE
+                | BlackBoxFunc::SHA256
+                | BlackBoxFunc::Blake2s
+                | BlackBoxFunc::ComputeMerkleRoot
+                | BlackBoxFunc::SchnorrVerify
+                | BlackBoxFunc::Pedersen
+                | BlackBoxFunc::HashToField128Security
+                | BlackBoxFunc::EcdsaSecp256k1
+                | BlackBoxFunc::FixedBaseScalarMul => true,
 
-            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
+                BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
+            },
         }
     }
 
