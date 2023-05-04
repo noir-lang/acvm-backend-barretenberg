@@ -55,7 +55,9 @@ impl PartialWitnessGenerator for Barretenberg {
                     index,
                     leaf,
                 )
-                .map_err(|err| OpcodeResolutionError::OpcodeSolveFailed(err.to_string()))?;
+                .map_err(|err| {
+                    OpcodeResolutionError::BlackBoxFunctionFailed(func_call.name, err.to_string())
+                })?;
 
                 initial_witness.insert(func_call.outputs[0], computed_merkle_root);
                 Ok(OpcodeResolution::Solved)
@@ -84,23 +86,26 @@ impl PartialWitnessGenerator for Barretenberg {
                     .chain(pub_key_y.to_vec())
                     .collect();
                 let pub_key: [u8; 64] = pub_key_bytes.try_into().map_err(|v: Vec<u8>| {
-                    OpcodeResolutionError::OpcodeSolveFailed(format!(
-                        "expected pubkey size {} but received {}",
-                        64,
-                        v.len()
-                    ))
+                    OpcodeResolutionError::BlackBoxFunctionFailed(
+                        func_call.name,
+                        format!("expected pubkey size {} but received {}", 64, v.len()),
+                    )
                 })?;
 
                 let mut signature = [0u8; 64];
                 for (i, sig) in signature.iter_mut().enumerate() {
                     let _sig_i = inputs_iter.next().ok_or_else(|| {
-                        OpcodeResolutionError::OpcodeSolveFailed(format!(
-                            "signature should be 64 bytes long, found only {i} bytes"
-                        ))
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            format!("signature should be 64 bytes long, found only {i} bytes"),
+                        )
                     })?;
                     let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
                     *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
-                        OpcodeResolutionError::OpcodeSolveFailed("could not get last bytes".into())
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            "could not get last bytes".into(),
+                        )
                     })?;
                 }
 
@@ -108,14 +113,22 @@ impl PartialWitnessGenerator for Barretenberg {
                 for msg in inputs_iter {
                     let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
                     let msg_i = *msg_i_field.to_be_bytes().last().ok_or_else(|| {
-                        OpcodeResolutionError::OpcodeSolveFailed("could not get last bytes".into())
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            "could not get last bytes".into(),
+                        )
                     })?;
                     message.push(msg_i);
                 }
 
                 let valid_signature = self
                     .verify_signature(pub_key, signature, &message)
-                    .map_err(|err| OpcodeResolutionError::OpcodeSolveFailed(err.to_string()))?;
+                    .map_err(|err| {
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            err.to_string(),
+                        )
+                    })?;
                 if !valid_signature {
                     dbg!("signature has failed to verify");
                 }
@@ -137,9 +150,9 @@ impl PartialWitnessGenerator for Barretenberg {
                     .collect();
                 let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
 
-                let (res_x, res_y) = self
-                    .encrypt(scalars)
-                    .map_err(|err| OpcodeResolutionError::OpcodeSolveFailed(err.to_string()))?;
+                let (res_x, res_y) = self.encrypt(scalars).map_err(|err| {
+                    OpcodeResolutionError::BlackBoxFunctionFailed(func_call.name, err.to_string())
+                })?;
                 initial_witness.insert(func_call.outputs[0], res_x);
                 initial_witness.insert(func_call.outputs[1], res_y);
                 Ok(OpcodeResolution::Solved)
@@ -169,9 +182,9 @@ impl PartialWitnessGenerator for Barretenberg {
             BlackBoxFunc::FixedBaseScalarMul => {
                 let scalar = witness_to_value(initial_witness, func_call.inputs[0].witness)?;
 
-                let (pub_x, pub_y) = self
-                    .fixed_base(scalar)
-                    .map_err(|err| OpcodeResolutionError::OpcodeSolveFailed(err.to_string()))?;
+                let (pub_x, pub_y) = self.fixed_base(scalar).map_err(|err| {
+                    OpcodeResolutionError::BlackBoxFunctionFailed(func_call.name, err.to_string())
+                })?;
 
                 initial_witness.insert(func_call.outputs[0], pub_x);
                 initial_witness.insert(func_call.outputs[1], pub_y);
