@@ -232,7 +232,9 @@ impl Composer for Barretenberg {
 
         self.free(cs_ptr)?;
 
-        circuit_size?.u32()
+        let size = circuit_size?.u32()?;
+
+        Ok(size)
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
@@ -368,7 +370,9 @@ impl Composer for Barretenberg {
 
         self.free(proof_ptr)?;
 
-        verified?.bool()
+        let verified = verified?.bool()?;
+
+        Ok(verified)
     }
 }
 

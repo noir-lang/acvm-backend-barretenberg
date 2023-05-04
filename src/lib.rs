@@ -20,9 +20,42 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
-use std::{array::TryFromSliceError, num::TryFromIntError};
+use std::array::TryFromSliceError;
 
 use thiserror::Error;
+
+// There are no WasmErrors on native
+#[cfg(feature = "native")]
+#[derive(Debug, Error)]
+pub enum WasmError {}
+
+#[cfg(not(feature = "native"))]
+#[derive(Debug, Error)]
+pub enum WasmError {
+    #[error("Trying to call {name} resulted in an error")]
+    FunctionCallFailed {
+        name: String,
+        source: wasmer::RuntimeError,
+    },
+    #[error("Could not find function export named {name}")]
+    InvalidExport {
+        name: String,
+        source: wasmer::ExportError,
+    },
+    #[error("No value available when value was expected")]
+    NoValue,
+    #[error("Value expected to be i32")]
+    InvalidI32,
+    #[error("Could not convert value {value} from i32 to u32")]
+    InvalidU32 {
+        value: i32,
+        source: std::num::TryFromIntError,
+    },
+    #[error("Value expected to be 0 or 1 representing a boolean")]
+    InvalidBool,
+    #[error("Failed to get pointer")]
+    InvalidPointer { source: TryFromSliceError },
+}
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -36,20 +69,28 @@ pub enum Error {
     FieldElementSlice { source: TryFromSliceError },
     #[error("Expected a Vec of length {0} but it was {1}")]
     FieldToArray(usize, usize),
-    #[error("Trying to call {0} resulted in an error")]
-    WasmFunctionCall(String),
-    #[error("Could not find function export named {0}")]
-    WasmInvalidExport(String),
-    #[error("No value available when value was expected")]
-    WasmNoValue,
-    #[error("Value expected to be i32")]
-    WasmInvalidI32,
-    #[error("Could not convert value {value} from i32 to u32")]
-    WasmInvalidU32 { value: i32, source: TryFromIntError },
-    #[error("Value expected to be 0 or 1 representing a boolean")]
-    WasmInvalidBool,
-    #[error("Failed to get pointer")]
-    WasmInvalidPointer { source: TryFromSliceError },
+
+    #[error("Missing rest of output. Tried to get byte {0} but failed")]
+    MissingOutput(usize),
+    #[error("Missing leaf to check membership for")]
+    MissingLeaf,
+    #[error("Missing index for leaf")]
+    MissingLeafIndex,
+    #[error("Missing `x` component for public key")]
+    MissingPublicKeyX,
+    #[error("Missing `y` component for public key")]
+    MissingPublicKeyY,
+    #[error("Missing rest of signature. Tried to get byte {0} but failed")]
+    MissingSignature(usize),
+    #[error("Missing rest of {0} component for public key. Tried to get byte {1} but failed")]
+    MissingPublicKey(&'static str, usize),
+    #[error("Keccak256 has not yet been implemented")]
+    Keccak256,
+    #[error("AES has not yet been implemented")]
+    Aes,
+
+    #[error(transparent)]
+    WasmError(#[from] WasmError),
 }
 
 /// The number of bytes necessary to store a `FieldElement`.
@@ -104,7 +145,7 @@ mod wasm {
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
     use super::Barretenberg;
-    use super::Error;
+    use super::{Error, WasmError};
 
     /// The number of bytes necessary to represent a pointer to memory inside the wasm.
     pub(super) const POINTER_BYTES: usize = 4;
@@ -143,23 +184,23 @@ mod wasm {
     pub(super) struct WASMValue(Option<Value>);
 
     impl WASMValue {
-        pub(super) fn value(self) -> Result<Value, Error> {
-            self.0.ok_or(Error::WasmNoValue)
+        pub(super) fn value(self) -> Result<Value, WasmError> {
+            self.0.ok_or(WasmError::NoValue)
         }
-        pub(super) fn i32(self) -> Result<i32, Error> {
+        pub(super) fn i32(self) -> Result<i32, WasmError> {
             self.0
                 .and_then(|val| val.i32())
-                .ok_or(Error::WasmInvalidI32)
+                .ok_or(WasmError::InvalidI32)
         }
-        pub(super) fn u32(self) -> Result<u32, Error> {
+        pub(super) fn u32(self) -> Result<u32, WasmError> {
             let value = self.i32()?;
-            u32::try_from(value).map_err(|source| Error::WasmInvalidU32 { value, source })
+            u32::try_from(value).map_err(|source| WasmError::InvalidU32 { value, source })
         }
-        pub(super) fn bool(self) -> Result<bool, Error> {
+        pub(super) fn bool(self) -> Result<bool, WasmError> {
             match self.i32() {
                 Ok(0) => Ok(false),
                 Ok(1) => Ok(true),
-                _ => Err(Error::WasmInvalidBool),
+                _ => Err(WasmError::InvalidBool),
             }
         }
     }
@@ -265,7 +306,7 @@ mod wasm {
             Ok(u32::from_le_bytes(
                 ptr[0..POINTER_BYTES]
                     .try_into()
-                    .map_err(|source| Error::WasmInvalidPointer { source })?,
+                    .map_err(|source| WasmError::InvalidPointer { source })?,
             ) as usize)
         }
 
@@ -282,16 +323,18 @@ mod wasm {
             // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
             let params: Vec<Value> = params.into_iter().cloned().map(|val| val.into()).collect();
-            let func = self
-                .instance
-                .exports
-                .get_function(name)
-                // We ignore this source error so the Error enum doesn't need to depend on Wasmer
-                .map_err(|_source| Error::WasmInvalidExport(name.to_string()))?;
-            let boxed_value = func
-                .call(&params)
-                // We ignore this source error so the Error enum doesn't need to depend on Wasmer
-                .map_err(|_source| Error::WasmFunctionCall(name.to_string()))?;
+            let func = self.instance.exports.get_function(name).map_err(|source| {
+                WasmError::InvalidExport {
+                    name: name.to_string(),
+                    source,
+                }
+            })?;
+            let boxed_value =
+                func.call(&params)
+                    .map_err(|source| WasmError::FunctionCallFailed {
+                        name: name.to_string(),
+                        source,
+                    })?;
             let option_value = boxed_value.first().cloned();
 
             Ok(WASMValue(option_value))

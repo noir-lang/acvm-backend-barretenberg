@@ -153,7 +153,9 @@ impl SchnorrSig for Barretenberg {
 
         // Note, currently for Barretenberg plonk, if the signature fails
         // then the whole circuit fails.
-        wasm_value.bool()
+        let verified = wasm_value.bool()?;
+
+        Ok(verified)
     }
 }
 
