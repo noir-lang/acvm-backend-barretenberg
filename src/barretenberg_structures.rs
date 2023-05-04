@@ -302,12 +302,12 @@ impl HashToFieldConstraint {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub(crate) struct HashConstraint {
+pub(crate) struct Keccak256Constraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
 }
 
-impl HashConstraint {
+impl Keccak256Constraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
@@ -424,7 +424,7 @@ pub(crate) struct ConstraintSystem {
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
-    keccak_constraints: Vec<HashConstraint>,
+    keccak_constraints: Vec<Keccak256Constraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -644,7 +644,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
-        let mut keccak_constraints: Vec<HashConstraint> = Vec::new();
+        let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
@@ -982,7 +982,7 @@ impl From<&Circuit> for ConstraintSystem {
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
                             }
-                            let keccak_constraint = HashConstraint {
+                            let keccak_constraint = Keccak256Constraint {
                                 inputs: keccak_inputs,
                                 result,
                             };
