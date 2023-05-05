@@ -11,6 +11,8 @@ impl Barretenberg {
     }
 }
 
+use rusty_fork::rusty_fork_test;
+rusty_fork_test! {
 #[test]
 fn basic_interop() {
     // Expected values were taken from barretenberg by running `crypto::pedersen::compress_native`
@@ -41,4 +43,5 @@ fn basic_interop() {
         let got = barretenberg.hash_to_field(&test.input);
         assert_eq!(got, expected);
     }
+}
 }

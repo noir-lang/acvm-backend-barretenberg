@@ -25,6 +25,8 @@ impl Barretenberg {
         // then the whole circuit fails.
     }
 }
+use rusty_fork::rusty_fork_test;
+rusty_fork_test! {
 
 #[test]
 fn basic_interop() {
@@ -75,4 +77,5 @@ fn basic_interop() {
     let signature = barretenberg.construct_signature(&message, private_key);
     let valid_signature = barretenberg.verify_signature(public_key, signature, &message);
     assert!(valid_signature);
+}
 }

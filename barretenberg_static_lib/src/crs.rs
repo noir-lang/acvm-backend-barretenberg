@@ -1,4 +1,7 @@
 pub(crate) use common::crs::CRS;
+use rusty_fork::rusty_fork_test;
+
+rusty_fork_test! {
 
 #[test]
 fn does_not_panic() {
@@ -12,6 +15,7 @@ fn does_not_panic() {
         Vec::from_raw_parts(p_points as *mut u8, num_points * 32, num_points * 32);
     }
     //TODO check that p_points memory is properly free
+}
 }
 #[test]
 #[ignore]

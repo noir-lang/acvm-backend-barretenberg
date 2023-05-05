@@ -1,4 +1,5 @@
 use common::acvm::FieldElement;
+use rusty_fork::rusty_fork_test;
 
 use super::field_to_array;
 use super::Barretenberg;
@@ -12,7 +13,7 @@ impl Barretenberg {
         (pubkey_x, pubkey_y)
     }
 }
-
+rusty_fork_test! {
 #[cfg(test)]
 mod test {
     use super::*;
@@ -28,4 +29,5 @@ mod test {
         assert_eq!(x, res.0.to_hex());
         assert_eq!(y, res.1.to_hex());
     }
+}
 }

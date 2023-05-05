@@ -176,172 +176,179 @@ mod test {
 
     use super::*;
     use common::barretenberg_structures::{Constraint, PedersenConstraint, Scalar};
+    use rusty_fork::rusty_fork_test;
 
-    #[test]
-    fn test_no_constraints_no_pub_inputs() {
-        let constraint_system = ConstraintSystem::new();
+    rusty_fork_test! {
+        #[test]
+        fn test_no_constraints_no_pub_inputs() {
+            let constraint_system = ConstraintSystem::new();
 
-        let case_1 = WitnessResult {
-            witness: vec![].into(),
-            public_inputs: Assignments::default(),
-            result: true,
-        };
-        let test_cases = vec![case_1];
+            let case_1 = WitnessResult {
+                witness: vec![].into(),
+                public_inputs: Assignments::default(),
+                result: true,
+            };
+            let test_cases = vec![case_1];
 
-        test_composer_with_pk_vk(constraint_system, test_cases);
+            test_composer_with_pk_vk(constraint_system, test_cases);
+        }
     }
+    rusty_fork_test! {
+        #[test]
+        fn test_a_single_constraint_no_pub_inputs() {
+            let constraint = Constraint {
+                a: 1,
+                b: 2,
+                c: 3,
+                qm: Scalar::zero(),
+                ql: Scalar::one(),
+                qr: Scalar::one(),
+                qo: -Scalar::one(),
+                qc: Scalar::zero(),
+            };
 
-    #[test]
-    fn test_a_single_constraint_no_pub_inputs() {
-        let constraint = Constraint {
-            a: 1,
-            b: 2,
-            c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
-        };
+            let constraint_system = ConstraintSystem::new()
+                .var_num(4)
+                .constraints(vec![constraint]);
 
-        let constraint_system = ConstraintSystem::new()
-            .var_num(4)
-            .constraints(vec![constraint]);
+            let case_1 = WitnessResult {
+                witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
+                public_inputs: Assignments::default(),
+                result: true,
+            };
+            let case_2 = WitnessResult {
+                witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
+                public_inputs: Assignments::default(),
+                result: true,
+            };
+            let case_3 = WitnessResult {
+                witness: vec![10_i128.into(), (-3_i128).into(), 7_i128.into()].into(),
+                public_inputs: Assignments::default(),
+                result: true,
+            };
+            let case_4 = WitnessResult {
+                witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
+                public_inputs: Assignments::default(),
+                result: false,
+            };
+            let case_5 = WitnessResult {
+                witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
+                public_inputs: Assignments::default(),
+                result: false,
+            };
+            let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
-        let case_1 = WitnessResult {
-            witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
-            public_inputs: Assignments::default(),
-            result: true,
-        };
-        let case_2 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
-            public_inputs: Assignments::default(),
-            result: true,
-        };
-        let case_3 = WitnessResult {
-            witness: vec![10_i128.into(), (-3_i128).into(), 7_i128.into()].into(),
-            public_inputs: Assignments::default(),
-            result: true,
-        };
-        let case_4 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::one()].into(),
-            public_inputs: Assignments::default(),
-            result: false,
-        };
-        let case_5 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
-            public_inputs: Assignments::default(),
-            result: false,
-        };
-        let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
-
-        test_composer_with_pk_vk(constraint_system, test_cases);
+            test_composer_with_pk_vk(constraint_system, test_cases);
+        }
     }
-    #[test]
-    fn test_a_single_constraint_with_pub_inputs() {
-        let constraint = Constraint {
-            a: 1,
-            b: 2,
-            c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
-        };
+    rusty_fork_test! {
+        #[test]
+        fn test_a_single_constraint_with_pub_inputs() {
+            let constraint = Constraint {
+                a: 1,
+                b: 2,
+                c: 3,
+                qm: Scalar::zero(),
+                ql: Scalar::one(),
+                qr: Scalar::one(),
+                qo: -Scalar::one(),
+                qc: Scalar::zero(),
+            };
 
-        let constraint_system = ConstraintSystem::new()
-            .var_num(4)
-            .public_inputs(vec![1, 2])
-            .constraints(vec![constraint]);
+            let constraint_system = ConstraintSystem::new()
+                .var_num(4)
+                .public_inputs(vec![1, 2])
+                .constraints(vec![constraint]);
 
-        // This fails because the constraint system requires public inputs,
-        // but none are supplied in public_inputs. So the verifier will not
-        // supply anything.
-        let _case_1 = WitnessResult {
-            witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
-            public_inputs: Assignments::default(),
-            result: false,
-        };
-        let case_2 = WitnessResult {
-            witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
-            public_inputs: vec![Scalar::zero(), Scalar::zero()].into(),
-            result: true,
-        };
+            // This fails because the constraint system requires public inputs,
+            // but none are supplied in public_inputs. So the verifier will not
+            // supply anything.
+            let _case_1 = WitnessResult {
+                witness: vec![(-1_i128).into(), 2_i128.into(), 1_i128.into()].into(),
+                public_inputs: Assignments::default(),
+                result: false,
+            };
+            let case_2 = WitnessResult {
+                witness: vec![Scalar::zero(), Scalar::zero(), Scalar::zero()].into(),
+                public_inputs: vec![Scalar::zero(), Scalar::zero()].into(),
+                result: true,
+            };
 
-        let case_3 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
-            result: false,
-        };
+            let case_3 = WitnessResult {
+                witness: vec![Scalar::one(), 2_i128.into(), 6_i128.into()].into(),
+                public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
+                result: false,
+            };
 
-        // Not enough public inputs
-        let _case_4 = WitnessResult {
-            witness: vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)].into(),
-            public_inputs: vec![Scalar::one()].into(),
-            result: false,
-        };
+            // Not enough public inputs
+            let _case_4 = WitnessResult {
+                witness: vec![Scalar::one(), Scalar::from(2_i128), Scalar::from(6_i128)].into(),
+                public_inputs: vec![Scalar::one()].into(),
+                result: false,
+            };
 
-        let case_5 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 2_i128.into()].into(),
-            result: true,
-        };
+            let case_5 = WitnessResult {
+                witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
+                public_inputs: vec![Scalar::one(), 2_i128.into()].into(),
+                result: true,
+            };
 
-        let case_6 = WitnessResult {
-            witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
-            result: false,
-        };
-        let test_cases = vec![
-            /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
-        ];
+            let case_6 = WitnessResult {
+                witness: vec![Scalar::one(), 2_i128.into(), 3_i128.into()].into(),
+                public_inputs: vec![Scalar::one(), 3_i128.into()].into(),
+                result: false,
+            };
+            let test_cases = vec![
+                /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
+            ];
 
-        test_composer_with_pk_vk(constraint_system, test_cases);
+            test_composer_with_pk_vk(constraint_system, test_cases);
+        }
     }
+    rusty_fork_test! {
+        #[test]
+        fn test_multiple_constraints() {
+            let constraint = Constraint {
+                a: 1,
+                b: 2,
+                c: 3,
+                qm: Scalar::zero(),
+                ql: Scalar::one(),
+                qr: Scalar::one(),
+                qo: -Scalar::one(),
+                qc: Scalar::zero(),
+            };
+            let constraint2 = Constraint {
+                a: 2,
+                b: 3,
+                c: 4,
+                qm: Scalar::one(),
+                ql: Scalar::zero(),
+                qr: Scalar::zero(),
+                qo: -Scalar::one(),
+                qc: Scalar::one(),
+            };
 
-    #[test]
-    fn test_multiple_constraints() {
-        let constraint = Constraint {
-            a: 1,
-            b: 2,
-            c: 3,
-            qm: Scalar::zero(),
-            ql: Scalar::one(),
-            qr: Scalar::one(),
-            qo: -Scalar::one(),
-            qc: Scalar::zero(),
-        };
-        let constraint2 = Constraint {
-            a: 2,
-            b: 3,
-            c: 4,
-            qm: Scalar::one(),
-            ql: Scalar::zero(),
-            qr: Scalar::zero(),
-            qo: -Scalar::one(),
-            qc: Scalar::one(),
-        };
+            let constraint_system = ConstraintSystem::new()
+                .var_num(5)
+                .public_inputs(vec![1])
+                .constraints(vec![constraint, constraint2]);
 
-        let constraint_system = ConstraintSystem::new()
-            .var_num(5)
-            .public_inputs(vec![1])
-            .constraints(vec![constraint, constraint2]);
+            let case_1 = WitnessResult {
+                witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()].into(),
+                public_inputs: vec![Scalar::one()].into(),
+                result: true,
+            };
+            let case_2 = WitnessResult {
+                witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()].into(),
+                public_inputs: vec![Scalar::one()].into(),
+                result: false,
+            };
 
-        let case_1 = WitnessResult {
-            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 3_i128.into()].into(),
-            public_inputs: vec![Scalar::one()].into(),
-            result: true,
-        };
-        let case_2 = WitnessResult {
-            witness: vec![1_i128.into(), 1_i128.into(), 2_i128.into(), 13_i128.into()].into(),
-            public_inputs: vec![Scalar::one()].into(),
-            result: false,
-        };
-
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]);
+            test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]);
+        }
     }
-
+    rusty_fork_test! {
     #[test]
     fn test_schnorr_constraints() {
         let mut signature_indices = [0i32; 64];
@@ -418,7 +425,8 @@ mod test {
 
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
-
+    }
+    rusty_fork_test! {
     #[test]
     fn test_ped_constraints() {
         let constraint = PedersenConstraint {
@@ -471,7 +479,8 @@ mod test {
 
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
-
+    }
+    rusty_fork_test! {
     #[test]
     fn test_logic_constraints() {
         /*
@@ -561,7 +570,7 @@ mod test {
 
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
-
+    }
     #[derive(Clone, Debug)]
     struct WitnessResult {
         witness: WitnessAssignments,

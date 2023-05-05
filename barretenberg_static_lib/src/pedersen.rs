@@ -33,7 +33,8 @@ impl Barretenberg {
         (point_x, point_y)
     }
 }
-
+use rusty_fork::rusty_fork_test;
+rusty_fork_test! {
 #[test]
 fn basic_interop() {
     // Expected values were taken from Barretenberg by running `crypto::pedersen::compress_native`
@@ -72,7 +73,8 @@ fn basic_interop() {
         assert_eq!(got, got_many);
     }
 }
-
+}
+rusty_fork_test! {
 #[test]
 fn pedersen_hash_to_point() {
     let mut barretenberg = Barretenberg::new();
@@ -88,4 +90,5 @@ fn pedersen_hash_to_point() {
 
     assert_eq!(expected_x.to_hex(), x.to_hex());
     assert_eq!(expected_y.to_hex(), y.to_hex());
+}
 }

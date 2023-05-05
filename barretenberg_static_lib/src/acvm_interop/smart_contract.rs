@@ -26,6 +26,8 @@ impl SmartContract for Plonk {
         format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")
     }
 }
+use rusty_fork::rusty_fork_test;
+rusty_fork_test! {
 
 #[test]
 fn test_smart_contract() {
@@ -59,4 +61,5 @@ fn test_smart_contract() {
     assert!(contract.contains("contract BaseUltraVerifier"));
     assert!(contract.contains("contract UltraVerifier"));
     assert!(contract.contains("library UltraVerificationKey"));
+}
 }
