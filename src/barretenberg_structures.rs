@@ -971,11 +971,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut outputs_iter = gadget_call.outputs.iter();
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
-                                let out_byte = outputs_iter.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "missing rest of output. Tried to get byte {i} but failed"
-                                    )
-                                });
+                                let out_byte =
+                                    outputs_iter.next().ok_or(Error::MissingOutput(i))?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
