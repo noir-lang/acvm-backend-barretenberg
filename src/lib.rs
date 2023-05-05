@@ -101,18 +101,45 @@ mod wasm {
         memory: Memory,
     }
 
-    /// A wrapper around the return value from a WASM call.
+    /// A wrapper around the arguments or return value from a WASM call.
     /// Notice, `Option<Value>` is used because not every call returns a value,
     /// some calls are simply made to free a pointer or manipulate the heap.
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub(super) struct WASMValue(Option<Value>);
 
     impl WASMValue {
         pub(super) fn value(self) -> Value {
             self.0.unwrap()
         }
-        pub(super) fn into_i32(self) -> i32 {
+
+        pub(super) fn i32(self) -> i32 {
             i32::try_from(self.0.unwrap()).expect("expected an i32 value")
+        }
+
+        pub(super) fn bool(self) -> bool {
+            match self.i32() {
+                0 => false,
+                1 => true,
+                _ => panic!("expected a boolean value"),
+            }
+        }
+    }
+
+    impl From<usize> for WASMValue {
+        fn from(value: usize) -> Self {
+            WASMValue(Some(Value::I32(value as i32)))
+        }
+    }
+
+    impl From<i32> for WASMValue {
+        fn from(value: i32) -> Self {
+            WASMValue(Some(Value::I32(value)))
+        }
+    }
+
+    impl From<Value> for WASMValue {
+        fn from(value: Value) -> Self {
+            WASMValue(Some(value))
         }
     }
 
@@ -156,15 +183,18 @@ mod wasm {
                 .collect();
         }
 
-        pub(super) fn call(&self, name: &str, param: &Value) -> WASMValue {
+        pub(super) fn call(&self, name: &str, param: &WASMValue) -> WASMValue {
             self.call_multiple(name, vec![param])
         }
 
-        pub(super) fn call_multiple(&self, name: &str, params: Vec<&Value>) -> WASMValue {
+        pub(super) fn call_multiple(&self, name: &str, params: Vec<&WASMValue>) -> WASMValue {
             // We take in a reference to values, since they do not implement Copy.
             // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
-            let params: Vec<_> = params.into_iter().cloned().collect();
+            let params: Vec<Value> = params
+                .into_iter()
+                .map(|param| param.clone().value())
+                .collect();
             let func = self.instance.exports.get_function(name).unwrap();
             let option_value = func.call(&params).unwrap().first().cloned();
 
@@ -172,22 +202,20 @@ mod wasm {
         }
 
         /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
-        pub(super) fn allocate(&self, bytes: &[u8]) -> Value {
-            let ptr = self
-                .call("bbmalloc", &Value::I32(bytes.len() as i32))
-                .value();
+        pub(super) fn allocate(&self, bytes: &[u8]) -> WASMValue {
+            let ptr = self.call("bbmalloc", &bytes.len().into()).value();
 
             let i32_bytes = ptr.unwrap_i32().to_be_bytes();
             let u32_bytes = u32::from_be_bytes(i32_bytes);
 
             self.transfer_to_heap(bytes, u32_bytes as usize);
-            ptr
+            ptr.into()
         }
 
         /// Frees a pointer.
         /// Notice we consume the Value, if you clone the value before passing it to free
         /// It most likely is a bug
-        pub(super) fn free(&self, pointer: Value) {
+        pub(super) fn free(&self, pointer: WASMValue) {
             self.call("bbfree", &pointer);
         }
     }

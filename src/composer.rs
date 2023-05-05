@@ -211,7 +211,7 @@ impl Composer for Barretenberg {
 
         let circuit_size = self
             .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-            .into_i32();
+            .i32();
         let circuit_size =
             u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
@@ -226,7 +226,7 @@ impl Composer for Barretenberg {
 
         let circuit_size = self
             .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-            .into_i32();
+            .i32();
         let circuit_size =
             u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
@@ -237,7 +237,6 @@ impl Composer for Barretenberg {
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = self.allocate(&cs_buf);
@@ -246,13 +245,11 @@ impl Composer for Barretenberg {
         // `pk_ptr_ptr` is a pointer to a pointer which holds the proving key.
         let pk_ptr_ptr: usize = 0;
 
-        let pk_size = self
-            .call_multiple(
-                "acir_proofs_init_proving_key",
-                vec![&cs_ptr, &Value::I32(pk_ptr_ptr as i32)],
-            )
-            .value();
-        let pk_size: usize = pk_size.unwrap_i32() as usize;
+        let pk_size = self.call_multiple(
+            "acir_proofs_init_proving_key",
+            vec![&cs_ptr, &pk_ptr_ptr.into()],
+        );
+        let pk_size: usize = pk_size.i32() as usize;
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
@@ -269,7 +266,6 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
@@ -287,12 +283,7 @@ impl Composer for Barretenberg {
         let vk_size = self
             .call_multiple(
                 "acir_proofs_init_verification_key",
-                vec![
-                    &pippenger_ptr,
-                    &g2_ptr,
-                    &pk_ptr,
-                    &Value::I32(vk_ptr_ptr as i32),
-                ],
+                vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
             )
             .value();
         let vk_size: usize = vk_size.unwrap_i32() as usize;
@@ -313,7 +304,6 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
@@ -341,7 +331,7 @@ impl Composer for Barretenberg {
                     &pk_ptr,
                     &cs_ptr,
                     &witness_ptr,
-                    &Value::I32(0),
+                    &0.into(),
                 ],
             )
             .value();
@@ -369,7 +359,6 @@ impl Composer for Barretenberg {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
-        use wasmer::Value;
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
@@ -384,13 +373,7 @@ impl Composer for Barretenberg {
         let verified = self
             .call_multiple(
                 "acir_proofs_verify_proof",
-                vec![
-                    &g2_ptr,
-                    &vk_ptr,
-                    &cs_ptr,
-                    &proof_ptr,
-                    &Value::I32(proof.len() as i32),
-                ],
+                vec![&g2_ptr, &vk_ptr, &cs_ptr, &proof_ptr, &proof.len().into()],
             )
             .value();
 

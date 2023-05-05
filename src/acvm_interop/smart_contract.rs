@@ -36,7 +36,6 @@ impl SmartContract for Barretenberg {
 impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
         use crate::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let g2 = G2::new();
 
@@ -50,7 +49,7 @@ impl SmartContract for Barretenberg {
         let contract_size = self
             .call_multiple(
                 "acir_proofs_get_solidity_verifier",
-                vec![&g2_ptr, &vk_ptr, &Value::I32(contract_ptr_ptr as i32)],
+                vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
             )
             .value();
         let contract_size: usize = contract_size.unwrap_i32() as usize;
