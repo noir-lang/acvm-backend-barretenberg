@@ -280,7 +280,7 @@ impl Composer for Barretenberg {
         let vk_size = self
             .call_multiple(
                 "acir_proofs_init_verification_key",
-                vec![&pippenger_ptr.into(), &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
+                vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
             )?
             .i32()?;
 
@@ -318,7 +318,7 @@ impl Composer for Barretenberg {
             .call_multiple(
                 "acir_proofs_new_proof",
                 vec![
-                    &pippenger_ptr.into(),
+                    &pippenger_ptr,
                     &g2_ptr,
                     &pk_ptr,
                     &cs_ptr,

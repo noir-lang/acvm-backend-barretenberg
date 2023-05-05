@@ -229,32 +229,6 @@ mod wasm {
         fn try_from(x: WASMValue) -> Result<Self, Self::Error> {
             x.value()
         }
-
-        pub(super) fn bool(self) -> bool {
-            match self.i32() {
-                0 => false,
-                1 => true,
-                _ => panic!("expected a boolean value"),
-            }
-        }
-    }
-
-    impl From<usize> for WASMValue {
-        fn from(value: usize) -> Self {
-            WASMValue(Some(Value::I32(value as i32)))
-        }
-    }
-
-    impl From<i32> for WASMValue {
-        fn from(value: i32) -> Self {
-            WASMValue(Some(Value::I32(value)))
-        }
-    }
-
-    impl From<Value> for WASMValue {
-        fn from(value: Value) -> Self {
-            WASMValue(Some(value))
-        }
     }
 
     impl Barretenberg {

@@ -45,7 +45,7 @@ impl Barretenberg {
         self.free(crs_ptr)?;
 
         Ok(Pippenger {
-            pippenger_ptr: pippenger_ptr?.value()?,
+            pippenger_ptr: pippenger_ptr?,
         })
     }
 }
