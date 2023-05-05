@@ -61,7 +61,6 @@ dependencies = [
  "pkg-config",
  "reqwest",
  "rust-embed",
- "sha3",
  "sled",
  "tempfile",
  "thiserror",
