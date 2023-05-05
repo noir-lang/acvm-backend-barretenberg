@@ -26,15 +26,13 @@ impl ScalarMul for Barretenberg {
 #[cfg(not(feature = "native"))]
 impl ScalarMul for Barretenberg {
     fn fixed_base(&self, input: &FieldElement) -> (FieldElement, FieldElement) {
-        use wasmer::Value;
-
         let lhs_ptr: usize = 0;
         let result_ptr: usize = lhs_ptr + FIELD_BYTES;
         self.transfer_to_heap(&input.to_be_bytes(), lhs_ptr);
 
         self.call_multiple(
             "compute_public_key",
-            vec![&Value::I32(lhs_ptr as i32), &Value::I32(result_ptr as i32)],
+            vec![&lhs_ptr.into(), &result_ptr.into()],
         );
 
         let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
