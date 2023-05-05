@@ -444,8 +444,8 @@ mod test {
     use super::*;
     use crate::{
         barretenberg_structures::{
-            ComputeMerkleRootConstraint, Constraint, LogicConstraint, PedersenConstraint,
-            RangeConstraint, SchnorrConstraint,
+            BlockConstraint, ComputeMerkleRootConstraint, Constraint, LogicConstraint,
+            MemOpBarretenberg, PedersenConstraint, RangeConstraint, SchnorrConstraint,
         },
         merkle::{MerkleTree, MessageHasher},
     };
@@ -755,6 +755,114 @@ mod test {
         let scalar_0 = FieldElement::from_hex("0x00").unwrap();
         let scalar_1 = FieldElement::from_hex("0x01").unwrap();
         let witness_values = vec![scalar_0, scalar_1];
+
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
+
+    #[test]
+    fn test_memory_constraints() {
+        let two_field = FieldElement::one() + FieldElement::one();
+        let one = Constraint {
+            a: 0,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::one(),
+        };
+        let two = Constraint {
+            a: 0,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: two_field,
+        };
+
+        let two_x_constraint = Constraint {
+            a: 1,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: two_field,
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let x_1_constraint = Constraint {
+            a: 1,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::one(),
+        };
+
+        let y_constraint = Constraint {
+            a: 2,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let z_constraint = Constraint {
+            a: 3,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let op1 = MemOpBarretenberg {
+            index: two_x_constraint,
+            value: y_constraint,
+            is_store: 0,
+        };
+        let op2 = MemOpBarretenberg {
+            index: x_1_constraint,
+            value: z_constraint,
+            is_store: 0,
+        };
+        let block_constraint = BlockConstraint {
+            init: vec![one, x_1_constraint],
+            trace: vec![op1, op2],
+            is_ram: 0,
+        };
+
+        let result_constraint = Constraint {
+            a: 2,
+            b: 3,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: FieldElement::zero(),
+            qc: -(FieldElement::one() + two_field),
+        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(10)
+            .block_constraints(vec![block_constraint])
+            .constraints(vec![result_constraint]);
+
+        let scalar_0 = FieldElement::zero();
+        let witness_values = vec![scalar_0];
 
         let case_1 = WitnessResult {
             witness: witness_values.into(),

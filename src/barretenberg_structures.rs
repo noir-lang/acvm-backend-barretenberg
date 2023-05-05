@@ -501,6 +501,11 @@ impl ConstraintSystem {
         self.constraints = constraints;
         self
     }
+
+    pub(crate) fn block_constraints(mut self, block_constraints: Vec<BlockConstraint>) -> Self {
+        self.block_constraints = block_constraints;
+        self
+    }
 }
 
 impl ConstraintSystem {
