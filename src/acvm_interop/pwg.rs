@@ -100,7 +100,7 @@ impl PartialWitnessGenerator for Barretenberg {
                     message.push(msg_i);
                 }
 
-                let valid_signature = self.verify_signature(pub_key, signature, &message);
+                let valid_signature = self.verify_signature(pub_key, signature.into(), &message);
                 if !valid_signature {
                     dbg!("signature has failed to verify");
                 }
