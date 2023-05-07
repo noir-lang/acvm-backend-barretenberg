@@ -338,8 +338,7 @@ impl Composer for Barretenberg {
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
         let proof_ptr: [u8; POINTER_BYTES] = self.read_memory(proof_ptr_ptr);
-        let proof_ptr: usize =
-            u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let proof_ptr: usize = u32::from_le_bytes(proof_ptr.try_into().unwrap()) as usize;
 
         let result = self.read_memory_variable_length(proof_ptr, proof_size);
 
