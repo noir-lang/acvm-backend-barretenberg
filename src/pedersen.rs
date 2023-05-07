@@ -65,7 +65,7 @@ impl Pedersen for Barretenberg {
             vec![&lhs_ptr.into(), &rhs_ptr.into(), &result_ptr.into()],
         );
 
-        let result_bytes: [u8; FIELD_BYTES] = self.slice_memory(result_ptr);
+        let result_bytes: [u8; FIELD_BYTES] = self.read_memory(result_ptr);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
@@ -83,7 +83,7 @@ impl Pedersen for Barretenberg {
             vec![&input_ptr, &result_ptr.into()],
         );
 
-        let result_bytes: [u8; FIELD_BYTES] = self.slice_memory(result_ptr);
+        let result_bytes: [u8; FIELD_BYTES] = self.read_memory(result_ptr);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
@@ -100,7 +100,7 @@ impl Pedersen for Barretenberg {
             vec![&input_ptr, &result_ptr.into()],
         );
 
-        let result_bytes: [u8; 2 * FIELD_BYTES] = self.slice_memory(result_ptr);
+        let result_bytes: [u8; 2 * FIELD_BYTES] = self.read_memory(result_ptr);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(FIELD_BYTES);
 
         let point_x = FieldElement::from_be_bytes_reduce(point_x_bytes);

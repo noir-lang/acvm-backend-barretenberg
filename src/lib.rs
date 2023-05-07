@@ -168,8 +168,7 @@ mod wasm {
             }
         }
 
-        // XXX: change to read_mem
-        pub(super) fn slice_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
+        pub(super) fn read_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
             self.read_memory_variable_length(start, SIZE)
                 .try_into()
                 .expect("Read memory should be of the specified length")
