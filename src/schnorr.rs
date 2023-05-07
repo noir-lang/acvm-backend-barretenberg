@@ -59,10 +59,8 @@ impl SchnorrSig for Barretenberg {
             ],
         );
 
-        let sig_s_bytes = self.slice_memory(sig_s_ptr, FIELD_BYTES);
-        let sig_e_bytes = self.slice_memory(sig_e_ptr, FIELD_BYTES);
-        let sig_s: [u8; 32] = sig_s_bytes.try_into().unwrap();
-        let sig_e: [u8; 32] = sig_e_bytes.try_into().unwrap();
+        let sig_s: [u8; FIELD_BYTES] = self.slice_memory(sig_s_ptr);
+        let sig_e: [u8; FIELD_BYTES] = self.slice_memory(sig_e_ptr);
 
         let sig_bytes: [u8; 64] = [sig_s, sig_e].concat().try_into().unwrap();
         sig_bytes
@@ -82,9 +80,7 @@ impl SchnorrSig for Barretenberg {
             vec![&private_key_ptr.into(), &result_ptr.into()],
         );
 
-        self.slice_memory(result_ptr, 2 * FIELD_BYTES)
-            .try_into()
-            .unwrap()
+        self.slice_memory(result_ptr)
     }
 
     fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {

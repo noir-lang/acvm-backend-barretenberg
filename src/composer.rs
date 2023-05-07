@@ -253,11 +253,10 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
-        let pk_ptr = self.slice_memory(pk_ptr_ptr, POINTER_BYTES);
-        let pk_ptr: usize =
-            u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let pk_ptr: [u8; POINTER_BYTES] = self.slice_memory(pk_ptr_ptr);
+        let pk_ptr: usize = u32::from_le_bytes(pk_ptr.try_into().unwrap()) as usize;
 
-        self.slice_memory(pk_ptr, pk_size)
+        self.read_memory_variable_length(pk_ptr, pk_size)
     }
 
     fn compute_verification_key(
@@ -290,11 +289,10 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
-        let vk_ptr = self.slice_memory(vk_ptr_ptr, POINTER_BYTES);
-        let vk_ptr: usize =
-            u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let vk_ptr: [u8; POINTER_BYTES] = self.slice_memory(vk_ptr_ptr);
+        let vk_ptr: usize = u32::from_le_bytes(vk_ptr.try_into().unwrap()) as usize;
 
-        self.slice_memory(vk_ptr, vk_size)
+        self.read_memory_variable_length(vk_ptr, vk_size)
     }
 
     fn create_proof_with_pk(
@@ -339,11 +337,11 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
-        let proof_ptr = self.slice_memory(proof_ptr_ptr, POINTER_BYTES);
+        let proof_ptr: [u8; POINTER_BYTES] = self.slice_memory(proof_ptr_ptr);
         let proof_ptr: usize =
             u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
 
-        let result = self.slice_memory(proof_ptr, proof_size);
+        let result = self.read_memory_variable_length(proof_ptr, proof_size);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
