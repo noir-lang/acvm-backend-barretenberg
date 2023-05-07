@@ -57,7 +57,7 @@ impl SmartContract for Barretenberg {
         // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
         // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
         let contract_ptr: [u8; POINTER_BYTES] = self.read_memory(contract_ptr_ptr);
-        let contract_ptr: usize = u32::from_le_bytes(contract_ptr.try_into().unwrap()) as usize;
+        let contract_ptr: usize = u32::from_le_bytes(contract_ptr) as usize;
 
         let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size);
 
