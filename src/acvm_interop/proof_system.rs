@@ -23,6 +23,7 @@ impl ProofSystemCompiler for Barretenberg {
             | BlackBoxFunc::RANGE
             | BlackBoxFunc::SHA256
             | BlackBoxFunc::Blake2s
+            | BlackBoxFunc::Keccak256
             | BlackBoxFunc::ComputeMerkleRoot
             | BlackBoxFunc::SchnorrVerify
             | BlackBoxFunc::Pedersen
@@ -31,7 +32,7 @@ impl ProofSystemCompiler for Barretenberg {
             | BlackBoxFunc::FixedBaseScalarMul
             | BlackBoxFunc::VerifyProof => true,
 
-            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => false,
+            BlackBoxFunc::AES  => false,
         }
     }
 

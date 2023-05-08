@@ -36,7 +36,6 @@ impl SmartContract for Barretenberg {
 impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
         use crate::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let g2 = G2::new();
 
@@ -50,18 +49,17 @@ impl SmartContract for Barretenberg {
         let contract_size = self
             .call_multiple(
                 "acir_proofs_get_solidity_verifier",
-                vec![&g2_ptr, &vk_ptr, &Value::I32(contract_ptr_ptr as i32)],
+                vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
             )
             .value();
         let contract_size: usize = contract_size.unwrap_i32() as usize;
 
         // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
         // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
-        let contract_ptr = self.slice_memory(contract_ptr_ptr, POINTER_BYTES);
-        let contract_ptr: usize =
-            u32::from_le_bytes(contract_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let contract_ptr: [u8; POINTER_BYTES] = self.read_memory(contract_ptr_ptr);
+        let contract_ptr: usize = u32::from_le_bytes(contract_ptr) as usize;
 
-        let sc_as_bytes = self.slice_memory(contract_ptr, contract_size);
+        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size);
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")

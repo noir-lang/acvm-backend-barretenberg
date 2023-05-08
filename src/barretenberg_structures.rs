@@ -64,6 +64,21 @@ pub(crate) struct Constraint {
     pub(crate) qc: FieldElement,
 }
 
+impl Default for Constraint {
+    fn default() -> Self {
+        Constraint {
+            a: 0,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::zero(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        }
+    }
+}
+
 impl Constraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
@@ -80,6 +95,21 @@ impl Constraint {
         buffer.extend_from_slice(&self.qc.to_be_bytes());
 
         buffer
+    }
+
+    fn set_linear_term(&mut self, x: FieldElement, witness: i32) {
+        if self.a == 0 || self.a == witness {
+            self.a = witness;
+            self.ql = x;
+        } else if self.b == 0 || self.b == witness {
+            self.b = witness;
+            self.qr = x;
+        } else if self.c == 0 || self.c == witness {
+            self.c = witness;
+            self.qo = x;
+        } else {
+            unreachable!("Cannot assign linear term to a constrain of width 3");
+        }
     }
 }
 
@@ -274,6 +304,34 @@ impl HashToFieldConstraint {
         buffer
     }
 }
+
+#[derive(Clone, Hash, Debug)]
+pub(crate) struct Keccak256Constraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
+}
+
+impl Keccak256Constraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let inputs_len = self.inputs.len() as u32;
+        buffer.extend_from_slice(&inputs_len.to_be_bytes());
+        for constraint in self.inputs.iter() {
+            buffer.extend_from_slice(&constraint.0.to_be_bytes());
+            buffer.extend_from_slice(&constraint.1.to_be_bytes());
+        }
+
+        let result_len = self.result.len() as u32;
+        buffer.extend_from_slice(&result_len.to_be_bytes());
+        for constraint in self.result.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer
+    }
+}
+
 #[derive(Clone, Hash, Debug)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
@@ -362,7 +420,7 @@ impl LogicConstraint {
 pub(crate) struct RecursionConstraint {
     pub(crate) key: Vec<i32>,   // UP size is 115
     pub(crate) proof: Vec<i32>, // UP size is 94
-    pub(crate) public_input: i32,
+    pub(crate) public_inputs: Vec<i32>,
     pub(crate) key_hash: i32,
     pub(crate) input_aggregation_object: [i32; 16],
     pub(crate) output_aggregation_object: [i32; 16],
@@ -385,7 +443,11 @@ impl RecursionConstraint {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        buffer.extend_from_slice(&self.public_input.to_be_bytes());
+        let public_inputs_len = (self.public_inputs.len()) as u32;
+        buffer.extend_from_slice(&public_inputs_len.to_be_bytes());
+        for constraint in self.public_inputs.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
 
         buffer.extend_from_slice(&self.key_hash.to_be_bytes());
 
@@ -419,6 +481,7 @@ pub(crate) struct ConstraintSystem {
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
+    keccak_constraints: Vec<Keccak256Constraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -492,6 +555,14 @@ impl ConstraintSystem {
         blake2s_constraints: Vec<Blake2sConstraint>,
     ) -> Self {
         self.blake2s_constraints = blake2s_constraints;
+        self
+    }
+
+    pub(crate) fn keccak256_constraints(
+        mut self,
+        keccak256_constraints: Vec<Keccak256Constraint>,
+    ) -> Self {
+        self.keccak_constraints = keccak256_constraints;
         self
     }
 
@@ -599,6 +670,13 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
+        // Serialize each Keccak constraint
+        let keccak_len = self.keccak_constraints.len() as u32;
+        buffer.extend_from_slice(&keccak_len.to_be_bytes());
+        for constraint in self.keccak_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
         // Serialize each Pedersen constraint
         let pedersen_len = self.pedersen_constraints.len() as u32;
         buffer.extend_from_slice(&pedersen_len.to_be_bytes());
@@ -646,6 +724,7 @@ impl From<&Circuit> for ConstraintSystem {
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
+        let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
@@ -989,6 +1068,7 @@ impl From<&Circuit> for ConstraintSystem {
                             }
                             let proof = proof_array.to_vec();
 
+                            // TODO: figure out how to handle multiple variable inputs
                             let public_input = inputs_iter
                                 .next()
                                 .unwrap_or_else(|| panic!("there is no public input witness"))
@@ -1022,7 +1102,7 @@ impl From<&Circuit> for ConstraintSystem {
                             let recursion_constraint = RecursionConstraint {
                                 key,
                                 proof,
-                                public_input,
+                                public_inputs: vec![public_input],
                                 key_hash,
                                 input_aggregation_object,
                                 output_aggregation_object,
@@ -1031,7 +1111,35 @@ impl From<&Circuit> for ConstraintSystem {
 
                             recursion_constraints.push(recursion_constraint);
                         }
-                        BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
+                        BlackBoxFunc::Keccak256 => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in gadget_call.inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
+
+                            assert_eq!(gadget_call.outputs.len(), 32);
+
+                            let mut outputs_iter = gadget_call.outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte = outputs_iter.next().unwrap_or_else(|| {
+                                    panic!(
+                                        "missing rest of output. Tried to get byte {i} but failed"
+                                    )
+                                });
+
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_constraint = Keccak256Constraint {
+                                inputs: keccak_inputs,
+                                result,
+                            };
+
+                            keccak_constraints.push(keccak_constraint);
+                        }
                         BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
                     };
                 }
@@ -1056,6 +1164,7 @@ impl From<&Circuit> for ConstraintSystem {
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
+            keccak_constraints,
             hash_to_field_constraints,
             fixed_base_scalar_mul_constraints,
             recursion_constraints,
@@ -1066,87 +1175,85 @@ impl From<&Circuit> for ConstraintSystem {
 
 #[allow(non_snake_case)]
 fn serialize_arithmetic_gates(gate: &Expression) -> Constraint {
-    let mut a = 0;
-    let mut b = 0;
-    let mut c = 0;
-    let mut qm = FieldElement::zero();
-    let mut ql = FieldElement::zero();
-    let mut qr = FieldElement::zero();
-    let mut qo = FieldElement::zero();
-
+    let mut cs = Constraint::default();
     // check mul gate
     if !gate.mul_terms.is_empty() {
         let mul_term = &gate.mul_terms[0];
-        qm = mul_term.0;
+        cs.qm = mul_term.0;
 
         // Get wL term
         let wL = &mul_term.1;
-        a = wL.witness_index() as i32;
+        cs.a = wL.witness_index() as i32;
 
         // Get wR term
         let wR = &mul_term.2;
-        b = wR.witness_index() as i32;
+        cs.b = wR.witness_index() as i32;
     }
 
-    // If there is only one simplified fan term,
-    // then put it in qO * wO
-    // This is in case, the qM term is non-zero
-    if gate.linear_combinations.len() == 1 {
-        let qO_wO_term = &gate.linear_combinations[0];
-        qo = qO_wO_term.0;
-
-        let wO = &qO_wO_term.1;
-        c = wO.witness_index() as i32;
-    }
-
-    // XXX: This is a code smell. Refactor to be better. Maybe change Barretenberg to take vectors
-    // If there is more than one term,
-    // Then add normally
-    if gate.linear_combinations.len() == 2 {
-        let qL_wL_term = &gate.linear_combinations[0];
-        ql = qL_wL_term.0;
-
-        let wL = &qL_wL_term.1;
-        a = wL.witness_index() as i32;
-
-        let qR_wR_term = &gate.linear_combinations[1];
-        qr = qR_wR_term.0;
-
-        let wR = &qR_wR_term.1;
-        b = wR.witness_index() as i32;
-    }
-
-    if gate.linear_combinations.len() == 3 {
-        let qL_wL_term = &gate.linear_combinations[0];
-        ql = qL_wL_term.0;
-
-        let wL = &qL_wL_term.1;
-        a = wL.witness_index() as i32;
-
-        let qR_wR_term = &gate.linear_combinations[1];
-        qr = qR_wR_term.0;
-
-        let wR = &qR_wR_term.1;
-        b = wR.witness_index() as i32;
-
-        let qO_wO_term = &gate.linear_combinations[2];
-        qo = qO_wO_term.0;
-
-        let wO = &qO_wO_term.1;
-        c = wO.witness_index() as i32;
+    for term in &gate.linear_combinations {
+        cs.set_linear_term(term.0, term.1.witness_index() as i32);
     }
 
     // Add the qc term
-    let qc = gate.q_c;
+    cs.qc = gate.q_c;
+    cs
+}
 
-    Constraint {
-        a,
-        b,
-        c,
-        qm,
-        ql,
-        qr,
-        qo,
-        qc,
+#[cfg(test)]
+mod tests {
+    use crate::barretenberg_structures::serialize_arithmetic_gates;
+    use acvm::acir::native_types::{Expression, Witness};
+    use acvm::FieldElement;
+
+    #[test]
+    fn serialize_expression() {
+        let x1 = Witness::new(1);
+        let x3 = Witness::new(3);
+        let two = FieldElement::one() + FieldElement::one();
+        let e = Expression {
+            mul_terms: vec![(FieldElement::one(), x1, x1)],
+            linear_combinations: vec![(two, x1), (-FieldElement::one(), x3)],
+            q_c: FieldElement::one(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 1);
+        assert_eq!(constrain.c, 3);
+
+        let x2 = Witness::new(2);
+        let x8 = Witness::new(8);
+        let e = Expression {
+            mul_terms: vec![(-FieldElement::one(), x1, x2)],
+            linear_combinations: vec![(-FieldElement::one(), x8)],
+            q_c: FieldElement::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 2);
+        assert_eq!(constrain.c, 8);
+
+        let e = Expression {
+            mul_terms: vec![],
+            linear_combinations: vec![(FieldElement::one(), x8)],
+            q_c: FieldElement::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert_eq!(constrain.a, 8);
+        assert_eq!(constrain.b, 0);
+        assert_eq!(constrain.c, 0);
+
+        let e = Expression {
+            mul_terms: vec![(FieldElement::one(), x1, x2)],
+            linear_combinations: vec![
+                (FieldElement::one(), x8),
+                (two, x2),
+                (-FieldElement::one(), x1),
+            ],
+            q_c: FieldElement::zero(),
+        };
+        let constrain = serialize_arithmetic_gates(&e);
+        assert_eq!(constrain.a, 1);
+        assert_eq!(constrain.b, 2);
+        assert_eq!(constrain.c, 8);
     }
 }

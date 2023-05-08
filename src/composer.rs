@@ -205,6 +205,7 @@ impl Composer for Barretenberg {
 
     fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
         let num_public_inputs = public_inputs.len();
+        dbg!(num_public_inputs);
         let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
         let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
@@ -281,7 +282,7 @@ impl Composer for Barretenberg {
 
         let circuit_size = self
             .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-            .into_i32();
+            .i32();
         let circuit_size =
             u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
@@ -296,7 +297,7 @@ impl Composer for Barretenberg {
 
         let circuit_size = self
             .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-            .into_i32();
+            .i32();
         let circuit_size =
             u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
 
@@ -307,7 +308,6 @@ impl Composer for Barretenberg {
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let cs_buf = constraint_system.to_bytes();
         let cs_ptr = self.allocate(&cs_buf);
@@ -316,21 +316,18 @@ impl Composer for Barretenberg {
         // `pk_ptr_ptr` is a pointer to a pointer which holds the proving key.
         let pk_ptr_ptr: usize = 0;
 
-        let pk_size = self
-            .call_multiple(
-                "acir_proofs_init_proving_key",
-                vec![&cs_ptr, &Value::I32(pk_ptr_ptr as i32)],
-            )
-            .value();
-        let pk_size: usize = pk_size.unwrap_i32() as usize;
+        let pk_size = self.call_multiple(
+            "acir_proofs_init_proving_key",
+            vec![&cs_ptr, &pk_ptr_ptr.into()],
+        );
+        let pk_size: usize = pk_size.i32() as usize;
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
-        let pk_ptr = self.slice_memory(pk_ptr_ptr, POINTER_BYTES);
-        let pk_ptr: usize =
-            u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let pk_ptr: [u8; POINTER_BYTES] = self.read_memory(pk_ptr_ptr);
+        let pk_ptr: usize = u32::from_le_bytes(pk_ptr) as usize;
 
-        self.slice_memory(pk_ptr, pk_size)
+        self.read_memory_variable_length(pk_ptr, pk_size)
     }
 
     fn compute_verification_key(
@@ -339,7 +336,6 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
@@ -357,23 +353,17 @@ impl Composer for Barretenberg {
         let vk_size = self
             .call_multiple(
                 "acir_proofs_init_verification_key",
-                vec![
-                    &pippenger_ptr,
-                    &g2_ptr,
-                    &pk_ptr,
-                    &Value::I32(vk_ptr_ptr as i32),
-                ],
+                vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
             )
             .value();
         let vk_size: usize = vk_size.unwrap_i32() as usize;
 
         // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
-        let vk_ptr = self.slice_memory(vk_ptr_ptr, POINTER_BYTES);
-        let vk_ptr: usize =
-            u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let vk_ptr: [u8; POINTER_BYTES] = self.read_memory(vk_ptr_ptr);
+        let vk_ptr: usize = u32::from_le_bytes(vk_ptr) as usize;
 
-        self.slice_memory(vk_ptr, vk_size)
+        self.read_memory_variable_length(vk_ptr, vk_size)
     }
 
     fn create_proof_with_pk(
@@ -383,7 +373,6 @@ impl Composer for Barretenberg {
         proving_key: &[u8],
     ) -> Vec<u8> {
         use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
 
         let circuit_size = self.get_circuit_size(constraint_system);
         let CRS {
@@ -411,7 +400,7 @@ impl Composer for Barretenberg {
                     &pk_ptr,
                     &cs_ptr,
                     &witness_ptr,
-                    &Value::I32(0),
+                    &0.into(),
                 ],
             )
             .value();
@@ -419,11 +408,10 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
-        let proof_ptr = self.slice_memory(proof_ptr_ptr, POINTER_BYTES);
-        let proof_ptr: usize =
-            u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let proof_ptr: [u8; POINTER_BYTES] = self.read_memory(proof_ptr_ptr);
+        let proof_ptr: usize = u32::from_le_bytes(proof_ptr) as usize;
 
-        let result = self.slice_memory(proof_ptr, proof_size);
+        let result = self.read_memory_variable_length(proof_ptr, proof_size);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
@@ -439,7 +427,6 @@ impl Composer for Barretenberg {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> bool {
-        use wasmer::Value;
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
@@ -454,13 +441,7 @@ impl Composer for Barretenberg {
         let verified = self
             .call_multiple(
                 "acir_proofs_verify_proof",
-                vec![
-                    &g2_ptr,
-                    &vk_ptr,
-                    &cs_ptr,
-                    &proof_ptr,
-                    &Value::I32(proof.len() as i32),
-                ],
+                vec![&g2_ptr, &vk_ptr, &cs_ptr, &proof_ptr, &proof.len().into()],
             )
             .value();
 
@@ -514,8 +495,8 @@ mod test {
     use super::*;
     use crate::{
         barretenberg_structures::{
-            ComputeMerkleRootConstraint, Constraint, LogicConstraint, PedersenConstraint,
-            RangeConstraint, SchnorrConstraint, RecursionConstraint,
+            ComputeMerkleRootConstraint, Constraint, Keccak256Constraint, LogicConstraint,
+            PedersenConstraint, RangeConstraint, SchnorrConstraint, RecursionConstraint,
         },
         merkle::{MerkleTree, MessageHasher},
     };
@@ -782,6 +763,56 @@ mod test {
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
 
+    #[test]
+    fn test_keccak256_constraint() {
+        let input_value: u128 = 0xbd;
+        let input_index = 1;
+
+        // 0x5a502f9fca467b266d5b7833651937e805270ca3f3af1c0dd2462dca4b3b1abf
+        let result_values: [u128; 32] = [
+            0x5a, 0x50, 0x2f, 0x9f, 0xca, 0x46, 0x7b, 0x26, 0x6d, 0x5b, 0x78, 0x33, 0x65, 0x19,
+            0x37, 0xe8, 0x05, 0x27, 0x0c, 0xa3, 0xf3, 0xaf, 0x1c, 0x0d, 0xd2, 0x46, 0x2d, 0xca,
+            0x4b, 0x3b, 0x1a, 0xbf,
+        ];
+        let result_indices: Vec<i32> = (2i32..2 + result_values.len() as i32).collect();
+
+        let keccak_constraint = Keccak256Constraint {
+            inputs: vec![(input_index, 8)],
+            result: result_indices.clone().try_into().unwrap(),
+        };
+
+        let mut constraints = Vec::new();
+        for (value, index) in result_values.iter().zip(&result_indices) {
+            let byte_constraint = Constraint {
+                a: *index,
+                b: *index,
+                c: *index,
+                qm: FieldElement::zero(),
+                ql: FieldElement::one(),
+                qr: FieldElement::zero(),
+                qo: FieldElement::zero(),
+                qc: -FieldElement::from(*value),
+            };
+            constraints.push(byte_constraint)
+        }
+
+        let constraint_system = ConstraintSystem::new()
+            .var_num(100)
+            .keccak256_constraints(vec![keccak_constraint])
+            .constraints(constraints);
+
+        let witness_values: Vec<_> = std::iter::once(input_value)
+            .chain(result_values)
+            .map(FieldElement::from)
+            .collect();
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
     #[test]
     fn test_ped_constraints() {
         let constraint = PedersenConstraint {
@@ -1051,7 +1082,7 @@ mod test {
         let recurison_constraint = RecursionConstraint {
             key: key_indices,
             proof: proof_indices,
-            public_input: 1,
+            public_inputs: vec![1],
             key_hash: 2,
             input_aggregation_object: [0; 16], // Set all indices to `0` when there is no `input_aggregation_object`
             output_aggregation_object: output_vars,

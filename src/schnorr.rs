@@ -36,7 +36,6 @@ impl SchnorrSig for Barretenberg {
 impl SchnorrSig for Barretenberg {
     fn construct_signature(&self, message: &[u8], private_key: [u8; 32]) -> [u8; 64] {
         use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
-        use wasmer::Value;
 
         let sig_s_ptr: usize = 0;
         let sig_e_ptr: usize = sig_s_ptr + FIELD_BYTES;
@@ -52,18 +51,16 @@ impl SchnorrSig for Barretenberg {
         self.call_multiple(
             "construct_signature",
             vec![
-                &Value::I32(message_ptr as i32),
-                &Value::I32(message.len() as i32),
-                &Value::I32(private_key_ptr as i32),
-                &Value::I32(sig_s_ptr as i32),
-                &Value::I32(sig_e_ptr as i32),
+                &message_ptr.into(),
+                &message.len().into(),
+                &private_key_ptr.into(),
+                &sig_s_ptr.into(),
+                &sig_e_ptr.into(),
             ],
         );
 
-        let sig_s_bytes = self.slice_memory(sig_s_ptr, FIELD_BYTES);
-        let sig_e_bytes = self.slice_memory(sig_e_ptr, FIELD_BYTES);
-        let sig_s: [u8; 32] = sig_s_bytes.try_into().unwrap();
-        let sig_e: [u8; 32] = sig_e_bytes.try_into().unwrap();
+        let sig_s: [u8; FIELD_BYTES] = self.read_memory(sig_s_ptr);
+        let sig_e: [u8; FIELD_BYTES] = self.read_memory(sig_e_ptr);
 
         let sig_bytes: [u8; 64] = [sig_s, sig_e].concat().try_into().unwrap();
         sig_bytes
@@ -72,7 +69,6 @@ impl SchnorrSig for Barretenberg {
     #[allow(dead_code)]
     fn construct_public_key(&self, private_key: [u8; 32]) -> [u8; 64] {
         use super::FIELD_BYTES;
-        use wasmer::Value;
 
         let private_key_ptr: usize = 0;
         let result_ptr: usize = private_key_ptr + FIELD_BYTES;
@@ -81,20 +77,14 @@ impl SchnorrSig for Barretenberg {
 
         self.call_multiple(
             "compute_public_key",
-            vec![
-                &Value::I32(private_key_ptr as i32),
-                &Value::I32(result_ptr as i32),
-            ],
+            vec![&private_key_ptr.into(), &result_ptr.into()],
         );
 
-        self.slice_memory(result_ptr, 2 * FIELD_BYTES)
-            .try_into()
-            .unwrap()
+        self.read_memory(result_ptr)
     }
 
     fn verify_signature(&self, pub_key: [u8; 64], sig: [u8; 64], message: &[u8]) -> bool {
         use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
-        use wasmer::Value;
 
         let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
 
@@ -115,19 +105,15 @@ impl SchnorrSig for Barretenberg {
         let wasm_value = self.call_multiple(
             "verify_signature",
             vec![
-                &Value::I32(message_ptr as i32),
-                &Value::I32(message.len() as i32),
-                &Value::I32(public_key_ptr as i32),
-                &Value::I32(sig_s_ptr as i32),
-                &Value::I32(sig_e_ptr as i32),
+                &message_ptr.into(),
+                &message.len().into(),
+                &public_key_ptr.into(),
+                &sig_s_ptr.into(),
+                &sig_e_ptr.into(),
             ],
         );
-        match wasm_value.into_i32() {
-            0 => false,
-            1 => true,
-            _=> unreachable!("verify signature should return a boolean to indicate whether the signature + parameters were valid")
-        }
 
+        wasm_value.bool()
         // Note, currently for Barretenberg plonk, if the signature fails
         // then the whole circuit fails.
     }

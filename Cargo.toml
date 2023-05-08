@@ -13,8 +13,12 @@ license = "MIT OR Apache-2.0"
 acvm = { features = ["bn254"], git = "https://github.com/noir-lang/acvm.git", branch = "mv/verify_proof" }
 # acvm = { features = ["bn254"], path = "/Users/maximvezenov/Documents/dev/noir-lang/acvm/acvm" }
 blake2 = "0.9.1"
+sha3 = "0.9.1"
 dirs = { version = "3.0", optional = true }
-reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["stream", "rustls-tls"] }
+reqwest = { version = "0.11.16", optional = true, default-features = false, features = [
+    "stream",
+    "rustls-tls",
+] }
 tokio = { version = "1.0", optional = true }
 futures-util = { version = "0.3.14", optional = true }
 indicatif = { version = "0.17.3", optional = true }
@@ -25,7 +29,11 @@ barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", 
 
 # Wasm
 wasmer = { version = "*", optional = true, default-features = false }
-rust-embed = { version = "6.6.0", optional = true, features = ["debug-embed", "interpolate-folder-path", "include-exclude"] }
+rust-embed = { version = "6.6.0", optional = true, features = [
+    "debug-embed",
+    "interpolate-folder-path",
+    "include-exclude",
+] }
 getrandom = { version = "0.2", optional = true }
 
 [build-dependencies]
@@ -44,7 +52,7 @@ native = [
     "dep:tokio",
     "dep:futures-util",
     "dep:dirs",
-    "dep:indicatif"
+    "dep:indicatif",
 ]
 wasm = [
     "wasmer",
@@ -59,11 +67,6 @@ wasm = [
     "dep:tokio",
     "dep:futures-util",
     "dep:dirs",
-    "dep:indicatif"
+    "dep:indicatif",
 ]
-js = [
-    "wasmer",
-    "dep:rust-embed",
-    "dep:getrandom",
-    "wasmer/js-default",
-]
+js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]

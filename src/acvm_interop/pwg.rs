@@ -25,6 +25,7 @@ impl PartialWitnessGenerator for Barretenberg {
         match func_call.name {
             BlackBoxFunc::SHA256 => hash::sha256(initial_witness, func_call),
             BlackBoxFunc::Blake2s => hash::blake2s(initial_witness, func_call),
+            BlackBoxFunc::Keccak256 => keccak256(initial_witness, func_call),
             BlackBoxFunc::EcdsaSecp256k1 => {
                 signature::ecdsa::secp256k1_prehashed(initial_witness, func_call)
             }
@@ -33,9 +34,9 @@ impl PartialWitnessGenerator for Barretenberg {
                 logic::solve_logic_opcode(initial_witness, func_call)
             }
             BlackBoxFunc::RANGE => range::solve_range_opcode(initial_witness, func_call),
-            BlackBoxFunc::AES | BlackBoxFunc::Keccak256 => Err(
-                OpcodeResolutionError::UnsupportedBlackBoxFunc(func_call.name),
-            ),
+            BlackBoxFunc::AES => Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(
+                func_call.name,
+            )),
             BlackBoxFunc::ComputeMerkleRoot => {
                 let mut inputs_iter = func_call.inputs.iter();
 
@@ -202,4 +203,60 @@ impl PartialWitnessGenerator for Barretenberg {
             }
         }
     }
+}
+
+// All of the code below can be removed once we update to acvm 0.11 or greater.
+use sha3::Keccak256;
+fn keccak256(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Result<OpcodeResolution, OpcodeResolutionError> {
+    let hash = generic_hash_256::<Keccak256>(initial_witness, func_call)?;
+
+    for (output_witness, value) in func_call.outputs.iter().zip(hash.iter()) {
+        insert_value(
+            output_witness,
+            FieldElement::from_be_bytes_reduce(&[*value]),
+            initial_witness,
+        )?;
+    }
+
+    Ok(OpcodeResolution::Solved)
+}
+fn insert_value(
+    witness: &Witness,
+    value_to_insert: FieldElement,
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+) -> Result<(), OpcodeResolutionError> {
+    let optional_old_value = initial_witness.insert(*witness, value_to_insert);
+
+    let old_value = match optional_old_value {
+        Some(old_value) => old_value,
+        None => return Ok(()),
+    };
+
+    if old_value != value_to_insert {
+        return Err(OpcodeResolutionError::UnsatisfiedConstrain);
+    }
+
+    Ok(())
+}
+fn generic_hash_256<D: Digest>(
+    initial_witness: &mut BTreeMap<Witness, FieldElement>,
+    func_call: &BlackBoxFuncCall,
+) -> Result<[u8; 32], OpcodeResolutionError> {
+    let mut hasher = D::new();
+
+    // Read witness assignments into hasher.
+    for input in func_call.inputs.iter() {
+        let witness = input.witness;
+        let num_bits = input.num_bits as usize;
+
+        let witness_assignment = witness_to_value(initial_witness, witness)?;
+        let bytes = witness_assignment.fetch_nearest_bytes(num_bits);
+        hasher.update(bytes);
+    }
+
+    let result = hasher.finalize().as_slice().try_into().unwrap();
+    Ok(result)
 }

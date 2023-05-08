@@ -52,7 +52,6 @@ impl Pedersen for Barretenberg {
 impl Pedersen for Barretenberg {
     fn compress_native(&self, left: &FieldElement, right: &FieldElement) -> FieldElement {
         use super::FIELD_BYTES;
-        use wasmer::Value;
 
         let lhs_ptr: usize = 0;
         let rhs_ptr: usize = lhs_ptr + FIELD_BYTES;
@@ -63,14 +62,10 @@ impl Pedersen for Barretenberg {
 
         self.call_multiple(
             "pedersen_plookup_compress_fields",
-            vec![
-                &Value::I32(lhs_ptr as i32),
-                &Value::I32(rhs_ptr as i32),
-                &Value::I32(result_ptr as i32),
-            ],
+            vec![&lhs_ptr.into(), &rhs_ptr.into(), &result_ptr.into()],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
+        let result_bytes: [u8; FIELD_BYTES] = self.read_memory(result_ptr);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
@@ -78,7 +73,6 @@ impl Pedersen for Barretenberg {
     fn compress_many(&self, inputs: Vec<FieldElement>) -> FieldElement {
         use super::FIELD_BYTES;
         use crate::barretenberg_structures::Assignments;
-        use wasmer::Value;
 
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
@@ -86,17 +80,16 @@ impl Pedersen for Barretenberg {
 
         self.call_multiple(
             "pedersen_plookup_compress",
-            vec![&input_ptr, &Value::I32(result_ptr as i32)],
+            vec![&input_ptr, &result_ptr.into()],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, FIELD_BYTES);
+        let result_bytes: [u8; FIELD_BYTES] = self.read_memory(result_ptr);
         FieldElement::from_be_bytes_reduce(&result_bytes)
     }
 
     fn encrypt(&self, inputs: Vec<FieldElement>) -> (FieldElement, FieldElement) {
         use super::FIELD_BYTES;
         use crate::barretenberg_structures::Assignments;
-        use wasmer::Value;
 
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf);
@@ -104,10 +97,10 @@ impl Pedersen for Barretenberg {
 
         self.call_multiple(
             "pedersen_plookup_commit",
-            vec![&input_ptr, &Value::I32(result_ptr as i32)],
+            vec![&input_ptr, &result_ptr.into()],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
+        let result_bytes: [u8; 2 * FIELD_BYTES] = self.read_memory(result_ptr);
         let (point_x_bytes, point_y_bytes) = result_bytes.split_at(FIELD_BYTES);
 
         let point_x = FieldElement::from_be_bytes_reduce(point_x_bytes);

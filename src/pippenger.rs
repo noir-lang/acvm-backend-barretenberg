@@ -4,7 +4,7 @@ pub(crate) struct Pippenger {
     #[cfg(feature = "native")]
     pippenger_ptr: *mut std::os::raw::c_void,
     #[cfg(not(feature = "native"))]
-    pippenger_ptr: wasmer::Value,
+    pippenger_ptr: crate::wasm::WASMValue,
 }
 
 #[cfg(feature = "native")]
@@ -16,7 +16,7 @@ impl Pippenger {
 
 #[cfg(not(feature = "native"))]
 impl Pippenger {
-    pub(crate) fn pointer(&self) -> wasmer::Value {
+    pub(crate) fn pointer(&self) -> crate::wasm::WASMValue {
         self.pippenger_ptr.clone()
     }
 }
@@ -34,18 +34,12 @@ impl Barretenberg {
 impl Barretenberg {
     pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Pippenger {
         use super::FIELD_BYTES;
-        use wasmer::Value;
 
         let num_points = crs_data.len() / (2 * FIELD_BYTES);
 
         let crs_ptr = self.allocate(crs_data);
 
-        let pippenger_ptr = self
-            .call_multiple(
-                "new_pippenger",
-                vec![&crs_ptr, &Value::I32(num_points as i32)],
-            )
-            .value();
+        let pippenger_ptr = self.call_multiple("new_pippenger", vec![&crs_ptr, &num_points.into()]);
 
         self.free(crs_ptr);
 
