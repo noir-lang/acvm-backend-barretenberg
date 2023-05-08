@@ -31,6 +31,10 @@ impl Assignments {
     pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl IntoIterator for Assignments {
@@ -355,13 +359,14 @@ impl LogicConstraint {
 }
 
 #[derive(Clone, Hash, Debug)]
-pub struct RecursionConstraint {
-    pub key: Vec<i32>,   // UP size is 115
-    pub proof: Vec<i32>, // UP size is 94
-    pub public_input: i32,
-    pub key_hash: i32,
-    pub input_aggregation_object: [i32; 16],
-    pub output_aggregation_object: [i32; 16],
+pub(crate) struct RecursionConstraint {
+    pub(crate) key: Vec<i32>,   // UP size is 115
+    pub(crate) proof: Vec<i32>, // UP size is 94
+    pub(crate) public_input: i32,
+    pub(crate) key_hash: i32,
+    pub(crate) input_aggregation_object: [i32; 16],
+    pub(crate) output_aggregation_object: [i32; 16],
+    pub(crate) nested_aggregation_object: [i32; 16],
 }
 
 impl RecursionConstraint {
@@ -391,6 +396,10 @@ impl RecursionConstraint {
         }
 
         for constraint in self.output_aggregation_object.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        for constraint in self.nested_aggregation_object.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
@@ -1007,6 +1016,9 @@ impl From<&Circuit> for ConstraintSystem {
                                 *var = var_field_index;
                             }
 
+                            // TODO: handle this for nested recursive functions
+                            let nested_aggregation_object = [0i32; 16];
+
                             let recursion_constraint = RecursionConstraint {
                                 key,
                                 proof,
@@ -1014,6 +1026,7 @@ impl From<&Circuit> for ConstraintSystem {
                                 key_hash,
                                 input_aggregation_object,
                                 output_aggregation_object,
+                                nested_aggregation_object,
                             };
 
                             recursion_constraints.push(recursion_constraint);

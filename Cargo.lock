@@ -268,7 +268,7 @@ dependencies = [
 [[package]]
 name = "barretenberg-sys"
 version = "0.1.3"
-source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=mv/recursion-bindings#78ce8a7ecc2689fbd91788ee0cbc6f2258835f14"
+source = "git+https://github.com/noir-lang/barretenberg-sys.git?branch=mv/recursion-bindings#42aa36a7af5bd3a52da6f043d27e16c3b96dd4b7"
 dependencies = [
  "bindgen",
  "cc",

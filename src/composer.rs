@@ -204,6 +204,7 @@ impl Composer for Barretenberg {
 
 
     fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
+        let num_public_inputs = public_inputs.len();
         let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
         let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
@@ -214,6 +215,7 @@ impl Composer for Barretenberg {
                 &proof,
                 p_proof_fields,
                 proof.len(),
+                num_public_inputs,
             )
         }
 
@@ -1053,6 +1055,7 @@ mod test {
             key_hash: 2,
             input_aggregation_object: [0; 16], // Set all indices to `0` when there is no `input_aggregation_object`
             output_aggregation_object: output_vars,
+            nested_aggregation_object: [0; 16],
         };
 
         // Add a constraint that fixes the vk hash to be the expected value
