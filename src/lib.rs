@@ -256,6 +256,7 @@ mod wasm {
             }
         }
 
+        // TODO: Consider making this Result-returning
         pub(super) fn read_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
             self.read_memory_variable_length(start, SIZE)
                 .try_into()
@@ -276,13 +277,9 @@ mod wasm {
                 .collect();
         }
 
-        pub(super) fn get_pointer(&self, ptr_ptr: usize) -> Result<usize, Error> {
-            let ptr = self.slice_memory(ptr_ptr, POINTER_BYTES);
-            Ok(u32::from_le_bytes(
-                ptr[0..POINTER_BYTES]
-                    .try_into()
-                    .map_err(|source| WasmError::InvalidPointer { source })?,
-            ) as usize)
+        pub(super) fn get_pointer(&self, ptr_ptr: usize) -> usize {
+            let ptr: [u8; POINTER_BYTES] = self.read_memory(ptr_ptr);
+            u32::from_le_bytes(ptr) as usize
         }
 
         pub(super) fn call(&self, name: &str, param: &WASMValue) -> Result<WASMValue, Error> {

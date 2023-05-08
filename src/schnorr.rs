@@ -113,7 +113,7 @@ impl SchnorrSig for Barretenberg {
             vec![&private_key_ptr.into(), &result_ptr.into()],
         )?;
 
-        self.read_memory(result_ptr)
+        Ok(self.read_memory(result_ptr))
     }
 
     fn verify_signature(

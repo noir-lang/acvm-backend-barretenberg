@@ -58,7 +58,7 @@ impl SmartContract for Barretenberg {
 
         // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
         // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
-        let contract_ptr = self.get_pointer(contract_ptr_ptr)?;
+        let contract_ptr = self.get_pointer(contract_ptr_ptr);
 
         let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size);
 

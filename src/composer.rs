@@ -254,9 +254,9 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
-        let pk_ptr = self.get_pointer(pk_ptr_ptr)?;
+        let pk_ptr = self.get_pointer(pk_ptr_ptr);
 
-        Ok(self.read_memory_variable_length(pk_ptr, pk_size))
+        Ok(self.read_memory_variable_length(pk_ptr, pk_size as usize))
     }
 
     fn compute_verification_key(
@@ -286,9 +286,9 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
-        let vk_ptr = self.get_pointer(vk_ptr_ptr)?;
+        let vk_ptr = self.get_pointer(vk_ptr_ptr);
 
-        Ok(self.read_memory_variable_length(vk_ptr, vk_size))
+        Ok(self.read_memory_variable_length(vk_ptr, vk_size as usize))
     }
 
     fn create_proof_with_pk(
@@ -330,9 +330,9 @@ impl Composer for Barretenberg {
 
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
-        let proof_ptr = self.get_pointer(proof_ptr_ptr)?;
+        let proof_ptr = self.get_pointer(proof_ptr_ptr);
 
-        let result = self.read_memory_variable_length(proof_ptr, proof_size);
+        let result = self.read_memory_variable_length(proof_ptr, proof_size as usize);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
