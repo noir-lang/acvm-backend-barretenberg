@@ -74,8 +74,6 @@ impl Composer for Barretenberg {
             pk_size = barretenberg_sys::composer::init_proving_key(&cs_buf, pk_ptr);
         }
 
-        std::mem::forget(cs_buf);
-
         let result;
         unsafe {
             result = Vec::from_raw_parts(pk_addr, pk_size, pk_size);
@@ -96,20 +94,16 @@ impl Composer for Barretenberg {
 
         let mut vk_addr: *mut u8 = std::ptr::null_mut();
         let vk_ptr = &mut vk_addr as *mut *mut u8;
-        let proving_key = proving_key.to_vec();
 
         let vk_size;
         unsafe {
             vk_size = barretenberg_sys::composer::init_verification_key(
                 pippenger_ptr,
                 &g2_data,
-                &proving_key,
+                proving_key,
                 vk_ptr,
             )
         }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(proving_key);
 
         let result;
         unsafe {
@@ -134,24 +128,18 @@ impl Composer for Barretenberg {
 
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
-        let proving_key = proving_key.to_vec();
 
         let proof_size;
         unsafe {
             proof_size = barretenberg_sys::composer::create_proof_with_pk(
                 pippenger_ptr,
                 &g2_data,
-                &proving_key,
+                proving_key,
                 &cs_buf,
                 &witness_buf,
                 p_proof,
             );
         }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(proving_key);
-        std::mem::forget(cs_buf);
-        std::mem::forget(witness_buf);
 
         let result;
         unsafe {
@@ -178,13 +166,11 @@ impl Composer for Barretenberg {
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
-        let verification_key = verification_key.to_vec();
-
         let verified;
         unsafe {
             verified = barretenberg_sys::composer::verify_with_vk(
                 &g2_data,
-                &verification_key,
+                verification_key,
                 &cs_buf,
                 &proof,
             );
