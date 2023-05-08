@@ -61,9 +61,13 @@ impl Composer for Barretenberg {
     fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
 
-        Ok(unsafe {
-            barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr())
-        })
+        let circuit_size;
+        unsafe {
+            circuit_size =
+                barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr())
+        }
+
+        Ok(circuit_size)
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
