@@ -98,6 +98,7 @@ pub enum Error {
 /// The number of bytes necessary to store a `FieldElement`.
 const FIELD_BYTES: usize = 32;
 
+#[derive(Debug)]
 pub struct Barretenberg {
     #[cfg(feature = "wasm")]
     memory: wasmer::Memory,
