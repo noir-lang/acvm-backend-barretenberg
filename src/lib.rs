@@ -58,8 +58,6 @@ pub enum WasmError {
     },
     #[error("Value expected to be 0 or 1 representing a boolean")]
     InvalidBool,
-    #[error("Failed to get pointer")]
-    InvalidPointer { source: TryFromSliceError },
 }
 
 #[derive(Debug, Error)]
@@ -89,8 +87,7 @@ pub enum Error {
     MissingSignature(usize),
     #[error("Missing rest of {0} component for public key. Tried to get byte {1} but failed")]
     MissingPublicKey(&'static str, usize),
-    #[error("Keccak256 has not yet been implemented")]
-    Keccak256,
+
     #[error("AES has not yet been implemented")]
     Aes,
 
