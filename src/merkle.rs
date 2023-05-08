@@ -1,3 +1,4 @@
+// TODO(#166): Rework this module to return results
 use acvm::FieldElement;
 use std::{convert::TryInto, path::Path};
 
@@ -65,7 +66,6 @@ pub(crate) struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     msg_hasher: MH,
 }
 
-// TODO: Rework this module to return results
 fn insert_root(db: &mut sled::Db, value: FieldElement) {
     db.insert("ROOT".as_bytes(), value.to_be_bytes()).unwrap();
 }
@@ -203,7 +203,6 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             for i in 0..layer_size {
                 hashes[offset + i] = current;
             }
-            // TODO: no unwrap
             current = barretenberg.hash(&current, &current).unwrap();
 
             offset += layer_size;
