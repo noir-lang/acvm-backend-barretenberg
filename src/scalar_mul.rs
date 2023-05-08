@@ -35,7 +35,7 @@ impl ScalarMul for Barretenberg {
             vec![&lhs_ptr.into(), &result_ptr.into()],
         );
 
-        let result_bytes = self.slice_memory(result_ptr, 2 * FIELD_BYTES);
+        let result_bytes: [u8; 2 * FIELD_BYTES] = self.read_memory(result_ptr);
         let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(FIELD_BYTES);
 
         assert!(pubkey_x_bytes.len() == FIELD_BYTES);

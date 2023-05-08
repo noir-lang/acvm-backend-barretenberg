@@ -168,13 +168,18 @@ mod wasm {
             }
         }
 
-        // XXX: change to read_mem
-        pub(super) fn slice_memory(&self, start: usize, length: usize) -> Vec<u8> {
+        pub(super) fn read_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
+            self.read_memory_variable_length(start, SIZE)
+                .try_into()
+                .expect("Read memory should be of the specified length")
+        }
+
+        pub(super) fn read_memory_variable_length(&self, start: usize, length: usize) -> Vec<u8> {
             let memory = &self.memory;
             let end = start + length;
 
             #[cfg(feature = "js")]
-            return memory.uint8view().to_vec()[start as usize..end].to_vec();
+            return memory.uint8view().to_vec()[start..end].to_vec();
 
             #[cfg(not(feature = "js"))]
             return memory.view()[start..end]
