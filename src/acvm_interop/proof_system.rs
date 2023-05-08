@@ -75,6 +75,40 @@ impl ProofSystemCompiler for Barretenberg {
             false,
         )
     }
+
+    fn proof_as_fields(
+        &self,
+        proof: &[u8],
+        public_inputs: BTreeMap<Witness, FieldElement>,
+    ) -> Vec<FieldElement> {
+        let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
+
+        let proof_fields_as_bytes = Composer::proof_as_fields(self, &proof, flattened_public_inputs.into());
+        let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+
+        let mut proof_fields: Vec<FieldElement> = Vec::new();
+        for proof_field_bytes in proof_fields_bytes_slices {
+            proof_fields.push(FieldElement::from_be_bytes_reduce(proof_field_bytes));
+        }
+        proof_fields
+    }
+
+    fn vk_as_fields(
+        &self,
+        verification_key: &[u8],
+    ) -> (Vec<FieldElement>, FieldElement) {
+        let (vk_fields_as_bytes, vk_hash_as_bytes) = Composer::verification_key_as_fields(self, &verification_key);
+
+        let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+        let mut vk_fields: Vec<FieldElement> = Vec::new();
+        for vk_field_bytes in vk_fields_as_bytes_slices {
+            vk_fields.push(FieldElement::from_be_bytes_reduce(vk_field_bytes));
+        }
+
+        let vk_hash_hex = FieldElement::from_be_bytes_reduce(&vk_hash_as_bytes);
+
+        (vk_fields, vk_hash_hex)
+    }
 }
 
 /// Flatten a witness map into a vector of witness assignments.

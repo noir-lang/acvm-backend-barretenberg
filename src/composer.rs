@@ -69,63 +69,6 @@ impl Composer for Barretenberg {
         unsafe { barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr()) }
     }
 
-    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
-        let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
-        let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
-        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
-
-        let proof_fields_size;
-        unsafe {
-            proof_fields_size = barretenberg_sys::composer::serialize_proof_into_field_elements(
-                &proof,
-                p_proof_fields,
-                proof.len(),
-            )
-        }
-
-        std::mem::forget(proof);
-
-        let result;
-        unsafe {
-            result = Vec::from_raw_parts(proof_fields_addr, proof_fields_size, proof_fields_size);
-        }
-
-        result
-    }
-
-    fn verification_key_as_fields(&self, verification_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
-        let g2_data = G2::new().data;
-
-        let mut vk_fields_addr: *mut u8 = std::ptr::null_mut();
-        let p_vk_fields = &mut vk_fields_addr as *mut *mut u8;
-
-        let mut vk_hash_fields_addr: *mut u8 = std::ptr::null_mut();
-        let p_vk_hash_fields = &mut vk_hash_fields_addr as *mut *mut u8;
-
-        let vk_fields_size;
-        unsafe {
-            vk_fields_size =
-                barretenberg_sys::composer::serialize_verification_key_into_field_elements(
-                    &g2_data,
-                    verification_key,
-                    p_vk_fields,
-                    p_vk_hash_fields,
-                )
-        }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(verification_key);
-
-        let vk_result;
-        let vk_hash_result;
-        unsafe {
-            vk_result = Vec::from_raw_parts(vk_fields_addr, vk_fields_size, vk_fields_size);
-            vk_hash_result = slice::from_raw_parts(vk_hash_fields_addr, 32);
-        }
-
-        (vk_result.to_vec(), vk_hash_result.to_vec())
-    }
-
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
         let cs_buf = constraint_system.to_bytes();
 
@@ -257,6 +200,64 @@ impl Composer for Barretenberg {
             );
         }
         verified
+    }
+
+
+    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
+        let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
+
+        let proof_fields_size;
+        unsafe {
+            proof_fields_size = barretenberg_sys::composer::serialize_proof_into_field_elements(
+                &proof,
+                p_proof_fields,
+                proof.len(),
+            )
+        }
+
+        std::mem::forget(proof);
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(proof_fields_addr, proof_fields_size, proof_fields_size);
+        }
+
+        result
+    }
+
+    fn verification_key_as_fields(&self, verification_key: &[u8]) -> (Vec<u8>, Vec<u8>) {
+        let g2_data = G2::new().data;
+
+        let mut vk_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_fields = &mut vk_fields_addr as *mut *mut u8;
+
+        let mut vk_hash_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_hash_fields = &mut vk_hash_fields_addr as *mut *mut u8;
+
+        let vk_fields_size;
+        unsafe {
+            vk_fields_size =
+                barretenberg_sys::composer::serialize_verification_key_into_field_elements(
+                    &g2_data,
+                    verification_key,
+                    p_vk_fields,
+                    p_vk_hash_fields,
+                )
+        }
+
+        std::mem::forget(g2_data);
+        std::mem::forget(verification_key);
+
+        let vk_result;
+        let vk_hash_result;
+        unsafe {
+            vk_result = Vec::from_raw_parts(vk_fields_addr, vk_fields_size, vk_fields_size);
+            vk_hash_result = slice::from_raw_parts(vk_hash_fields_addr, 32);
+        }
+
+        (vk_result.to_vec(), vk_hash_result.to_vec())
     }
 }
 
@@ -994,7 +995,9 @@ mod test {
             &proving_key,
             true,
         );
-
+        dbg!(proof.len());
+        let encoded_proof = hex::encode(&proof);
+        dbg!(encoded_proof.len());
         let verified = bb.verify_with_vk(
             &inner_constraint_system,
             &proof,
@@ -1006,7 +1009,9 @@ mod test {
 
         // NOTE: We need to get the field bytes in non-montgomery form to read them in correctly using the acir_field API
         let proof_fields_as_bytes = bb.proof_as_fields(&proof, inner_witness_res.public_inputs);
-
+        dbg!(proof_fields_as_bytes.len());
+        let encoded_proof_fields = hex::encode(&proof_fields_as_bytes);
+        dbg!(encoded_proof_fields.len());
         let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut proof_witness_values: Vec<FieldElement> = Vec::new();
         for proof_field_bytes in proof_fields_bytes_slices {
@@ -1015,7 +1020,8 @@ mod test {
 
         let (vk_fields_as_bytes, vk_hash_as_bytes) =
             bb.verification_key_as_fields(&verification_key);
-
+        let vk_hash_hex = FieldElement::from_be_bytes_reduce(&vk_hash_as_bytes);
+        dbg!(vk_hash_hex.to_hex());
         let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut vk_witness_values: Vec<FieldElement> = Vec::new();
         for vk_field_bytes in vk_fields_as_bytes_slices {
@@ -1106,6 +1112,10 @@ mod test {
         for test_case in test_cases.into_iter() {
             let proof =
                 bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key, false);
+            dbg!(proof.len());
+            let encoded_proof = hex::encode(&proof);
+            dbg!(encoded_proof.len());
+            dbg!(encoded_proof);
             let verified = bb.verify_with_vk(
                 &constraint_system,
                 &proof,
