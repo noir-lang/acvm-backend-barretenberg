@@ -140,7 +140,7 @@ impl SchnorrSig for Barretenberg {
         self.transfer_to_heap(sig_e, sig_e_ptr);
         self.transfer_to_heap(message, message_ptr);
 
-        let wasm_value = self.call_multiple(
+        let verified = self.call_multiple(
             "verify_signature",
             vec![
                 &message_ptr.into(),
@@ -153,9 +153,7 @@ impl SchnorrSig for Barretenberg {
 
         // Note, currently for Barretenberg plonk, if the signature fails
         // then the whole circuit fails.
-        let verified = wasm_value.bool()?;
-
-        Ok(verified)
+        Ok(verified.try_into()?)
     }
 }
 

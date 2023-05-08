@@ -51,6 +51,11 @@ pub enum WasmError {
         value: i32,
         source: std::num::TryFromIntError,
     },
+    #[error("Could not convert value {value} from i32 to usuze")]
+    InvalidUsize {
+        value: i32,
+        source: std::num::TryFromIntError,
+    },
     #[error("Value expected to be 0 or 1 representing a boolean")]
     InvalidBool,
     #[error("Failed to get pointer")]
@@ -183,28 +188,6 @@ mod wasm {
     #[derive(Debug, Clone)]
     pub(super) struct WASMValue(Option<Value>);
 
-    impl WASMValue {
-        pub(super) fn value(self) -> Result<Value, WasmError> {
-            self.0.ok_or(WasmError::NoValue)
-        }
-        pub(super) fn i32(self) -> Result<i32, WasmError> {
-            self.0
-                .and_then(|val| val.i32())
-                .ok_or(WasmError::InvalidI32)
-        }
-        pub(super) fn u32(self) -> Result<u32, WasmError> {
-            let value = self.i32()?;
-            u32::try_from(value).map_err(|source| WasmError::InvalidU32 { value, source })
-        }
-        pub(super) fn bool(self) -> Result<bool, WasmError> {
-            match self.i32() {
-                Ok(0) => Ok(false),
-                Ok(1) => Ok(true),
-                _ => Err(WasmError::InvalidBool),
-            }
-        }
-    }
-
     impl From<usize> for WASMValue {
         fn from(value: usize) -> Self {
             WASMValue(Some(Value::I32(value as i32)))
@@ -223,11 +206,53 @@ mod wasm {
         }
     }
 
+    impl TryFrom<WASMValue> for bool {
+        type Error = WasmError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            match value.try_into()? {
+                0 => Ok(false),
+                1 => Ok(true),
+                _ => Err(WasmError::InvalidBool),
+            }
+        }
+    }
+
+    impl TryFrom<WASMValue> for usize {
+        type Error = WasmError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            let value: i32 = value.try_into()?;
+            value
+                .try_into()
+                .map_err(|source| WasmError::InvalidUsize { value, source })
+        }
+    }
+
+    impl TryFrom<WASMValue> for u32 {
+        type Error = WasmError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            let value = value.try_into()?;
+            u32::try_from(value).map_err(|source| WasmError::InvalidU32 { value, source })
+        }
+    }
+
+    impl TryFrom<WASMValue> for i32 {
+        type Error = WasmError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            value.0.map_or(Err(WasmError::NoValue), |val| {
+                val.i32().ok_or(WasmError::InvalidI32)
+            })
+        }
+    }
+
     impl TryFrom<WASMValue> for Value {
         type Error = WasmError;
 
-        fn try_from(x: WASMValue) -> Result<Self, Self::Error> {
-            x.value()
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            value.0.ok_or(WasmError::NoValue)
         }
     }
 
@@ -317,7 +342,7 @@ mod wasm {
 
         /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
         pub(super) fn allocate(&self, bytes: &[u8]) -> Result<WASMValue, Error> {
-            let ptr = self.call("bbmalloc", &bytes.len().into())?.i32()?;
+            let ptr: i32 = self.call("bbmalloc", &bytes.len().into())?.try_into()?;
 
             let i32_bytes = ptr.to_be_bytes();
             let u32_bytes = u32::from_be_bytes(i32_bytes);

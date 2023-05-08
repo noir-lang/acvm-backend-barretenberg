@@ -220,7 +220,9 @@ impl Composer for Barretenberg {
 
         self.free(cs_ptr)?;
 
-        pow2ceil(circuit_size?.u32()? + NUM_RESERVED_GATES)
+        let size: u32 = circuit_size?.try_into()?;
+
+        pow2ceil(size + NUM_RESERVED_GATES)
     }
 
     fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
@@ -232,9 +234,7 @@ impl Composer for Barretenberg {
 
         self.free(cs_ptr)?;
 
-        let size = circuit_size?.u32()?;
-
-        Ok(size)
+        Ok(circuit_size?.try_into()?)
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
@@ -245,18 +245,16 @@ impl Composer for Barretenberg {
         // `pk_ptr_ptr` is a pointer to a pointer which holds the proving key.
         let pk_ptr_ptr: usize = 0;
 
-        let pk_size = self
-            .call_multiple(
-                "acir_proofs_init_proving_key",
-                vec![&cs_ptr, &pk_ptr_ptr.into()],
-            )?
-            .i32()?;
+        let pk_size = self.call_multiple(
+            "acir_proofs_init_proving_key",
+            vec![&cs_ptr, &pk_ptr_ptr.into()],
+        )?;
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
         let pk_ptr = self.get_pointer(pk_ptr_ptr);
 
-        Ok(self.read_memory_variable_length(pk_ptr, pk_size as usize))
+        Ok(self.read_memory_variable_length(pk_ptr, pk_size.try_into()?))
     }
 
     fn compute_verification_key(
@@ -277,18 +275,16 @@ impl Composer for Barretenberg {
         // `vk_ptr_ptr` is a pointer to a pointer which holds the verification key.
         let vk_ptr_ptr: usize = 0;
 
-        let vk_size = self
-            .call_multiple(
-                "acir_proofs_init_verification_key",
-                vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
-            )?
-            .i32()?;
+        let vk_size = self.call_multiple(
+            "acir_proofs_init_verification_key",
+            vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
+        )?;
 
         // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
         let vk_ptr = self.get_pointer(vk_ptr_ptr);
 
-        Ok(self.read_memory_variable_length(vk_ptr, vk_size as usize))
+        Ok(self.read_memory_variable_length(vk_ptr, vk_size.try_into()?))
     }
 
     fn create_proof_with_pk(
@@ -314,25 +310,23 @@ impl Composer for Barretenberg {
         // `proof_ptr_ptr` is a pointer to a pointer which holds the proof data.
         let proof_ptr_ptr: usize = 0;
 
-        let proof_size = self
-            .call_multiple(
-                "acir_proofs_new_proof",
-                vec![
-                    &pippenger_ptr,
-                    &g2_ptr,
-                    &pk_ptr,
-                    &cs_ptr,
-                    &witness_ptr,
-                    &proof_ptr_ptr.into(),
-                ],
-            )?
-            .i32()?;
+        let proof_size = self.call_multiple(
+            "acir_proofs_new_proof",
+            vec![
+                &pippenger_ptr,
+                &g2_ptr,
+                &pk_ptr,
+                &cs_ptr,
+                &witness_ptr,
+                &proof_ptr_ptr.into(),
+            ],
+        )?;
 
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
         let proof_ptr = self.get_pointer(proof_ptr_ptr);
 
-        let result = self.read_memory_variable_length(proof_ptr, proof_size as usize);
+        let result = self.read_memory_variable_length(proof_ptr, proof_size.try_into()?);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
@@ -370,9 +364,7 @@ impl Composer for Barretenberg {
 
         self.free(proof_ptr)?;
 
-        let verified = verified?.bool()?;
-
-        Ok(verified)
+        Ok(verified?.try_into()?)
     }
 }
 

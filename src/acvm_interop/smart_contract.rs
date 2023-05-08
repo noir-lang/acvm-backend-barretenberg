@@ -54,13 +54,12 @@ impl SmartContract for Barretenberg {
             "acir_proofs_get_solidity_verifier",
             vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
         )?;
-        let contract_size: usize = contract_size.i32()? as usize;
 
         // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
         // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
         let contract_ptr = self.get_pointer(contract_ptr_ptr);
 
-        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size);
+        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size.try_into()?);
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         Ok(format!(
