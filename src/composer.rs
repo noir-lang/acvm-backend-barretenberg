@@ -427,8 +427,8 @@ mod test {
     use super::*;
     use crate::{
         barretenberg_structures::{
-            ComputeMerkleRootConstraint, Constraint, LogicConstraint, PedersenConstraint,
-            RangeConstraint, SchnorrConstraint,
+            ComputeMerkleRootConstraint, Constraint, Keccak256Constraint, LogicConstraint,
+            PedersenConstraint, RangeConstraint, SchnorrConstraint,
         },
         merkle::{MerkleTree, MessageHasher},
     };
@@ -695,6 +695,56 @@ mod test {
         test_composer_with_pk_vk(constraint_system, vec![case_1]);
     }
 
+    #[test]
+    fn test_keccak256_constraint() {
+        let input_value: u128 = 0xbd;
+        let input_index = 1;
+
+        // 0x5a502f9fca467b266d5b7833651937e805270ca3f3af1c0dd2462dca4b3b1abf
+        let result_values: [u128; 32] = [
+            0x5a, 0x50, 0x2f, 0x9f, 0xca, 0x46, 0x7b, 0x26, 0x6d, 0x5b, 0x78, 0x33, 0x65, 0x19,
+            0x37, 0xe8, 0x05, 0x27, 0x0c, 0xa3, 0xf3, 0xaf, 0x1c, 0x0d, 0xd2, 0x46, 0x2d, 0xca,
+            0x4b, 0x3b, 0x1a, 0xbf,
+        ];
+        let result_indices: Vec<i32> = (2i32..2 + result_values.len() as i32).collect();
+
+        let keccak_constraint = Keccak256Constraint {
+            inputs: vec![(input_index, 8)],
+            result: result_indices.clone().try_into().unwrap(),
+        };
+
+        let mut constraints = Vec::new();
+        for (value, index) in result_values.iter().zip(&result_indices) {
+            let byte_constraint = Constraint {
+                a: *index,
+                b: *index,
+                c: *index,
+                qm: FieldElement::zero(),
+                ql: FieldElement::one(),
+                qr: FieldElement::zero(),
+                qo: FieldElement::zero(),
+                qc: -FieldElement::from(*value),
+            };
+            constraints.push(byte_constraint)
+        }
+
+        let constraint_system = ConstraintSystem::new()
+            .var_num(100)
+            .keccak256_constraints(vec![keccak_constraint])
+            .constraints(constraints);
+
+        let witness_values: Vec<_> = std::iter::once(input_value)
+            .chain(result_values)
+            .map(FieldElement::from)
+            .collect();
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
     #[test]
     fn test_ped_constraints() {
         let constraint = PedersenConstraint {

@@ -500,6 +500,14 @@ impl ConstraintSystem {
         self
     }
 
+    pub(crate) fn keccak256_constraints(
+        mut self,
+        keccak256_constraints: Vec<Keccak256Constraint>,
+    ) -> Self {
+        self.keccak_constraints = keccak256_constraints;
+        self
+    }
+
     pub(crate) fn pedersen_constraints(
         mut self,
         pedersen_constraints: Vec<PedersenConstraint>,
