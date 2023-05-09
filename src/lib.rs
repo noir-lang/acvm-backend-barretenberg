@@ -56,7 +56,7 @@ enum FeatureError {
         value: i32,
         source: std::num::TryFromIntError,
     },
-    #[error("Could not convert value {value} from i32 to usuze")]
+    #[error("Could not convert value {value} from i32 to usize")]
     InvalidUsize {
         value: i32,
         source: std::num::TryFromIntError,
