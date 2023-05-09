@@ -92,12 +92,28 @@ impl PartialWitnessGenerator for Barretenberg {
                     )
                 })?;
 
-                let mut signature = [0u8; 64];
-                for (i, sig) in signature.iter_mut().enumerate() {
+                let mut sig_s: [u8; 32] = [0u8; 32];
+                for (i, sig) in sig_s.iter_mut().enumerate() {
                     let _sig_i = inputs_iter.next().ok_or_else(|| {
                         OpcodeResolutionError::BlackBoxFunctionFailed(
                             func_call.name,
-                            format!("signature should be 64 bytes long, found only {i} bytes"),
+                            format!("sig_s should be 32 bytes long, found only {i} bytes"),
+                        )
+                    })?;
+                    let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
+                    *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            "could not get last bytes".into(),
+                        )
+                    })?;
+                }
+                let mut sig_e: [u8; 32] = [0u8; 32];
+                for (i, sig) in sig_e.iter_mut().enumerate() {
+                    let _sig_i = inputs_iter.next().ok_or_else(|| {
+                        OpcodeResolutionError::BlackBoxFunctionFailed(
+                            func_call.name,
+                            format!("sig_e should be 32 bytes long, found only {i} bytes"),
                         )
                     })?;
                     let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
@@ -122,7 +138,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 }
 
                 let valid_signature = self
-                    .verify_signature(pub_key, signature, &message)
+                    .verify_signature(pub_key, sig_s, sig_e, &message)
                     .map_err(|err| {
                         OpcodeResolutionError::BlackBoxFunctionFailed(
                             func_call.name,

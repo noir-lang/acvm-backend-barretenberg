@@ -26,10 +26,6 @@ use thiserror::Error;
 #[cfg(feature = "native")]
 #[derive(Debug, Error)]
 enum FeatureError {
-    #[error("Could not slice schnorr")]
-    SchnorrSlice {
-        source: std::array::TryFromSliceError,
-    },
     #[error("Could not slice field element")]
     FieldElementSlice {
         source: std::array::TryFromSliceError,
@@ -73,8 +69,6 @@ enum FeatureError {
 enum Error {
     #[error("The value {0} overflows in the pow2ceil function")]
     Pow2CeilOverflow(u32),
-    #[error("Could not convert schnorr")]
-    SchnorrConvert(Vec<u8>),
 
     #[error("Malformed Black Box Function: {0} - {1}")]
     MalformedBlackBoxFunc(BlackBoxFunc, String),

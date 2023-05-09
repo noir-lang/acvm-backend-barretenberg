@@ -1,13 +1,17 @@
 use super::{Barretenberg, Error};
 
 pub(crate) trait SchnorrSig {
-    fn construct_signature(&self, message: &[u8], private_key: [u8; 32])
-        -> Result<[u8; 64], Error>;
+    fn construct_signature(
+        &self,
+        message: &[u8],
+        private_key: [u8; 32],
+    ) -> Result<([u8; 32], [u8; 32]), Error>;
     fn construct_public_key(&self, private_key: [u8; 32]) -> Result<[u8; 64], Error>;
     fn verify_signature(
         &self,
         pub_key: [u8; 64],
-        sig: [u8; 64],
+        sig_s: [u8; 32],
+        sig_e: [u8; 32],
         message: &[u8],
     ) -> Result<bool, Error>;
 }
@@ -18,14 +22,11 @@ impl SchnorrSig for Barretenberg {
         &self,
         message: &[u8],
         private_key: [u8; 32],
-    ) -> Result<[u8; 64], Error> {
-        let (sig_s, sig_e) = barretenberg_sys::schnorr::construct_signature(message, private_key);
-
-        let sig_bytes: [u8; 64] = [sig_s, sig_e]
-            .concat()
-            .try_into()
-            .map_err(Error::SchnorrConvert)?;
-        Ok(sig_bytes)
+    ) -> Result<([u8; 32], [u8; 32]), Error> {
+        Ok(barretenberg_sys::schnorr::construct_signature(
+            message,
+            private_key,
+        ))
     }
 
     fn construct_public_key(&self, private_key: [u8; 32]) -> Result<[u8; 64], Error> {
@@ -37,20 +38,10 @@ impl SchnorrSig for Barretenberg {
     fn verify_signature(
         &self,
         pub_key: [u8; 64],
-        sig: [u8; 64],
+        sig_s: [u8; 32],
+        sig_e: [u8; 32],
         message: &[u8],
     ) -> Result<bool, Error> {
-        use super::FeatureError;
-
-        let (sig_s, sig_e) = sig.split_at(32);
-
-        let sig_s: [u8; 32] = sig_s
-            .try_into()
-            .map_err(|source| FeatureError::SchnorrSlice { source })?;
-        let sig_e: [u8; 32] = sig_e
-            .try_into()
-            .map_err(|source| FeatureError::SchnorrSlice { source })?;
-
         Ok(barretenberg_sys::schnorr::verify_signature(
             pub_key, sig_s, sig_e, message,
         ))
@@ -66,7 +57,7 @@ impl SchnorrSig for Barretenberg {
         &self,
         message: &[u8],
         private_key: [u8; 32],
-    ) -> Result<[u8; 64], Error> {
+    ) -> Result<([u8; 32], [u8; 32]), Error> {
         use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
 
         let sig_s_ptr: usize = 0;
@@ -94,11 +85,7 @@ impl SchnorrSig for Barretenberg {
         let sig_s: [u8; FIELD_BYTES] = self.read_memory(sig_s_ptr);
         let sig_e: [u8; FIELD_BYTES] = self.read_memory(sig_e_ptr);
 
-        let sig_bytes: [u8; 64] = [sig_s, sig_e]
-            .concat()
-            .try_into()
-            .map_err(Error::SchnorrConvert)?;
-        Ok(sig_bytes)
+        Ok((sig_s, sig_e))
     }
 
     #[allow(dead_code)]
@@ -121,12 +108,11 @@ impl SchnorrSig for Barretenberg {
     fn verify_signature(
         &self,
         pub_key: [u8; 64],
-        sig: [u8; 64],
+        sig_s: [u8; 32],
+        sig_e: [u8; 32],
         message: &[u8],
     ) -> Result<bool, Error> {
-        use super::{wasm::WASM_SCRATCH_BYTES, FIELD_BYTES};
-
-        let (sig_s, sig_e) = sig.split_at(FIELD_BYTES);
+        use super::wasm::WASM_SCRATCH_BYTES;
 
         let public_key_ptr: usize = 0;
         let sig_s_ptr: usize = public_key_ptr + pub_key.len();
@@ -138,8 +124,8 @@ impl SchnorrSig for Barretenberg {
         );
 
         self.transfer_to_heap(&pub_key, public_key_ptr);
-        self.transfer_to_heap(sig_s, sig_s_ptr);
-        self.transfer_to_heap(sig_e, sig_e_ptr);
+        self.transfer_to_heap(&sig_s, sig_s_ptr);
+        self.transfer_to_heap(&sig_e, sig_e_ptr);
         self.transfer_to_heap(message, message_ptr);
 
         let verified = self.call_multiple(
@@ -168,8 +154,8 @@ fn basic_interop() -> Result<(), Error> {
     let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     let public_key = barretenberg.construct_public_key(private_key)?;
-    let signature = barretenberg.construct_signature(&message, private_key)?;
-    let valid_signature = barretenberg.verify_signature(public_key, signature, &message)?;
+    let (sig_s, sig_e) = barretenberg.construct_signature(&message, private_key)?;
+    let valid_signature = barretenberg.verify_signature(public_key, sig_s, sig_e, &message)?;
     assert!(valid_signature);
 
     // Should fail, since the messages are different
@@ -177,17 +163,18 @@ fn basic_interop() -> Result<(), Error> {
     let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     let public_key = barretenberg.construct_public_key(private_key)?;
-    let signature = barretenberg.construct_signature(&message, private_key)?;
-    let valid_signature = barretenberg.verify_signature(public_key, signature, &[0, 2])?;
+    let (sig_s, sig_e) = barretenberg.construct_signature(&message, private_key)?;
+    let valid_signature = barretenberg.verify_signature(public_key, sig_s, sig_e, &[0, 2])?;
     assert!(!valid_signature);
 
     // Should fail, since the signature is not valid
     let private_key = [2; 32];
     let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-    let signature = [1; 64];
+    let sig_s = [1; 32];
+    let sig_e = [1; 32];
 
     let public_key = barretenberg.construct_public_key(private_key)?;
-    let valid_signature = barretenberg.verify_signature(public_key, signature, &message)?;
+    let valid_signature = barretenberg.verify_signature(public_key, sig_s, sig_e, &message)?;
     assert!(!valid_signature);
 
     // Should fail, since the public key does not match
@@ -196,8 +183,8 @@ fn basic_interop() -> Result<(), Error> {
     let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     let public_key_b = barretenberg.construct_public_key(private_key_b)?;
-    let signature_a = barretenberg.construct_signature(&message, private_key_a)?;
-    let valid_signature = barretenberg.verify_signature(public_key_b, signature_a, &message)?;
+    let (sig_s, sig_e) = barretenberg.construct_signature(&message, private_key_a)?;
+    let valid_signature = barretenberg.verify_signature(public_key_b, sig_s, sig_e, &message)?;
     assert!(!valid_signature);
 
     // Test the first case again, to check if memory is being freed and overwritten properly
@@ -205,8 +192,8 @@ fn basic_interop() -> Result<(), Error> {
     let message = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     let public_key = barretenberg.construct_public_key(private_key)?;
-    let signature = barretenberg.construct_signature(&message, private_key)?;
-    let valid_signature = barretenberg.verify_signature(public_key, signature, &message)?;
+    let (sig_s, sig_e) = barretenberg.construct_signature(&message, private_key)?;
+    let valid_signature = barretenberg.verify_signature(public_key, sig_s, sig_e, &message)?;
     assert!(valid_signature);
     Ok(())
 }
