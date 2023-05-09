@@ -734,8 +734,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut outputs_iter = gadget_call.outputs.iter();
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
-                                let out_byte =
-                                    outputs_iter.next().ok_or(Error::MissingOutput(i))?;
+                                let out_byte = outputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                    )
+                                })?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
@@ -761,7 +765,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
                                 let out_byte =
-                                    outputs_iter.next().ok_or(Error::MissingOutput(i))?;
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
@@ -778,13 +787,22 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             // leaf
                             let leaf = {
-                                let leaf_input = inputs_iter.next().ok_or(Error::MissingLeaf)?;
+                                let leaf_input = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing leaf to check membership for".into(),
+                                    )
+                                })?;
                                 leaf_input.witness.witness_index() as i32
                             };
                             // index
                             let index = {
-                                let index_input =
-                                    inputs_iter.next().ok_or(Error::MissingLeafIndex)?;
+                                let index_input = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing index for leaf".into(),
+                                    )
+                                })?;
                                 index_input.witness.witness_index() as i32
                             };
 
@@ -816,21 +834,35 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             // pub_key_x
                             let public_key_x = {
-                                let pub_key_x =
-                                    inputs_iter.next().ok_or(Error::MissingPublicKeyX)?;
+                                let pub_key_x = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing `x` component for public key".into(),
+                                    )
+                                })?;
                                 pub_key_x.witness.witness_index() as i32
                             };
                             // pub_key_y
                             let public_key_y = {
-                                let pub_key_y =
-                                    inputs_iter.next().ok_or(Error::MissingPublicKeyY)?;
+                                let pub_key_y = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing `y` component for public key".into(),
+                                    )
+                                })?;
                                 pub_key_y.witness.witness_index() as i32
                             };
                             // signature
+
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
                                 let sig_byte =
-                                    inputs_iter.next().ok_or(Error::MissingSignature(i))?;
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let sig_byte_index = sig_byte.witness.witness_index() as i32;
                                 *sig = sig_byte_index
                             }
@@ -899,7 +931,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut public_key_x = [0i32; 32];
                             for (i, pkx) in public_key_x.iter_mut().enumerate() {
                                 let x_byte =
-                                    inputs_iter.next().ok_or(Error::MissingPublicKey("x", i))?;
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of `x` component for public key. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let x_byte_index = x_byte.witness.witness_index() as i32;
                                 *pkx = x_byte_index;
                             }
@@ -908,7 +945,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut public_key_y = [0i32; 32];
                             for (i, pky) in public_key_y.iter_mut().enumerate() {
                                 let y_byte =
-                                    inputs_iter.next().ok_or(Error::MissingPublicKey("y", i))?;
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of `y` component for public key. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let y_byte_index = y_byte.witness.witness_index() as i32;
                                 *pky = y_byte_index;
                             }
@@ -917,7 +959,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
                                 let sig_byte =
-                                    inputs_iter.next().ok_or(Error::MissingSignature(i))?;
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let sig_byte_index = sig_byte.witness.witness_index() as i32;
                                 *sig = sig_byte_index;
                             }
@@ -972,7 +1019,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
                                 let out_byte =
-                                    outputs_iter.next().ok_or(Error::MissingOutput(i))?;
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
@@ -984,7 +1036,9 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             keccak_constraints.push(keccak_constraint);
                         }
-                        BlackBoxFunc::AES => return Err(Error::Aes),
+                        BlackBoxFunc::AES => {
+                            return Err(Error::UnsupportedBlackBoxFunc(gadget_call.name))
+                        }
                     };
                 }
                 Opcode::Directive(_) | Opcode::Oracle(_) => {

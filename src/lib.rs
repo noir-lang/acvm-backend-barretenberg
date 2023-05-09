@@ -20,6 +20,7 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
+use acvm::acir::BlackBoxFunc;
 use thiserror::Error;
 
 #[cfg(feature = "native")]
@@ -75,26 +76,14 @@ enum Error {
     #[error("Could not convert schnorr")]
     SchnorrConvert(Vec<u8>),
 
-    #[error("Missing rest of output. Tried to get byte {0} but failed")]
-    MissingOutput(usize),
-    #[error("Missing leaf to check membership for")]
-    MissingLeaf,
-    #[error("Missing index for leaf")]
-    MissingLeafIndex,
-    #[error("Missing `x` component for public key")]
-    MissingPublicKeyX,
-    #[error("Missing `y` component for public key")]
-    MissingPublicKeyY,
-    #[error("Missing rest of signature. Tried to get byte {0} but failed")]
-    MissingSignature(usize),
-    #[error("Missing rest of {0} component for public key. Tried to get byte {1} but failed")]
-    MissingPublicKey(&'static str, usize),
+    #[error("Malformed Black Box Function: {0} - {1}")]
+    MalformedBlackBoxFunc(BlackBoxFunc, String),
 
-    #[error("AES has not yet been implemented")]
-    Aes,
+    #[error("Unsupported Black Box Function: {0}")]
+    UnsupportedBlackBoxFunc(BlackBoxFunc),
 
     #[error(transparent)]
-    FeatureError(#[from] FeatureError),
+    FromFeature(#[from] FeatureError),
 }
 
 #[derive(Debug, Error)]
