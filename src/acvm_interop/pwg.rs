@@ -1,6 +1,6 @@
 use acvm::acir::circuit::opcodes::FunctionInput;
+use acvm::acir::native_types::Witness;
 use acvm::acir::BlackBoxFunc;
-use acvm::acir::{circuit::opcodes::BlackBoxFuncCall, native_types::Witness};
 use acvm::pwg::{hash, logic, range, signature, witness_to_value, OpcodeResolution};
 use acvm::FieldElement;
 use acvm::{OpcodeResolutionError, PartialWitnessGenerator};
@@ -32,14 +32,7 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::and(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::AND,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        logic::and(initial_witness, inputs, outputs)
     }
 
     fn xor(
@@ -48,30 +41,15 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::xor(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::XOR,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        logic::xor(initial_witness, inputs, outputs)
     }
 
     fn range(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
-        outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        range::solve_range_opcode(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::RANGE,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        range::solve_range_opcode(initial_witness, inputs)
     }
 
     fn sha256(
@@ -80,14 +58,7 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::sha256(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::SHA256,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        hash::sha256(initial_witness, inputs, outputs)
     }
 
     fn blake2s(
@@ -96,14 +67,7 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::blake2s256(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::Blake2s,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        hash::blake2s256(initial_witness, inputs, outputs)
     }
 
     fn compute_merkle_root(
@@ -260,14 +224,7 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::hash_to_field_128_security(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::HashToField128Security,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        hash::hash_to_field_128_security(initial_witness, inputs, outputs)
     }
 
     fn ecdsa_secp256k1(
@@ -276,14 +233,7 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        signature::ecdsa::secp256k1_prehashed(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::EcdsaSecp256k1,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        signature::ecdsa::secp256k1_prehashed(initial_witness, inputs, outputs)
     }
 
     fn fixed_base_scalar_mul(
@@ -312,13 +262,6 @@ impl PartialWitnessGenerator for Barretenberg {
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::keccak256(
-            initial_witness,
-            &BlackBoxFuncCall {
-                name: BlackBoxFunc::Keccak256,
-                inputs: inputs.to_vec(),
-                outputs: outputs.to_vec(),
-            },
-        )
+        hash::keccak256(initial_witness, inputs, outputs)
     }
 }
