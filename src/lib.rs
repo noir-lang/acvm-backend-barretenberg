@@ -21,7 +21,35 @@ mod scalar_mul;
 mod schnorr;
 
 /// The number of bytes necessary to store a `FieldElement`.
+///
+/// Barretenberg uses the bn254 elliptic curve, it then requires
+/// 32 bytes (256 bits) to represent each `FieldElement`
 const FIELD_BYTES: usize = 32;
+
+// These tests ensure that some of our assumptions about `FieldElement` hold true.
+// i.e. it can be represented in `FIELD_BYTES` bytes and can be converted to a byte array of that length.
+#[cfg(test)]
+mod field_size_checks {
+    use acvm::FieldElement;
+
+    use crate::FIELD_BYTES;
+
+    #[test]
+    fn check_field_size() {
+        assert_eq!(FIELD_BYTES, FieldElement::max_num_bytes() as usize);
+    }
+
+    // `field_to_array` is only defined with the "native" flag active.
+    #[cfg(feature = "native")]
+    #[test]
+    fn check_field_to_array() {
+        use crate::native::field_to_array;
+
+        let field = FieldElement::one();
+        assert_eq!(field.to_be_bytes().len(), FIELD_BYTES);
+        let _: [u8; 32] = field_to_array(&field);
+    }
+}
 
 pub struct Barretenberg {
     #[cfg(feature = "wasm")]
