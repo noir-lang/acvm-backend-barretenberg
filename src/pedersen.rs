@@ -19,16 +19,18 @@ impl Pedersen for Barretenberg {
         left: &FieldElement,
         right: &FieldElement,
     ) -> Result<FieldElement, Error> {
+        use super::FeatureError;
+
         let result_bytes = barretenberg_sys::pedersen::compress_native(
             left.to_be_bytes()
                 .as_slice()
                 .try_into()
-                .map_err(|source| Error::FieldElementSlice { source })?,
+                .map_err(|source| FeatureError::FieldElementSlice { source })?,
             right
                 .to_be_bytes()
                 .as_slice()
                 .try_into()
-                .map_err(|source| Error::FieldElementSlice { source })?,
+                .map_err(|source| FeatureError::FieldElementSlice { source })?,
         );
 
         Ok(FieldElement::from_be_bytes_reduce(&result_bytes))

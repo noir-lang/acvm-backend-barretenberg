@@ -1,16 +1,16 @@
 use acvm::SmartContract;
 
 use crate::crs::G2;
-use crate::{Barretenberg, Error};
+use crate::{BackendError, Barretenberg};
 
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
 
 #[cfg(feature = "native")]
 impl SmartContract for Barretenberg {
-    type Error = Error;
+    type Error = BackendError;
 
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Error> {
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error> {
         use std::slice;
 
         let g2 = G2::new();
@@ -38,9 +38,9 @@ impl SmartContract for Barretenberg {
 
 #[cfg(not(feature = "native"))]
 impl SmartContract for Barretenberg {
-    type Error = Error;
+    type Error = BackendError;
 
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Error> {
+    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> Result<String, Self::Error> {
         let g2 = G2::new();
 
         let g2_ptr = self.allocate(&g2.data)?;
@@ -69,7 +69,7 @@ impl SmartContract for Barretenberg {
 }
 
 #[test]
-fn test_smart_contract() -> Result<(), Error> {
+fn test_smart_contract() -> Result<(), BackendError> {
     use crate::barretenberg_structures::{Constraint, ConstraintSystem};
     use crate::composer::Composer;
     use crate::Barretenberg;

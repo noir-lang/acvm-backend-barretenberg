@@ -40,14 +40,16 @@ impl SchnorrSig for Barretenberg {
         sig: [u8; 64],
         message: &[u8],
     ) -> Result<bool, Error> {
+        use super::FeatureError;
+
         let (sig_s, sig_e) = sig.split_at(32);
 
         let sig_s: [u8; 32] = sig_s
             .try_into()
-            .map_err(|source| Error::SchnorrSlice { source })?;
+            .map_err(|source| FeatureError::SchnorrSlice { source })?;
         let sig_e: [u8; 32] = sig_e
             .try_into()
-            .map_err(|source| Error::SchnorrSlice { source })?;
+            .map_err(|source| FeatureError::SchnorrSlice { source })?;
 
         Ok(barretenberg_sys::schnorr::verify_signature(
             pub_key, sig_s, sig_e, message,

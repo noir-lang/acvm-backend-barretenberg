@@ -20,18 +20,26 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
-use std::array::TryFromSliceError;
-
 use thiserror::Error;
 
-// There are no WasmErrors on native
 #[cfg(feature = "native")]
 #[derive(Debug, Error)]
-pub enum WasmError {}
+enum FeatureError {
+    #[error("Could not slice schnorr")]
+    SchnorrSlice {
+        source: std::array::TryFromSliceError,
+    },
+    #[error("Could not slice field element")]
+    FieldElementSlice {
+        source: std::array::TryFromSliceError,
+    },
+    #[error("Expected a Vec of length {0} but it was {1}")]
+    FieldToArray(usize, usize),
+}
 
 #[cfg(not(feature = "native"))]
 #[derive(Debug, Error)]
-pub enum WasmError {
+enum FeatureError {
     #[error("Trying to call {name} resulted in an error")]
     FunctionCallFailed {
         name: String,
@@ -61,17 +69,11 @@ pub enum WasmError {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+enum Error {
     #[error("The value {0} overflows in the pow2ceil function")]
     Pow2CeilOverflow(u32),
     #[error("Could not convert schnorr")]
     SchnorrConvert(Vec<u8>),
-    #[error("Could not slice schnorr")]
-    SchnorrSlice { source: TryFromSliceError },
-    #[error("Could not slice field element")]
-    FieldElementSlice { source: TryFromSliceError },
-    #[error("Expected a Vec of length {0} but it was {1}")]
-    FieldToArray(usize, usize),
 
     #[error("Missing rest of output. Tried to get byte {0} but failed")]
     MissingOutput(usize),
@@ -92,7 +94,17 @@ pub enum Error {
     Aes,
 
     #[error(transparent)]
-    WasmError(#[from] WasmError),
+    FeatureError(#[from] FeatureError),
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct BackendError(#[from] Error);
+
+impl From<FeatureError> for BackendError {
+    fn from(value: FeatureError) -> Self {
+        value.into()
+    }
 }
 
 /// The number of bytes necessary to store a `FieldElement`.
@@ -124,8 +136,7 @@ fn smoke() -> Result<(), Error> {
 
 #[cfg(feature = "native")]
 mod native {
-    use super::Barretenberg;
-    use super::Error;
+    use super::{Barretenberg, Error, FeatureError};
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
@@ -137,7 +148,7 @@ mod native {
         let v = f.to_be_bytes();
         let result: [u8; 32] = v
             .try_into()
-            .map_err(|v: Vec<u8>| Error::FieldToArray(32, v.len()))?;
+            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
         Ok(result)
     }
 }
@@ -147,8 +158,7 @@ mod wasm {
     use std::cell::Cell;
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
-    use super::Barretenberg;
-    use super::{Error, WasmError};
+    use super::{Barretenberg, Error, FeatureError};
 
     /// The number of bytes necessary to represent a pointer to memory inside the wasm.
     pub(super) const POINTER_BYTES: usize = 4;
@@ -205,52 +215,52 @@ mod wasm {
     }
 
     impl TryFrom<WASMValue> for bool {
-        type Error = WasmError;
+        type Error = FeatureError;
 
         fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
             match value.try_into()? {
                 0 => Ok(false),
                 1 => Ok(true),
-                _ => Err(WasmError::InvalidBool),
+                _ => Err(FeatureError::InvalidBool),
             }
         }
     }
 
     impl TryFrom<WASMValue> for usize {
-        type Error = WasmError;
+        type Error = FeatureError;
 
         fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
             let value: i32 = value.try_into()?;
             value
                 .try_into()
-                .map_err(|source| WasmError::InvalidUsize { value, source })
+                .map_err(|source| FeatureError::InvalidUsize { value, source })
         }
     }
 
     impl TryFrom<WASMValue> for u32 {
-        type Error = WasmError;
+        type Error = FeatureError;
 
         fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
             let value = value.try_into()?;
-            u32::try_from(value).map_err(|source| WasmError::InvalidU32 { value, source })
+            u32::try_from(value).map_err(|source| FeatureError::InvalidU32 { value, source })
         }
     }
 
     impl TryFrom<WASMValue> for i32 {
-        type Error = WasmError;
+        type Error = FeatureError;
 
         fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
-            value.0.map_or(Err(WasmError::NoValue), |val| {
-                val.i32().ok_or(WasmError::InvalidI32)
+            value.0.map_or(Err(FeatureError::NoValue), |val| {
+                val.i32().ok_or(FeatureError::InvalidI32)
             })
         }
     }
 
     impl TryFrom<WASMValue> for Value {
-        type Error = WasmError;
+        type Error = FeatureError;
 
         fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
-            value.0.ok_or(WasmError::NoValue)
+            value.0.ok_or(FeatureError::NoValue)
         }
     }
 
@@ -322,17 +332,17 @@ mod wasm {
                 args.push(param.try_into()?)
             }
             let func = self.instance.exports.get_function(name).map_err(|source| {
-                WasmError::InvalidExport {
+                FeatureError::InvalidExport {
                     name: name.to_string(),
                     source,
                 }
             })?;
-            let boxed_value = func
-                .call(&args)
-                .map_err(|source| WasmError::FunctionCallFailed {
-                    name: name.to_string(),
-                    source,
-                })?;
+            let boxed_value =
+                func.call(&args)
+                    .map_err(|source| FeatureError::FunctionCallFailed {
+                        name: name.to_string(),
+                        source,
+                    })?;
             let option_value = boxed_value.first().cloned();
 
             Ok(WASMValue(option_value))
