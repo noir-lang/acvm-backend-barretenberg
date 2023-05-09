@@ -776,9 +776,9 @@ mod test {
         // Constrain the result to be true
         let mut constraints = Vec::new();
         let result_constraint = Constraint {
-            a: result_index as i32,
-            b: result_index as i32,
-            c: result_index as i32,
+            a: result_index,
+            b: result_index,
+            c: result_index,
             qm: FieldElement::zero(),
             ql: FieldElement::one(),
             qr: FieldElement::zero(),
