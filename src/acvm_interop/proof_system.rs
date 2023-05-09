@@ -1,24 +1,19 @@
 use acvm::acir::{circuit::Circuit, native_types::Witness, BlackBoxFunc};
-use acvm::FieldElement;
+use acvm::{BackendError, FieldElement};
 use acvm::{Language, ProofSystemCompiler};
 use std::collections::BTreeMap;
 
 use crate::barretenberg_structures::Assignments;
 use crate::composer::Composer;
-use crate::{BackendError, Barretenberg};
+use crate::Barretenberg;
 
 impl ProofSystemCompiler for Barretenberg {
-    type Error = BackendError;
-
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
     }
 
-    fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error> {
-        Ok(Composer::get_exact_circuit_size(
-            self,
-            &circuit.try_into()?,
-        )?)
+    fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, BackendError> {
+        Composer::get_exact_circuit_size(self, &circuit.try_into()?)
     }
 
     fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool {
@@ -40,7 +35,7 @@ impl ProofSystemCompiler for Barretenberg {
         }
     }
 
-    fn preprocess(&self, circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
+    fn preprocess(&self, circuit: &Circuit) -> Result<(Vec<u8>, Vec<u8>), BackendError> {
         let constraint_system = &circuit.try_into()?;
 
         let proving_key = self.compute_proving_key(constraint_system)?;
@@ -54,7 +49,7 @@ impl ProofSystemCompiler for Barretenberg {
         circuit: &Circuit,
         witness_values: BTreeMap<Witness, FieldElement>,
         proving_key: &[u8],
-    ) -> Result<Vec<u8>, Self::Error> {
+    ) -> Result<Vec<u8>, BackendError> {
         let assignments = flatten_witness_map(circuit, witness_values);
 
         Ok(self.create_proof_with_pk(&circuit.try_into()?, assignments, proving_key)?)
@@ -66,7 +61,7 @@ impl ProofSystemCompiler for Barretenberg {
         public_inputs: BTreeMap<Witness, FieldElement>,
         circuit: &Circuit,
         verification_key: &[u8],
-    ) -> Result<bool, Self::Error> {
+    ) -> Result<bool, BackendError> {
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();

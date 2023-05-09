@@ -1,3 +1,5 @@
+use acvm::BackendError;
+
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::{CRS, G2};
 use crate::{Barretenberg, Error, FIELD_BYTES};
@@ -5,23 +7,30 @@ use crate::{Barretenberg, Error, FIELD_BYTES};
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
 pub(crate) trait Composer {
-    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
+    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, BackendError>;
 
-    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
+    fn get_exact_circuit_size(
+        &self,
+        constraint_system: &ConstraintSystem,
+    ) -> Result<u32, BackendError>;
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
+    fn compute_proving_key(
+        &self,
+        constraint_system: &ConstraintSystem,
+    ) -> Result<Vec<u8>, BackendError>;
+
     fn compute_verification_key(
         &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error>;
+    ) -> Result<Vec<u8>, BackendError>;
 
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error>;
+    ) -> Result<Vec<u8>, BackendError>;
 
     fn verify_with_vk(
         &self,
@@ -31,7 +40,7 @@ pub(crate) trait Composer {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-    ) -> Result<bool, Error>;
+    ) -> Result<bool, BackendError>;
 }
 
 #[cfg(feature = "native")]
@@ -46,7 +55,7 @@ impl Composer for Barretenberg {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
+    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, BackendError> {
         let cs_buf = constraint_system.to_bytes();
 
         let circuit_size;
@@ -55,10 +64,14 @@ impl Composer for Barretenberg {
                 barretenberg_sys::composer::get_total_circuit_size(cs_buf.as_slice().as_ptr());
         }
 
-        pow2ceil(circuit_size + NUM_RESERVED_GATES)
+        let circuit_size = pow2ceil(circuit_size + NUM_RESERVED_GATES)?;
+        Ok(circuit_size)
     }
 
-    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
+    fn get_exact_circuit_size(
+        &self,
+        constraint_system: &ConstraintSystem,
+    ) -> Result<u32, BackendError> {
         let cs_buf = constraint_system.to_bytes();
 
         let circuit_size;
@@ -70,7 +83,10 @@ impl Composer for Barretenberg {
         Ok(circuit_size)
     }
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
+    fn compute_proving_key(
+        &self,
+        constraint_system: &ConstraintSystem,
+    ) -> Result<Vec<u8>, BackendError> {
         let cs_buf = constraint_system.to_bytes();
 
         let mut pk_addr: *mut u8 = std::ptr::null_mut();
@@ -94,7 +110,7 @@ impl Composer for Barretenberg {
         &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error> {
+    ) -> Result<Vec<u8>, BackendError> {
         let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
@@ -130,7 +146,7 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error> {
+    ) -> Result<Vec<u8>, BackendError> {
         let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
@@ -181,7 +197,7 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-    ) -> Result<bool, Error> {
+    ) -> Result<bool, BackendError> {
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof

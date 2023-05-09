@@ -20,7 +20,7 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
-use acvm::acir::BlackBoxFunc;
+use acvm::BackendError;
 use thiserror::Error;
 
 #[cfg(feature = "native")]
@@ -70,23 +70,13 @@ enum Error {
     #[error("The value {0} overflows in the pow2ceil function")]
     Pow2CeilOverflow(u32),
 
-    #[error("Malformed Black Box Function: {0} - {1}")]
-    MalformedBlackBoxFunc(BlackBoxFunc, String),
-
-    #[error("Unsupported Black Box Function: {0}")]
-    UnsupportedBlackBoxFunc(BlackBoxFunc),
-
     #[error(transparent)]
     FromFeature(#[from] FeatureError),
 }
 
-#[derive(Debug, Error)]
-#[error(transparent)]
-pub struct BackendError(#[from] Error);
-
-impl From<FeatureError> for BackendError {
-    fn from(value: FeatureError) -> Self {
-        value.into()
+impl From<Error> for BackendError {
+    fn from(value: Error) -> Self {
+        BackendError::BackendSpecific(Box::new(value))
     }
 }
 
