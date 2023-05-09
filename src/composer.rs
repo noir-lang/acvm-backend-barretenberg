@@ -410,8 +410,8 @@ mod test {
     use super::*;
     use crate::{
         barretenberg_structures::{
-            ComputeMerkleRootConstraint, Constraint, Keccak256Constraint, LogicConstraint,
-            PedersenConstraint, RangeConstraint, SchnorrConstraint,
+            ComputeMerkleRootConstraint, Constraint, EcdsaConstraint, Keccak256Constraint,
+            LogicConstraint, PedersenConstraint, RangeConstraint, SchnorrConstraint,
         },
         merkle::{MerkleTree, MessageHasher},
     };
@@ -720,6 +720,97 @@ mod test {
             .chain(result_values)
             .map(FieldElement::from)
             .collect();
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+    }
+    #[test]
+    fn test_ecdsa_secp256k1_constraint() {
+        let mut offset: i32 = 1;
+
+        let hashed_message = [
+            0x49, 0x6e, 0x73, 0x74, 0x72, 0x75, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x20, 0x75,
+            0x6e, 0x63, 0x6c, 0x65, 0x61, 0x72, 0x2c, 0x20, 0x61, 0x73, 0x6b, 0x20, 0x61, 0x67,
+            0x61, 0x69, 0x6e, 0x20, 0x6c, 0x61, 0x74, 0x65, 0x72, 0x2e,
+        ];
+        let length = hashed_message.len() as i32;
+        let hashed_message_indices: Vec<_> = (offset..offset + length).collect();
+        offset += length;
+
+        let pub_key_x = [
+            0xb3, 0x35, 0xfa, 0x16, 0xd6, 0xc8, 0xb7, 0xcc, 0x46, 0x7a, 0x87, 0x55, 0x86, 0x43,
+            0xea, 0xdd, 0xd6, 0x57, 0xe3, 0x6b, 0x57, 0xd8, 0xb3, 0x62, 0x60, 0x5b, 0xf9, 0x75,
+            0x73, 0x10, 0x73, 0xda,
+        ];
+        let length = pub_key_x.len() as i32;
+        let pub_key_x_indices: Vec<_> = (offset..offset + length).collect();
+        offset += length;
+
+        let pub_key_y = [
+            0xd9, 0xb5, 0x64, 0xa9, 0x8a, 0xe9, 0xfa, 0xcf, 0xb9, 0x53, 0xb9, 0x38, 0x57, 0x84,
+            0x96, 0x52, 0x49, 0x15, 0xfc, 0xb5, 0x23, 0x26, 0x27, 0xe5, 0x23, 0xc7, 0xde, 0xe3,
+            0x9d, 0xd5, 0x85, 0xd2,
+        ];
+        let length = pub_key_y.len() as i32;
+        let pub_key_y_indices: Vec<_> = (offset..offset + length).collect();
+        offset += length;
+
+        let signature = [
+            0x99, 0x7f, 0x5b, 0xe7, 0x0f, 0x54, 0xb8, 0xb6, 0xc5, 0x29, 0x98, 0x0c, 0x09, 0x11,
+            0xde, 0x91, 0xe8, 0x77, 0xf9, 0x34, 0x85, 0xea, 0xcf, 0xe5, 0xc2, 0x38, 0x46, 0x4b,
+            0x2e, 0x7c, 0x1c, 0x4b, 0xc2, 0x2a, 0x65, 0x86, 0x92, 0x2e, 0x5f, 0x6e, 0xf4, 0x17,
+            0xad, 0xda, 0xf8, 0x2e, 0x48, 0x1f, 0x7a, 0x7a, 0xa5, 0xe9, 0xf1, 0xc5, 0x7e, 0xa2,
+            0xe9, 0x1f, 0xef, 0xc3, 0xeb, 0x60, 0xbe, 0x4f,
+        ];
+        let length = signature.len() as i32;
+        let signature_indices: Vec<_> = (offset..offset + length).collect();
+        offset += length;
+
+        let result: u128 = 1;
+        let result_index = offset;
+
+        // Constrain the result to be true
+        let mut constraints = Vec::new();
+        let result_constraint = Constraint {
+            a: result_index as i32,
+            b: result_index as i32,
+            c: result_index as i32,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: -FieldElement::from(result),
+        };
+        constraints.push(result_constraint);
+
+        let ecdsa_constraint = EcdsaConstraint {
+            hashed_message: hashed_message_indices,
+            signature: signature_indices.try_into().unwrap(),
+            public_key_x: pub_key_x_indices.try_into().unwrap(),
+            public_key_y: pub_key_y_indices.try_into().unwrap(),
+            result: result_index,
+        };
+
+        // TODO: Add range constraints for pubkey, message, and signature
+
+        let constraint_system = ConstraintSystem::new()
+            .var_num((offset + 10) as u32)
+            .ecdsa_secp256k1_constraints(vec![ecdsa_constraint])
+            .constraints(constraints);
+
+        let witness_values: Vec<_> = hashed_message
+            .into_iter()
+            .chain(pub_key_x)
+            .chain(pub_key_y)
+            .chain(signature)
+            .chain(std::iter::once(result))
+            .map(FieldElement::from)
+            .collect();
+
         let case_1 = WitnessResult {
             witness: witness_values.into(),
             public_inputs: Assignments::default(),
