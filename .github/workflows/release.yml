@@ -16,6 +16,7 @@ jobs:
         id: release
         uses: google-github-actions/release-please-action@v3
         with:
+          token: ${{ secrets.ACVM_BACKEND_BARRETENBERG_RELEASE_TOKEN }}
           release-type: rust
           bump-minor-pre-major: true
           bump-patch-for-minor-pre-major: true
