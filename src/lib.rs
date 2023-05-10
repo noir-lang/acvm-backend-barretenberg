@@ -20,9 +20,80 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
+use acvm::acir::BlackBoxFunc;
+use thiserror::Error;
+
+#[cfg(feature = "native")]
+#[derive(Debug, Error)]
+enum FeatureError {
+    #[error("Could not slice field element")]
+    FieldElementSlice {
+        source: std::array::TryFromSliceError,
+    },
+    #[error("Expected a Vec of length {0} but it was {1}")]
+    FieldToArray(usize, usize),
+}
+
+#[cfg(not(feature = "native"))]
+#[derive(Debug, Error)]
+enum FeatureError {
+    #[error("Trying to call {name} resulted in an error")]
+    FunctionCallFailed {
+        name: String,
+        source: wasmer::RuntimeError,
+    },
+    #[error("Could not find function export named {name}")]
+    InvalidExport {
+        name: String,
+        source: wasmer::ExportError,
+    },
+    #[error("No value available when value was expected")]
+    NoValue,
+    #[error("Value expected to be i32")]
+    InvalidI32,
+    #[error("Could not convert value {value} from i32 to u32")]
+    InvalidU32 {
+        value: i32,
+        source: std::num::TryFromIntError,
+    },
+    #[error("Could not convert value {value} from i32 to usize")]
+    InvalidUsize {
+        value: i32,
+        source: std::num::TryFromIntError,
+    },
+    #[error("Value expected to be 0 or 1 representing a boolean")]
+    InvalidBool,
+}
+
+#[derive(Debug, Error)]
+enum Error {
+    #[error("The value {0} overflows in the pow2ceil function")]
+    Pow2CeilOverflow(u32),
+
+    #[error("Malformed Black Box Function: {0} - {1}")]
+    MalformedBlackBoxFunc(BlackBoxFunc, String),
+
+    #[error("Unsupported Black Box Function: {0}")]
+    UnsupportedBlackBoxFunc(BlackBoxFunc),
+
+    #[error(transparent)]
+    FromFeature(#[from] FeatureError),
+}
+
+#[derive(Debug, Error)]
+#[error(transparent)]
+pub struct BackendError(#[from] Error);
+
+impl From<FeatureError> for BackendError {
+    fn from(value: FeatureError) -> Self {
+        value.into()
+    }
+}
+
 /// The number of bytes necessary to store a `FieldElement`.
 const FIELD_BYTES: usize = 32;
 
+#[derive(Debug)]
 pub struct Barretenberg {
     #[cfg(feature = "wasm")]
     memory: wasmer::Memory,
@@ -37,17 +108,18 @@ impl Default for Barretenberg {
 }
 
 #[test]
-fn smoke() {
+fn smoke() -> Result<(), Error> {
     use crate::pedersen::Pedersen;
 
     let b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()]);
+    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()])?;
     dbg!(x.to_hex(), y.to_hex());
+    Ok(())
 }
 
 #[cfg(feature = "native")]
 mod native {
-    use super::Barretenberg;
+    use super::{Barretenberg, Error, FeatureError};
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
@@ -55,12 +127,12 @@ mod native {
         }
     }
 
-    pub(super) fn field_to_array(f: &acvm::FieldElement) -> [u8; 32] {
+    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; 32], Error> {
         let v = f.to_be_bytes();
-        let result: [u8; 32] = v.try_into().unwrap_or_else(|v: Vec<u8>| {
-            panic!("Expected a Vec of length {} but it was {}", 32, v.len())
-        });
-        result
+        let result: [u8; 32] = v
+            .try_into()
+            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
+        Ok(result)
     }
 }
 
@@ -69,7 +141,7 @@ mod wasm {
     use std::cell::Cell;
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
-    use super::Barretenberg;
+    use super::{Barretenberg, Error, FeatureError};
 
     /// The number of bytes necessary to represent a pointer to memory inside the wasm.
     pub(super) const POINTER_BYTES: usize = 4;
@@ -107,24 +179,6 @@ mod wasm {
     #[derive(Debug, Clone)]
     pub(super) struct WASMValue(Option<Value>);
 
-    impl WASMValue {
-        pub(super) fn value(self) -> Value {
-            self.0.unwrap()
-        }
-
-        pub(super) fn i32(self) -> i32 {
-            i32::try_from(self.0.unwrap()).expect("expected an i32 value")
-        }
-
-        pub(super) fn bool(self) -> bool {
-            match self.i32() {
-                0 => false,
-                1 => true,
-                _ => panic!("expected a boolean value"),
-            }
-        }
-    }
-
     impl From<usize> for WASMValue {
         fn from(value: usize) -> Self {
             WASMValue(Some(Value::I32(value as i32)))
@@ -140,6 +194,56 @@ mod wasm {
     impl From<Value> for WASMValue {
         fn from(value: Value) -> Self {
             WASMValue(Some(value))
+        }
+    }
+
+    impl TryFrom<WASMValue> for bool {
+        type Error = FeatureError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            match value.try_into()? {
+                0 => Ok(false),
+                1 => Ok(true),
+                _ => Err(FeatureError::InvalidBool),
+            }
+        }
+    }
+
+    impl TryFrom<WASMValue> for usize {
+        type Error = FeatureError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            let value: i32 = value.try_into()?;
+            value
+                .try_into()
+                .map_err(|source| FeatureError::InvalidUsize { value, source })
+        }
+    }
+
+    impl TryFrom<WASMValue> for u32 {
+        type Error = FeatureError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            let value = value.try_into()?;
+            u32::try_from(value).map_err(|source| FeatureError::InvalidU32 { value, source })
+        }
+    }
+
+    impl TryFrom<WASMValue> for i32 {
+        type Error = FeatureError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            value.0.map_or(Err(FeatureError::NoValue), |val| {
+                val.i32().ok_or(FeatureError::InvalidI32)
+            })
+        }
+    }
+
+    impl TryFrom<WASMValue> for Value {
+        type Error = FeatureError;
+
+        fn try_from(value: WASMValue) -> Result<Self, Self::Error> {
+            value.0.ok_or(FeatureError::NoValue)
         }
     }
 
@@ -168,6 +272,7 @@ mod wasm {
             }
         }
 
+        // TODO: Consider making this Result-returning
         pub(super) fn read_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
             self.read_memory_variable_length(start, SIZE)
                 .try_into()
@@ -188,40 +293,61 @@ mod wasm {
                 .collect();
         }
 
-        pub(super) fn call(&self, name: &str, param: &WASMValue) -> WASMValue {
+        pub(super) fn get_pointer(&self, ptr_ptr: usize) -> usize {
+            let ptr: [u8; POINTER_BYTES] = self.read_memory(ptr_ptr);
+            u32::from_le_bytes(ptr) as usize
+        }
+
+        pub(super) fn call(&self, name: &str, param: &WASMValue) -> Result<WASMValue, Error> {
             self.call_multiple(name, vec![param])
         }
 
-        pub(super) fn call_multiple(&self, name: &str, params: Vec<&WASMValue>) -> WASMValue {
+        pub(super) fn call_multiple(
+            &self,
+            name: &str,
+            params: Vec<&WASMValue>,
+        ) -> Result<WASMValue, Error> {
             // We take in a reference to values, since they do not implement Copy.
             // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
-            let params: Vec<Value> = params
-                .into_iter()
-                .map(|param| param.clone().value())
-                .collect();
-            let func = self.instance.exports.get_function(name).unwrap();
-            let option_value = func.call(&params).unwrap().first().cloned();
+            let mut args: Vec<Value> = vec![];
+            for param in params.into_iter().cloned() {
+                args.push(param.try_into()?)
+            }
+            let func = self.instance.exports.get_function(name).map_err(|source| {
+                FeatureError::InvalidExport {
+                    name: name.to_string(),
+                    source,
+                }
+            })?;
+            let boxed_value =
+                func.call(&args)
+                    .map_err(|source| FeatureError::FunctionCallFailed {
+                        name: name.to_string(),
+                        source,
+                    })?;
+            let option_value = boxed_value.first().cloned();
 
-            WASMValue(option_value)
+            Ok(WASMValue(option_value))
         }
 
         /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
-        pub(super) fn allocate(&self, bytes: &[u8]) -> WASMValue {
-            let ptr = self.call("bbmalloc", &bytes.len().into()).value();
+        pub(super) fn allocate(&self, bytes: &[u8]) -> Result<WASMValue, Error> {
+            let ptr: i32 = self.call("bbmalloc", &bytes.len().into())?.try_into()?;
 
-            let i32_bytes = ptr.unwrap_i32().to_be_bytes();
+            let i32_bytes = ptr.to_be_bytes();
             let u32_bytes = u32::from_be_bytes(i32_bytes);
 
             self.transfer_to_heap(bytes, u32_bytes as usize);
-            ptr.into()
+            Ok(ptr.into())
         }
 
         /// Frees a pointer.
         /// Notice we consume the Value, if you clone the value before passing it to free
         /// It most likely is a bug
-        pub(super) fn free(&self, pointer: WASMValue) {
-            self.call("bbfree", &pointer);
+        pub(super) fn free(&self, pointer: WASMValue) -> Result<(), Error> {
+            self.call("bbfree", &pointer)?;
+            Ok(())
         }
     }
 
