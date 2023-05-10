@@ -3,28 +3,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::Error;
 
-// TODO(blaine): Use manifest parsing in BB instead of hardcoding these
+// TODO(#175): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
-// TODO(blaine): Allow downloading from more than just the first transcript
+// TODO(#162): Allow downloading from more than just the first transcript
 const TRANSCRIPT_URL: &str =
     "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
-
-// const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
-// const TRANSCRIPT_NAME: &str = "transcript00.dat";
-// fn transcript_location() -> PathBuf {
-//     match env::var("BARRETENBERG_TRANSCRIPT") {
-//         Ok(dir) => PathBuf::from(dir),
-//         Err(_) => dirs::home_dir()
-//             .unwrap()
-//             .join(".nargo")
-//             .join("backends")
-//             .join(BACKEND_IDENTIFIER)
-//             .join(TRANSCRIPT_NAME),
-//     }
-// }
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Default, Serialize, Deserialize)]
@@ -32,6 +18,24 @@ pub(crate) struct CRS {
     pub(crate) g1_data: Vec<u8>,
     pub(crate) g2_data: Vec<u8>,
     pub(crate) num_points: usize,
+}
+
+impl CRS {
+    pub(crate) async fn update(&mut self, num_points: usize) -> Result<(), Error> {
+        // We already have some data, so start at the end of our list
+        let g1_start = self.g1_data.len();
+        // UltraPlonk requires a CRS equal to circuit size plus one!
+        // We need to bump our polynomial degrees by 1 to handle zero knowledge
+        let g1_end = G1_START + ((num_points + 1) * 64) - 1;
+
+        // TODO(blaine): Make sure g1_start isn't off-by-one
+        let g1_data = download(g1_start, g1_end).await?;
+
+        self.g1_data = g1_data;
+        self.num_points = num_points;
+
+        Ok(())
+    }
 }
 
 impl From<&[u8]> for CRS {
@@ -49,6 +53,12 @@ impl From<Vec<u8>> for CRS {
 impl From<CRS> for Vec<u8> {
     fn from(value: CRS) -> Self {
         bincode::serialize(&value).unwrap()
+    }
+}
+
+impl From<&CRS> for Vec<u8> {
+    fn from(value: &CRS) -> Self {
+        bincode::serialize(value).unwrap()
     }
 }
 

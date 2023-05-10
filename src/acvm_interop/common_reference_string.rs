@@ -1,21 +1,27 @@
 use acvm::{acir::circuit::Circuit, async_trait, CommonReferenceString};
 
-use crate::{composer::Composer, Barretenberg, Error};
+use crate::{composer::Composer, BackendError, Barretenberg};
 
 // TODO: Separate impl for JS feature
 #[async_trait]
 impl CommonReferenceString for Barretenberg {
-    type Error = Error;
+    type Error = BackendError;
 
-    async fn generate_common_reference_string(&self, circuit: &Circuit) -> Result<Vec<u8>, Error> {
-        self.get_crs(&circuit.into()).await.map(|crs| crs.into())
+    async fn generate_common_reference_string(
+        &self,
+        circuit: &Circuit,
+    ) -> Result<Vec<u8>, Self::Error> {
+        let constraint_system = &circuit.try_into()?;
+        Ok(self.get_crs(constraint_system).await?.into())
     }
 
-    fn is_common_reference_string_valid(
+    async fn update_common_reference_string(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         circuit: &Circuit,
-    ) -> Result<bool, Error> {
-        self.is_crs_valid(&reference_string.into(), &circuit.into())
+    ) -> Result<Vec<u8>, Self::Error> {
+        let mut crs = common_reference_string.into();
+        let constraint_system = &circuit.try_into()?;
+        Ok(self.update_crs(&mut crs, constraint_system).await?.into())
     }
 }

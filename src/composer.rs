@@ -15,15 +15,21 @@ pub(crate) trait Composer {
     async fn get_crs(&self, constraint_system: &ConstraintSystem) -> Result<CRS, Error> {
         let num_points = self.get_circuit_size(constraint_system)?;
 
-        // TODO: Consume num_points to fetch the range
         download_crs(num_points as usize).await
     }
 
-    fn is_crs_valid(&self, crs: &CRS, constraint_system: &ConstraintSystem) -> Result<bool, Error> {
+    async fn update_crs<'a>(
+        &self,
+        crs: &'a mut CRS,
+        constraint_system: &ConstraintSystem,
+    ) -> Result<&'a CRS, Error> {
         let num_points = self.get_circuit_size(constraint_system)?;
 
-        // TODO: This probably needs more validation on g1_data and g2_data
-        Ok(crs.num_points >= num_points as usize)
+        if crs.num_points < num_points as usize {
+            crs.update(num_points as usize).await?;
+        }
+
+        Ok(crs)
     }
 
     fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
