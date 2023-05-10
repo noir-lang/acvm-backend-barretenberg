@@ -1,6 +1,6 @@
 [package]
 name = "acvm-backend-barretenberg"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 rust-version = "1.66"
