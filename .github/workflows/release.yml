@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  release-please:
+    name: Create Release
+    outputs:
+      tag-name: ${{ steps.release.outputs.tag_name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        id: release
+        uses: google-github-actions/release-please-action@v3
+        with:
+          token: ${{ secrets.ACVM_BACKEND_BARRETENBERG_RELEASE_TOKEN }}
+          release-type: rust
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+          pull-request-title-pattern: "chore: Release ${version}"
+          extra-files: |
+            flake.nix
+
+  publish:
+    name: Publish crates
+    needs: [release-please]
+    if: ${{ needs.release-please.outputs.tag-name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch to publish workflow
+        uses: benc-uk/workflow-dispatch@v1
+        with:
+          workflow: publish.yml
+          ref: master
+          inputs: '{ "ref": "${{ needs.release-please.outputs.tag-name }}" }'

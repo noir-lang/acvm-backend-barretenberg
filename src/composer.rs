@@ -1,26 +1,27 @@
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::{CRS, G2};
-use crate::{Barretenberg, FIELD_BYTES};
+use crate::{Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
 pub(crate) trait Composer {
-    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32;
-    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32;
+    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8>;
+    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
+
+    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
     fn compute_verification_key(
         &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
-    ) -> Vec<u8>;
+    ) -> Result<Vec<u8>, Error>;
 
     fn create_proof_with_pk(
         &self,
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-    ) -> Vec<u8>;
+    ) -> Result<Vec<u8>, Error>;
 
     fn verify_with_vk(
         &self,
@@ -30,7 +31,7 @@ pub(crate) trait Composer {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-    ) -> bool;
+    ) -> Result<bool, Error>;
 }
 
 #[cfg(feature = "native")]
@@ -45,7 +46,7 @@ impl Composer for Barretenberg {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
+    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
 
         let circuit_size;
@@ -57,13 +58,19 @@ impl Composer for Barretenberg {
         pow2ceil(circuit_size + NUM_RESERVED_GATES)
     }
 
-    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
+    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
 
-        unsafe { barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr()) }
+        let circuit_size;
+        unsafe {
+            circuit_size =
+                barretenberg_sys::composer::get_exact_circuit_size(cs_buf.as_slice().as_ptr())
+        }
+
+        Ok(circuit_size)
     }
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
+    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
         let cs_buf = constraint_system.to_bytes();
 
         let mut pk_addr: *mut u8 = std::ptr::null_mut();
@@ -74,48 +81,42 @@ impl Composer for Barretenberg {
             pk_size = barretenberg_sys::composer::init_proving_key(&cs_buf, pk_ptr);
         }
 
-        std::mem::forget(cs_buf);
-
         let result;
         unsafe {
             result = Vec::from_raw_parts(pk_addr, pk_size, pk_size);
         }
-        result
+        Ok(result)
     }
 
     fn compute_verification_key(
         &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
-    ) -> Vec<u8> {
-        let circuit_size = self.get_circuit_size(constraint_system);
+    ) -> Result<Vec<u8>, Error> {
+        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
         } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
 
         let mut vk_addr: *mut u8 = std::ptr::null_mut();
         let vk_ptr = &mut vk_addr as *mut *mut u8;
-        let proving_key = proving_key.to_vec();
 
         let vk_size;
         unsafe {
             vk_size = barretenberg_sys::composer::init_verification_key(
                 pippenger_ptr,
                 &g2_data,
-                &proving_key,
+                proving_key,
                 vk_ptr,
             )
         }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(proving_key);
 
         let result;
         unsafe {
             result = Vec::from_raw_parts(vk_addr, vk_size, vk_size);
         }
-        result.to_vec()
+        Ok(result.to_vec())
     }
 
     fn create_proof_with_pk(
@@ -123,35 +124,29 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-    ) -> Vec<u8> {
-        let circuit_size = self.get_circuit_size(constraint_system);
+    ) -> Result<Vec<u8>, Error> {
+        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
         } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
         let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
         let mut proof_addr: *mut u8 = std::ptr::null_mut();
         let p_proof = &mut proof_addr as *mut *mut u8;
-        let proving_key = proving_key.to_vec();
 
         let proof_size;
         unsafe {
             proof_size = barretenberg_sys::composer::create_proof_with_pk(
                 pippenger_ptr,
                 &g2_data,
-                &proving_key,
+                proving_key,
                 &cs_buf,
                 &witness_buf,
                 p_proof,
             );
         }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(proving_key);
-        std::mem::forget(cs_buf);
-        std::mem::forget(witness_buf);
 
         let result;
         unsafe {
@@ -160,7 +155,10 @@ impl Composer for Barretenberg {
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
-        remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        Ok(remove_public_inputs(
+            constraint_system.public_inputs_size(),
+            &result,
+        ))
     }
 
     fn verify_with_vk(
@@ -171,25 +169,23 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-    ) -> bool {
+    ) -> Result<bool, Error> {
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
-        let verification_key = verification_key.to_vec();
-
         let verified;
         unsafe {
             verified = barretenberg_sys::composer::verify_with_vk(
                 &g2_data,
-                &verification_key,
+                verification_key,
                 &cs_buf,
                 &proof,
             );
         }
-        verified
+        Ok(verified)
     }
 }
 
@@ -205,105 +201,80 @@ impl Composer for Barretenberg {
     // This method is primarily used to determine how many group
     // elements we need from the CRS. So using 2^19 on an error
     // should be an overestimation.
-    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
+    fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
-        let cs_ptr = self.allocate(&cs_buf);
+        let cs_ptr = self.allocate(&cs_buf)?;
 
-        let circuit_size = self
-            .call("acir_proofs_get_total_circuit_size", &cs_ptr)
-            .into_i32();
-        let circuit_size =
-            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+        // This doesn't unwrap the result because we need to free even if there is a failure
+        let circuit_size = self.call("acir_proofs_get_total_circuit_size", &cs_ptr);
 
-        self.free(cs_ptr);
+        self.free(cs_ptr)?;
 
-        pow2ceil(circuit_size + NUM_RESERVED_GATES)
+        let size: u32 = circuit_size?.try_into()?;
+
+        pow2ceil(size + NUM_RESERVED_GATES)
     }
 
-    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> u32 {
+    fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
-        let cs_ptr = self.allocate(&cs_buf);
+        let cs_ptr = self.allocate(&cs_buf)?;
 
-        let circuit_size = self
-            .call("acir_proofs_get_exact_circuit_size", &cs_ptr)
-            .into_i32();
-        let circuit_size =
-            u32::try_from(circuit_size).expect("circuit cannot have negative number of gates");
+        // This doesn't unwrap the result because we need to free even if there is a failure
+        let circuit_size = self.call("acir_proofs_get_exact_circuit_size", &cs_ptr);
 
-        self.free(cs_ptr);
+        self.free(cs_ptr)?;
 
-        circuit_size
+        Ok(circuit_size?.try_into()?)
     }
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Vec<u8> {
-        use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
-
+    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error> {
         let cs_buf = constraint_system.to_bytes();
-        let cs_ptr = self.allocate(&cs_buf);
+        let cs_ptr = self.allocate(&cs_buf)?;
 
         // The proving key is not actually written to this pointer.
         // `pk_ptr_ptr` is a pointer to a pointer which holds the proving key.
         let pk_ptr_ptr: usize = 0;
 
-        let pk_size = self
-            .call_multiple(
-                "acir_proofs_init_proving_key",
-                vec![&cs_ptr, &Value::I32(pk_ptr_ptr as i32)],
-            )
-            .value();
-        let pk_size: usize = pk_size.unwrap_i32() as usize;
+        let pk_size = self.call_multiple(
+            "acir_proofs_init_proving_key",
+            vec![&cs_ptr, &pk_ptr_ptr.into()],
+        )?;
 
         // We then need to read the pointer at `pk_ptr_ptr` to get the key's location
         // and then slice memory again at `pk_ptr` to get the proving key.
-        let pk_ptr = self.slice_memory(pk_ptr_ptr, POINTER_BYTES);
-        let pk_ptr: usize =
-            u32::from_le_bytes(pk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let pk_ptr = self.get_pointer(pk_ptr_ptr);
 
-        self.slice_memory(pk_ptr, pk_size)
+        Ok(self.read_memory_variable_length(pk_ptr, pk_size.try_into()?))
     }
 
     fn compute_verification_key(
         &self,
         constraint_system: &ConstraintSystem,
         proving_key: &[u8],
-    ) -> Vec<u8> {
-        use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
-
-        let circuit_size = self.get_circuit_size(constraint_system);
+    ) -> Result<Vec<u8>, Error> {
+        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
         } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
 
-        let g2_ptr = self.allocate(&g2_data);
-        let pk_ptr = self.allocate(proving_key);
+        let g2_ptr = self.allocate(&g2_data)?;
+        let pk_ptr = self.allocate(proving_key)?;
 
         // The verification key is not actually written to this pointer.
         // `vk_ptr_ptr` is a pointer to a pointer which holds the verification key.
         let vk_ptr_ptr: usize = 0;
 
-        let vk_size = self
-            .call_multiple(
-                "acir_proofs_init_verification_key",
-                vec![
-                    &pippenger_ptr,
-                    &g2_ptr,
-                    &pk_ptr,
-                    &Value::I32(vk_ptr_ptr as i32),
-                ],
-            )
-            .value();
-        let vk_size: usize = vk_size.unwrap_i32() as usize;
+        let vk_size = self.call_multiple(
+            "acir_proofs_init_verification_key",
+            vec![&pippenger_ptr, &g2_ptr, &pk_ptr, &vk_ptr_ptr.into()],
+        )?;
 
         // We then need to read the pointer at `vk_ptr_ptr` to get the key's location
         // and then slice memory again at `vk_ptr` to get the verification key.
-        let vk_ptr = self.slice_memory(vk_ptr_ptr, POINTER_BYTES);
-        let vk_ptr: usize =
-            u32::from_le_bytes(vk_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let vk_ptr = self.get_pointer(vk_ptr_ptr);
 
-        self.slice_memory(vk_ptr, vk_size)
+        Ok(self.read_memory_variable_length(vk_ptr, vk_size.try_into()?))
     }
 
     fn create_proof_with_pk(
@@ -311,53 +282,48 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-    ) -> Vec<u8> {
-        use super::wasm::POINTER_BYTES;
-        use wasmer::Value;
-
-        let circuit_size = self.get_circuit_size(constraint_system);
+    ) -> Result<Vec<u8>, Error> {
+        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
         } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data).pointer();
+        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
         let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
-        let cs_ptr = self.allocate(&cs_buf);
-        let witness_ptr = self.allocate(&witness_buf);
-        let g2_ptr = self.allocate(&g2_data);
-        let pk_ptr = self.allocate(proving_key);
+        let cs_ptr = self.allocate(&cs_buf)?;
+        let witness_ptr = self.allocate(&witness_buf)?;
+        let g2_ptr = self.allocate(&g2_data)?;
+        let pk_ptr = self.allocate(proving_key)?;
 
         // The proof data is not actually written to this pointer.
         // `proof_ptr_ptr` is a pointer to a pointer which holds the proof data.
         let proof_ptr_ptr: usize = 0;
 
-        let proof_size = self
-            .call_multiple(
-                "acir_proofs_new_proof",
-                vec![
-                    &pippenger_ptr,
-                    &g2_ptr,
-                    &pk_ptr,
-                    &cs_ptr,
-                    &witness_ptr,
-                    &Value::I32(0),
-                ],
-            )
-            .value();
-        let proof_size: usize = proof_size.unwrap_i32() as usize;
+        let proof_size = self.call_multiple(
+            "acir_proofs_new_proof",
+            vec![
+                &pippenger_ptr,
+                &g2_ptr,
+                &pk_ptr,
+                &cs_ptr,
+                &witness_ptr,
+                &proof_ptr_ptr.into(),
+            ],
+        )?;
 
         // We then need to read the pointer at `proof_ptr_ptr` to get the proof's location
         // and then slice memory again at `proof_ptr` to get the proof data.
-        let proof_ptr = self.slice_memory(proof_ptr_ptr, POINTER_BYTES);
-        let proof_ptr: usize =
-            u32::from_le_bytes(proof_ptr[0..POINTER_BYTES].try_into().unwrap()) as usize;
+        let proof_ptr = self.get_pointer(proof_ptr_ptr);
 
-        let result = self.slice_memory(proof_ptr, proof_size);
+        let result = self.read_memory_variable_length(proof_ptr, proof_size.try_into()?);
 
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
-        remove_public_inputs(constraint_system.public_inputs_size(), &result)
+        Ok(remove_public_inputs(
+            constraint_system.public_inputs_size(),
+            &result,
+        ))
     }
 
     fn verify_with_vk(
@@ -368,52 +334,40 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-    ) -> bool {
-        use wasmer::Value;
+    ) -> Result<bool, Error> {
         let g2_data = G2::new().data;
 
         // Barretenberg expects public inputs to be prepended onto the proof
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
         let cs_buf = constraint_system.to_bytes();
 
-        let cs_ptr = self.allocate(&cs_buf);
-        let proof_ptr = self.allocate(&proof);
-        let g2_ptr = self.allocate(&g2_data);
-        let vk_ptr = self.allocate(verification_key);
+        let cs_ptr = self.allocate(&cs_buf)?;
+        let proof_ptr = self.allocate(&proof)?;
+        let g2_ptr = self.allocate(&g2_data)?;
+        let vk_ptr = self.allocate(verification_key)?;
 
-        let verified = self
-            .call_multiple(
-                "acir_proofs_verify_proof",
-                vec![
-                    &g2_ptr,
-                    &vk_ptr,
-                    &cs_ptr,
-                    &proof_ptr,
-                    &Value::I32(proof.len() as i32),
-                ],
-            )
-            .value();
+        // This doesn't unwrap the result because we need to free even if there is a failure
+        let verified = self.call_multiple(
+            "acir_proofs_verify_proof",
+            vec![&g2_ptr, &vk_ptr, &cs_ptr, &proof_ptr, &proof.len().into()],
+        );
 
-        self.free(proof_ptr);
+        self.free(proof_ptr)?;
 
-        match verified.unwrap_i32() {
-            0 => false,
-            1 => true,
-            _ => panic!("Expected a 1 or a zero for the verification result"),
-        }
+        Ok(verified?.try_into()?)
     }
 }
 
-fn pow2ceil(v: u32) -> u32 {
+fn pow2ceil(v: u32) -> Result<u32, Error> {
     if v > (u32::MAX >> 1) {
-        panic!("pow2ceil overflow");
+        Err(Error::Pow2CeilOverflow(v))
+    } else {
+        let mut p = 1;
+        while p < v {
+            p <<= 1;
+        }
+        Ok(p)
     }
-
-    let mut p = 1;
-    while p < v {
-        p <<= 1;
-    }
-    p
 }
 
 /// Removes the public inputs which are prepended to a proof by Barretenberg.
@@ -444,14 +398,15 @@ mod test {
     use super::*;
     use crate::{
         barretenberg_structures::{
-            BlockConstraint, ComputeMerkleRootConstraint, Constraint, LogicConstraint,
-            MemOpBarretenberg, PedersenConstraint, RangeConstraint, SchnorrConstraint,
+            BlockConstraint, ComputeMerkleRootConstraint, Constraint, Keccak256Constraint,
+            LogicConstraint, MemOpBarretenberg, PedersenConstraint, RangeConstraint,
+            SchnorrConstraint,
         },
         merkle::{MerkleTree, MessageHasher},
     };
 
     #[test]
-    fn test_no_constraints_no_pub_inputs() {
+    fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
         let constraint_system = ConstraintSystem::new();
 
         let case_1 = WitnessResult {
@@ -461,11 +416,11 @@ mod test {
         };
         let test_cases = vec![case_1];
 
-        test_composer_with_pk_vk(constraint_system, test_cases);
+        test_composer_with_pk_vk(constraint_system, test_cases)
     }
 
     #[test]
-    fn test_a_single_constraint_no_pub_inputs() {
+    fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -518,10 +473,10 @@ mod test {
         };
         let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
-        test_composer_with_pk_vk(constraint_system, test_cases);
+        test_composer_with_pk_vk(constraint_system, test_cases)
     }
     #[test]
-    fn test_a_single_constraint_with_pub_inputs() {
+    fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -590,11 +545,11 @@ mod test {
             /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
         ];
 
-        test_composer_with_pk_vk(constraint_system, test_cases);
+        test_composer_with_pk_vk(constraint_system, test_cases)
     }
 
     #[test]
-    fn test_multiple_constraints() {
+    fn test_multiple_constraints() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -632,11 +587,11 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
     }
 
     #[test]
-    fn test_schnorr_constraints() {
+    fn test_schnorr_constraints() -> Result<(), Error> {
         let mut signature_indices = [0i32; 64];
         for i in 13..(13 + 64) {
             signature_indices[i - 13] = i as i32;
@@ -709,11 +664,61 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
     }
 
     #[test]
-    fn test_ped_constraints() {
+    fn test_keccak256_constraint() -> Result<(), Error> {
+        let input_value: u128 = 0xbd;
+        let input_index = 1;
+
+        // 0x5a502f9fca467b266d5b7833651937e805270ca3f3af1c0dd2462dca4b3b1abf
+        let result_values: [u128; 32] = [
+            0x5a, 0x50, 0x2f, 0x9f, 0xca, 0x46, 0x7b, 0x26, 0x6d, 0x5b, 0x78, 0x33, 0x65, 0x19,
+            0x37, 0xe8, 0x05, 0x27, 0x0c, 0xa3, 0xf3, 0xaf, 0x1c, 0x0d, 0xd2, 0x46, 0x2d, 0xca,
+            0x4b, 0x3b, 0x1a, 0xbf,
+        ];
+        let result_indices: Vec<i32> = (2i32..2 + result_values.len() as i32).collect();
+
+        let keccak_constraint = Keccak256Constraint {
+            inputs: vec![(input_index, 8)],
+            result: result_indices.clone().try_into().unwrap(),
+        };
+
+        let mut constraints = Vec::new();
+        for (value, index) in result_values.iter().zip(&result_indices) {
+            let byte_constraint = Constraint {
+                a: *index,
+                b: *index,
+                c: *index,
+                qm: FieldElement::zero(),
+                ql: FieldElement::one(),
+                qr: FieldElement::zero(),
+                qo: FieldElement::zero(),
+                qc: -FieldElement::from(*value),
+            };
+            constraints.push(byte_constraint)
+        }
+
+        let constraint_system = ConstraintSystem::new()
+            .var_num(100)
+            .keccak256_constraints(vec![keccak_constraint])
+            .constraints(constraints);
+
+        let witness_values: Vec<_> = std::iter::once(input_value)
+            .chain(result_values)
+            .map(FieldElement::from)
+            .collect();
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
+    }
+    #[test]
+    fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
             result_x: 3,
@@ -762,11 +767,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
     }
 
     #[test]
-    fn test_memory_constraints() {
+    fn test_memory_constraints() -> Result<(), Error> {
         let two_field = FieldElement::one() + FieldElement::one();
         let one = Constraint {
             a: 0,
@@ -861,11 +866,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
     }
 
     #[test]
-    fn test_compute_merkle_root_constraint() {
+    fn test_compute_merkle_root_constraint() -> Result<(), Error> {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
         let mut msg_hasher: blake2::Blake2s = MessageHasher::new();
@@ -912,11 +917,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
     }
 
     #[test]
-    fn test_logic_constraints() {
+    fn test_logic_constraints() -> Result<(), Error> {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -1002,7 +1007,7 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]);
+        test_composer_with_pk_vk(constraint_system, vec![case_1])
     }
 
     #[derive(Clone, Debug)]
@@ -1015,22 +1020,23 @@ mod test {
     fn test_composer_with_pk_vk(
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
-    ) {
+    ) -> Result<(), Error> {
         let bb = Barretenberg::new();
 
-        let proving_key = bb.compute_proving_key(&constraint_system);
-        let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
+        let proving_key = bb.compute_proving_key(&constraint_system)?;
+        let verification_key = bb.compute_verification_key(&constraint_system, &proving_key)?;
 
         for test_case in test_cases.into_iter() {
             let proof =
-                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key);
+                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key)?;
             let verified = bb.verify_with_vk(
                 &constraint_system,
                 &proof,
                 test_case.public_inputs,
                 &verification_key,
-            );
+            )?;
             assert_eq!(verified, test_case.result);
         }
+        Ok(())
     }
 }
