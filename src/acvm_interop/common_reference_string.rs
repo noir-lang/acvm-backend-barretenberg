@@ -17,7 +17,7 @@ impl CommonReferenceString for Barretenberg {
 
     async fn update_common_reference_string(
         &self,
-        common_reference_string: &[u8],
+        common_reference_string: Vec<u8>,
         circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
         let mut crs = common_reference_string.into();
