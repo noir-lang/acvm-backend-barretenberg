@@ -117,7 +117,7 @@ mod field_size_checks {
 
         let field = FieldElement::one();
         assert_eq!(field.to_be_bytes().len(), FIELD_BYTES);
-        let _: [u8; FIELD_BYTES] = field_to_array(&field);
+        let _: [u8; FIELD_BYTES] = field_to_array(&field).unwrap();
     }
 }
 
@@ -149,7 +149,7 @@ fn smoke() -> Result<(), Error> {
 mod native {
     use crate::FIELD_BYTES;
 
-    use super::{Barretenberg, Error, FeatureError};
+    use super::{Barretenberg, FeatureError};
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
@@ -157,7 +157,9 @@ mod native {
         }
     }
 
-    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; FIELD_BYTES], Error> {
+    pub(super) fn field_to_array(
+        f: &acvm::FieldElement,
+    ) -> Result<[u8; FIELD_BYTES], FeatureError> {
         let byte_vec = f.to_be_bytes();
         byte_vec
             .try_into()
