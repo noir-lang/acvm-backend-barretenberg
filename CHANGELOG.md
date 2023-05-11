@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.0...v0.1.1) (2023-05-11)
+
+
+### Bug Fixes
+
+* Add description so crate can be published ([#180](https://github.com/noir-lang/acvm-backend-barretenberg/issues/180)) ([caabf94](https://github.com/noir-lang/acvm-backend-barretenberg/commit/caabf9434031c6023a5e3a436c87fba0a1072539))
+
 ## 0.1.0 (2023-05-10)
 
 
