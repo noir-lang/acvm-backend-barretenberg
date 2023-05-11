@@ -70,4 +70,4 @@ wasm = [
 js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "d0bb049f2f120d632ea0e55d0d53a2dc8f5cf27e" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "3288b4c7eb01f5621e577d5ff9e7c92c7757e021" }

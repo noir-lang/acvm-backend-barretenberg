@@ -218,7 +218,7 @@ impl PartialWitnessGenerator for Barretenberg {
         Ok(OpcodeResolution::Solved)
     }
 
-    fn hash_to_field128_security(
+    fn hash_to_field_128_security(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
