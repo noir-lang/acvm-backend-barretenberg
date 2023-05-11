@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 #acvm = { version = "0.11.0", features = ["bn254"] }
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "018d6865e03ddd09ed409b383f38971ec9ec3310", features=["bn254"] }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "a83333b9e270dfcfd40a36271896840ec0201bc4", features=["bn254"] }
 
 thiserror = "1.0.21"
 
