@@ -25,7 +25,8 @@ indicatif = { version = "0.17.3", optional = true }
 
 # Native
 # barretenberg-sys = { version = "0.1.2", optional = true }
-barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", branch = "mv/recursion-bindings", optional = true }
+# barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", branch = "mv/recursion-bindings", optional = true }
+barretenberg-sys = { path = "/Users/maximvezenov/Documents/dev/noir-lang/barretenberg-sys", optional = true }
 
 # Wasm
 wasmer = { version = "*", optional = true, default-features = false }

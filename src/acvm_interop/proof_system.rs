@@ -32,7 +32,7 @@ impl ProofSystemCompiler for Barretenberg {
             | BlackBoxFunc::FixedBaseScalarMul
             | BlackBoxFunc::VerifyProof => true,
 
-            BlackBoxFunc::AES  => false,
+            BlackBoxFunc::AES => false,
         }
     }
 
@@ -84,7 +84,8 @@ impl ProofSystemCompiler for Barretenberg {
     ) -> Vec<FieldElement> {
         let flattened_public_inputs: Vec<FieldElement> = public_inputs.into_values().collect();
 
-        let proof_fields_as_bytes = Composer::proof_as_fields(self, &proof, flattened_public_inputs.into());
+        let proof_fields_as_bytes =
+            Composer::proof_as_fields(self, &proof, flattened_public_inputs.into());
         let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
 
         let mut proof_fields: Vec<FieldElement> = Vec::new();
@@ -94,11 +95,9 @@ impl ProofSystemCompiler for Barretenberg {
         proof_fields
     }
 
-    fn vk_as_fields(
-        &self,
-        verification_key: &[u8],
-    ) -> (Vec<FieldElement>, FieldElement) {
-        let (vk_fields_as_bytes, vk_hash_as_bytes) = Composer::verification_key_as_fields(self, &verification_key);
+    fn vk_as_fields(&self, verification_key: &[u8]) -> (Vec<FieldElement>, FieldElement) {
+        let (vk_fields_as_bytes, vk_hash_as_bytes) =
+            Composer::verification_key_as_fields(self, &verification_key);
 
         let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut vk_fields: Vec<FieldElement> = Vec::new();

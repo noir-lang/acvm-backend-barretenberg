@@ -608,7 +608,7 @@ impl ConstraintSystem {
     pub(crate) fn public_inputs_size(&self) -> usize {
         self.public_inputs.len()
     }
-    
+
     pub(crate) fn to_bytes(&self) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 

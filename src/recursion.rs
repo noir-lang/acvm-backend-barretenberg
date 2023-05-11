@@ -31,7 +31,7 @@ impl Recursion for Barretenberg {
             proof_fields_as_bytes.extend(proof_field.to_be_bytes());
         }
 
-        let public_input_as_bytes = public_input.to_be_bytes();
+        // let public_input_as_bytes = public_input.to_be_bytes();
 
         let mut input_agg_obj_bytes = Vec::new();
         for input_var in input_aggregation_object {
@@ -46,7 +46,7 @@ impl Recursion for Barretenberg {
             output_agg_size = barretenberg_sys::recursion::verify_proof(
                 &vk_as_bytes,
                 &proof_fields_as_bytes,
-                &public_input_as_bytes,
+                1 as u32,
                 &input_agg_obj_bytes,
                 p_output_agg_obj,
             );
