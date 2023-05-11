@@ -133,12 +133,12 @@ impl PartialWitnessGenerator for Barretenberg {
         })?;
 
         let mut signature = signature.iter();
-        let mut signature_bytes = [0u8; 64];
-        for (i, sig) in signature_bytes.iter_mut().enumerate() {
+        let mut sig_s = [0u8; 32];
+        for (i, sig) in sig_s.iter_mut().enumerate() {
             let _sig_i = signature.next().ok_or_else(|| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
                     BlackBoxFunc::SchnorrVerify,
-                    format!("signature should be 64 bytes long, found only {i} bytes"),
+                    format!("sig_s should be 32 bytes long, found only {i} bytes"),
                 )
             })?;
             let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
@@ -149,9 +149,22 @@ impl PartialWitnessGenerator for Barretenberg {
                 )
             })?;
         }
-
-        let sig_s: [u8; 32] = signature_bytes[..32].try_into().unwrap();
-        let sig_e: [u8; 32] = signature_bytes[32..].try_into().unwrap();
+        let mut sig_e = [0u8; 32];
+        for (i, sig) in sig_e.iter_mut().enumerate() {
+            let _sig_i = signature.next().ok_or_else(|| {
+                OpcodeResolutionError::BlackBoxFunctionFailed(
+                    BlackBoxFunc::SchnorrVerify,
+                    format!("sig_e should be 32 bytes long, found only {i} bytes"),
+                )
+            })?;
+            let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
+            *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
+                OpcodeResolutionError::BlackBoxFunctionFailed(
+                    BlackBoxFunc::SchnorrVerify,
+                    "could not get last bytes".into(),
+                )
+            })?;
+        }
 
         let mut message_bytes = Vec::new();
         for msg in message.iter() {
