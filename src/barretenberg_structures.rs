@@ -858,6 +858,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 inputs.push(scalar_index);
                             }
 
+                            assert_eq!(outputs.len(), 2);
                             let result_x = outputs[0].witness_index() as i32;
                             let result_y = outputs[1].witness_index() as i32;
 
