@@ -13,7 +13,7 @@ const TRANSCRIPT_URL: &str =
     "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
 
 #[allow(clippy::upper_case_acronyms)]
-#[derive(Clone, Default, Serialize, Deserialize)]
+#[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct CRS {
     pub(crate) g1_data: Vec<u8>,
     pub(crate) g2_data: Vec<u8>,
@@ -23,15 +23,14 @@ pub(crate) struct CRS {
 impl CRS {
     pub(crate) async fn update(&mut self, num_points: usize) -> Result<(), Error> {
         // We already have some data, so start at the end of our list
-        let g1_start = self.g1_data.len();
+        let g1_start = G1_START + self.g1_data.len();
         // UltraPlonk requires a CRS equal to circuit size plus one!
         // We need to bump our polynomial degrees by 1 to handle zero knowledge
         let g1_end = G1_START + ((num_points + 1) * 64) - 1;
 
-        // TODO(blaine): Make sure g1_start isn't off-by-one
-        let g1_data = download(g1_start, g1_end).await?;
+        let mut g1_data = download(g1_start, g1_end).await?;
 
-        self.g1_data = g1_data;
+        self.g1_data.append(&mut g1_data);
         self.num_points = num_points;
 
         Ok(())
@@ -149,5 +148,37 @@ fn does_not_panic() -> Result<(), Error> {
     }
     //TODO check that p_points memory is properly free
 
+    Ok(())
+}
+
+#[test]
+fn crs_update() -> Result<(), Error> {
+    use tokio::runtime::Builder;
+
+    let partial_num_points = 2;
+    let full_num_points = 12;
+
+    // Create a partial CRS
+    let mut partial_crs = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(download_crs(partial_num_points))?;
+
+    // Update the partial CRS to the full number of points
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(partial_crs.update(full_num_points))?;
+
+    // Fetch a full CRS to compare
+    let full_crs = Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(download_crs(full_num_points))?;
+
+    assert_eq!(partial_crs, full_crs);
     Ok(())
 }
