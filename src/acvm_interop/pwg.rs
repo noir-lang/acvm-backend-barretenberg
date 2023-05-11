@@ -29,27 +29,29 @@ impl PartialWitnessGenerator for Barretenberg {
     fn and(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::and(initial_witness, inputs, outputs)
+        logic::and(initial_witness, lhs, rhs, output)
     }
 
     fn xor(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        lhs: &FunctionInput,
+        rhs: &FunctionInput,
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        logic::xor(initial_witness, inputs, outputs)
+        logic::xor(initial_witness, lhs, rhs, output)
     }
 
     fn range(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        input: &FunctionInput,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        range::solve_range_opcode(initial_witness, inputs)
+        range::solve_range_opcode(initial_witness, input)
     }
 
     fn sha256(
@@ -73,18 +75,17 @@ impl PartialWitnessGenerator for Barretenberg {
     fn compute_merkle_root(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        leaf: &FunctionInput,
+        index: &FunctionInput,
+        hash_path: &[FunctionInput],
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let mut inputs_iter = inputs.iter();
+        let leaf = witness_to_value(initial_witness, leaf.witness)?;
 
-        let _leaf = inputs_iter.next().expect("expected a leaf");
-        let leaf = witness_to_value(initial_witness, _leaf.witness)?;
+        let index = witness_to_value(initial_witness, index.witness)?;
 
-        let _index = inputs_iter.next().expect("expected an index");
-        let index = witness_to_value(initial_witness, _index.witness)?;
-
-        let hash_path: Result<Vec<_>, _> = inputs_iter
+        let hash_path: Result<Vec<_>, _> = hash_path
+            .iter()
             .map(|input| witness_to_value(initial_witness, input.witness))
             .collect();
 
@@ -101,29 +102,23 @@ impl PartialWitnessGenerator for Barretenberg {
             )
         })?;
 
-        initial_witness.insert(outputs[0], computed_merkle_root);
+        initial_witness.insert(*output, computed_merkle_root);
         Ok(OpcodeResolution::Solved)
     }
 
     fn schnorr_verify(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        public_key_x: &FunctionInput,
+        public_key_y: &FunctionInput,
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // In barretenberg, if the signature fails, then the whole thing fails.
 
-        let mut inputs_iter = inputs.iter();
-
-        let _pub_key_x = inputs_iter
-            .next()
-            .expect("expected `x` component for public key");
-        let pub_key_x = witness_to_value(initial_witness, _pub_key_x.witness)?.to_be_bytes();
-
-        let _pub_key_y = inputs_iter
-            .next()
-            .expect("expected `y` component for public key");
-        let pub_key_y = witness_to_value(initial_witness, _pub_key_y.witness)?.to_be_bytes();
+        let pub_key_x = witness_to_value(initial_witness, public_key_x.witness)?.to_be_bytes();
+        let pub_key_y = witness_to_value(initial_witness, public_key_y.witness)?.to_be_bytes();
 
         let pub_key_bytes: Vec<u8> = pub_key_x
             .iter()
@@ -137,25 +132,10 @@ impl PartialWitnessGenerator for Barretenberg {
             )
         })?;
 
-        let mut sig_s = [0u8; 32];
-        for (i, sig) in sig_s.iter_mut().enumerate() {
-            let _sig_i = inputs_iter.next().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    format!("signature should be 64 bytes long, found only {i} bytes"),
-                )
-            })?;
-            let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-            *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    "could not get last bytes".into(),
-                )
-            })?;
-        }
-        let mut sig_e = [0u8; 32];
-        for (i, sig) in sig_e.iter_mut().enumerate() {
-            let _sig_i = inputs_iter.next().ok_or_else(|| {
+        let mut signature = signature.iter();
+        let mut signature_bytes = [0u8; 64];
+        for (i, sig) in signature_bytes.iter_mut().enumerate() {
+            let _sig_i = signature.next().ok_or_else(|| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
                     BlackBoxFunc::SchnorrVerify,
                     format!("signature should be 64 bytes long, found only {i} bytes"),
@@ -170,8 +150,11 @@ impl PartialWitnessGenerator for Barretenberg {
             })?;
         }
 
-        let mut message = Vec::new();
-        for msg in inputs_iter {
+        let sig_s: [u8; 32] = signature_bytes[..32].try_into().unwrap();
+        let sig_e: [u8; 32] = signature_bytes[32..].try_into().unwrap();
+
+        let mut message_bytes = Vec::new();
+        for msg in message.iter() {
             let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
             let msg_i = *msg_i_field.to_be_bytes().last().ok_or_else(|| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
@@ -179,11 +162,11 @@ impl PartialWitnessGenerator for Barretenberg {
                     "could not get last bytes".into(),
                 )
             })?;
-            message.push(msg_i);
+            message_bytes.push(msg_i);
         }
 
         let valid_signature = self
-            .verify_signature(pub_key, sig_s, sig_e, &message)
+            .verify_signature(pub_key, sig_s, sig_e, &message_bytes)
             .map_err(|err| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
                     BlackBoxFunc::SchnorrVerify,
@@ -194,7 +177,7 @@ impl PartialWitnessGenerator for Barretenberg {
             dbg!("signature has failed to verify");
         }
 
-        initial_witness.insert(outputs[0], FieldElement::from(valid_signature));
+        initial_witness.insert(*output, FieldElement::from(valid_signature));
         Ok(OpcodeResolution::Solved)
     }
 
@@ -222,27 +205,37 @@ impl PartialWitnessGenerator for Barretenberg {
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
         inputs: &[FunctionInput],
-        outputs: &[Witness],
+        output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        hash::hash_to_field_128_security(initial_witness, inputs, outputs)
+        hash::hash_to_field_128_security(initial_witness, inputs, output)
     }
 
     fn ecdsa_secp256k1(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
-        outputs: &[Witness],
+        public_key_x: &[FunctionInput],
+        public_key_y: &[FunctionInput],
+        signature: &[FunctionInput],
+        message: &[FunctionInput],
+        outputs: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        signature::ecdsa::secp256k1_prehashed(initial_witness, inputs, outputs)
+        signature::ecdsa::secp256k1_prehashed(
+            initial_witness,
+            public_key_x,
+            public_key_y,
+            signature,
+            message,
+            *outputs,
+        )
     }
 
     fn fixed_base_scalar_mul(
         &self,
         initial_witness: &mut BTreeMap<Witness, FieldElement>,
-        inputs: &[FunctionInput],
+        input: &FunctionInput,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        let scalar = witness_to_value(initial_witness, inputs[0].witness)?;
+        let scalar = witness_to_value(initial_witness, input.witness)?;
 
         let (pub_x, pub_y) = self.fixed_base(scalar).map_err(|err| {
             OpcodeResolutionError::BlackBoxFunctionFailed(

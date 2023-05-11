@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=3288b4c7eb01f5621e577d5ff9e7c92c7757e021#3288b4c7eb01f5621e577d5ff9e7c92c7757e021"
+source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=3288b4c7eb01f5621e577d5ff9e7c92c7757e021#3288b4c7eb01f5621e577d5ff9e7c92c7757e021"
+source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,7 +29,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=3288b4c7eb01f5621e577d5ff9e7c92c7757e021#3288b4c7eb01f5621e577d5ff9e7c92c7757e021"
+source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=3288b4c7eb01f5621e577d5ff9e7c92c7757e021#3288b4c7eb01f5621e577d5ff9e7c92c7757e021"
+source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
 dependencies = [
  "acir",
 ]
@@ -252,7 +252,7 @@ dependencies = [
  "cc",
  "cfg-if",
  "libc",
- "miniz_oxide",
+ "miniz_oxide 0.6.2",
  "object 0.30.3",
  "rustc-demangle",
 ]
@@ -876,12 +876,12 @@ dependencies = [
 
 [[package]]
 name = "flate2"
-version = "1.0.25"
+version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8a2db397cb1c8772f31494cb8917e48cd1e64f0fa7efac59fbd741a0a8ce841"
+checksum = "3b9429470923de8e8cbd4d2dc513535400b4b3fef0319fb5c4e1f520a7bef743"
 dependencies = [
  "crc32fast",
- "miniz_oxide",
+ "miniz_oxide 0.7.1",
 ]
 
 [[package]]
@@ -1442,6 +1442,15 @@ name = "miniz_oxide"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b275950c28b37e794e8c55d88aeb5e139d0ce23fdbbeda68f8d7174abdf9e8fa"
+dependencies = [
+ "adler",
+]
+
+[[package]]
+name = "miniz_oxide"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7810e0be55b428ada41041c41f32c9f1a42817901b4ccf45fa3d4b6561e74c7"
 dependencies = [
  "adler",
 ]
