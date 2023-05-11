@@ -9,8 +9,7 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-#acvm = { version = "0.11.0", features = ["bn254"] }
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "a83333b9e270dfcfd40a36271896840ec0201bc4", features=["bn254"] }
+acvm = { version = "0.11.0", features = ["bn254"] }
 
 thiserror = "1.0.21"
 
@@ -71,4 +70,4 @@ wasm = [
 js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "3288b4c7eb01f5621e577d5ff9e7c92c7757e021" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "a83333b9e270dfcfd40a36271896840ec0201bc4" }
