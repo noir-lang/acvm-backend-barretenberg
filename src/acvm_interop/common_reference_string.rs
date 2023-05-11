@@ -12,7 +12,9 @@ impl CommonReferenceString for Barretenberg {
         circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
         let constraint_system = &circuit.try_into()?;
-        Ok(self.get_crs(constraint_system).await?.into())
+        let common_reference_string = self.get_crs(constraint_system).await?.try_into()?;
+        // Separated to have nicer coercion on error types
+        Ok(common_reference_string)
     }
 
     async fn update_common_reference_string(
@@ -20,8 +22,13 @@ impl CommonReferenceString for Barretenberg {
         common_reference_string: Vec<u8>,
         circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
-        let mut crs = common_reference_string.into();
+        let mut crs = common_reference_string.try_into()?;
         let constraint_system = &circuit.try_into()?;
-        Ok(self.update_crs(&mut crs, constraint_system).await?.into())
+        let common_reference_string = self
+            .update_crs(&mut crs, constraint_system)
+            .await?
+            .try_into()?;
+        // Separated to have nicer coercion on error types
+        Ok(common_reference_string)
     }
 }

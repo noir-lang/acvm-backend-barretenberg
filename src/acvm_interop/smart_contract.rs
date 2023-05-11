@@ -11,12 +11,12 @@ impl SmartContract for Barretenberg {
 
     fn eth_contract_from_vk(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         verification_key: &[u8],
     ) -> Result<String, Self::Error> {
         use std::slice;
 
-        let CRS { g2_data, .. } = reference_string.into();
+        let CRS { g2_data, .. } = common_reference_string.try_into()?;
 
         let mut contract_ptr: *mut u8 = std::ptr::null_mut();
         let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
@@ -45,10 +45,10 @@ impl SmartContract for Barretenberg {
 
     fn eth_contract_from_vk(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         verification_key: &[u8],
     ) -> Result<String, Self::Error> {
-        let CRS { g2_data, .. } = reference_string.into();
+        let CRS { g2_data, .. } = common_reference_string.try_into()?;
 
         let g2_ptr = self.allocate(&g2_data)?;
         let vk_ptr = self.allocate(verification_key)?;
@@ -109,9 +109,9 @@ fn test_smart_contract() -> Result<(), BackendError> {
     let proving_key = bb.compute_proving_key(&constraint_system)?;
     let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
 
-    let reference_string: Vec<u8> = crs.into();
+    let common_reference_string: Vec<u8> = crs.try_into()?;
 
-    let contract = bb.eth_contract_from_vk(&reference_string, &verification_key)?;
+    let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
 
     assert!(contract.contains("contract BaseUltraVerifier"));
     assert!(contract.contains("contract UltraVerifier"));

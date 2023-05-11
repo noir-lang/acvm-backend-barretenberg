@@ -1,7 +1,7 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::Error;
+use crate::{CRSError, Error};
 
 // TODO(#175): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
@@ -37,31 +37,39 @@ impl CRS {
     }
 }
 
-impl From<&[u8]> for CRS {
-    fn from(value: &[u8]) -> Self {
-        bincode::deserialize(value).unwrap()
+impl TryFrom<&[u8]> for CRS {
+    type Error = CRSError;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        bincode::deserialize(value).map_err(|source| CRSError::Deserialize { source })
     }
 }
 
-impl From<Vec<u8>> for CRS {
-    fn from(value: Vec<u8>) -> Self {
-        bincode::deserialize(&value).unwrap()
+impl TryFrom<Vec<u8>> for CRS {
+    type Error = CRSError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        bincode::deserialize(&value).map_err(|source| CRSError::Deserialize { source })
     }
 }
 
-impl From<CRS> for Vec<u8> {
-    fn from(value: CRS) -> Self {
-        bincode::serialize(&value).unwrap()
+impl TryFrom<CRS> for Vec<u8> {
+    type Error = CRSError;
+
+    fn try_from(value: CRS) -> Result<Self, Self::Error> {
+        bincode::serialize(&value).map_err(|source| CRSError::Serialize { source })
     }
 }
 
-impl From<&CRS> for Vec<u8> {
-    fn from(value: &CRS) -> Self {
-        bincode::serialize(value).unwrap()
+impl TryFrom<&CRS> for Vec<u8> {
+    type Error = CRSError;
+
+    fn try_from(value: &CRS) -> Result<Self, Self::Error> {
+        bincode::serialize(value).map_err(|source| CRSError::Serialize { source })
     }
 }
 
-async fn download(start: usize, end: usize) -> Result<Vec<u8>, Error> {
+async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
     use bytes::{BufMut, BytesMut};
     use futures_util::StreamExt;
 
@@ -71,18 +79,18 @@ async fn download(start: usize, end: usize) -> Result<Vec<u8>, Error> {
         .get(TRANSCRIPT_URL)
         .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
         .build()
-        .map_err(|source| Error::CRSRequest {
+        .map_err(|source| CRSError::Request {
             url: TRANSCRIPT_URL.to_string(),
             source,
         })?;
     let response = client
         .execute(request)
         .await
-        .map_err(|source| Error::CRSFetch {
+        .map_err(|source| CRSError::Fetch {
             url: TRANSCRIPT_URL.to_string(),
             source,
         })?;
-    let total_size = response.content_length().ok_or(Error::CRSLength {
+    let total_size = response.content_length().ok_or(CRSError::Length {
         url: TRANSCRIPT_URL.to_string(),
     })?;
 
@@ -104,7 +112,7 @@ async fn download(start: usize, end: usize) -> Result<Vec<u8>, Error> {
         HumanBytes(total_size)
     );
     while let Some(item) = stream.next().await {
-        let mut chunk = item.map_err(|source| Error::CRSDownload { source })?;
+        let mut chunk = item.map_err(|source| CRSError::Download { source })?;
         crs_bytes.put(&mut chunk);
         pb.inc(chunk.len() as u64);
     }

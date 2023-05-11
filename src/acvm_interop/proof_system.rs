@@ -39,43 +39,40 @@ impl ProofSystemCompiler for Barretenberg {
 
     fn preprocess(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         circuit: &Circuit,
     ) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
+        let crs = common_reference_string.try_into()?;
         let constraint_system = &circuit.try_into()?;
 
         let proving_key = self.compute_proving_key(constraint_system)?;
-        let verification_key =
-            self.compute_verification_key(&reference_string.into(), &proving_key)?;
+        let verification_key = self.compute_verification_key(&crs, &proving_key)?;
 
         Ok((proving_key, verification_key))
     }
 
     fn prove_with_pk(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
     ) -> Result<Vec<u8>, Self::Error> {
+        let crs = common_reference_string.try_into()?;
         let assignments = flatten_witness_map(circuit, witness_values);
 
-        Ok(self.create_proof_with_pk(
-            &reference_string.into(),
-            &circuit.try_into()?,
-            assignments,
-            proving_key,
-        )?)
+        Ok(self.create_proof_with_pk(&crs, &circuit.try_into()?, assignments, proving_key)?)
     }
 
     fn verify_with_vk(
         &self,
-        reference_string: &[u8],
+        common_reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<bool, Self::Error> {
+        let crs = common_reference_string.try_into()?;
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> =
@@ -83,7 +80,7 @@ impl ProofSystemCompiler for Barretenberg {
 
         Ok(Composer::verify_with_vk(
             self,
-            &reference_string.into(),
+            &crs,
             &circuit.try_into()?,
             proof,
             flattened_public_inputs.into(),
