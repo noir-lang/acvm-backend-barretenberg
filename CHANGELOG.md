@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.1...v0.1.2) (2023-05-11)
+
+
+### Bug Fixes
+
+* Remove star dependencies to allow publishing ([#182](https://github.com/noir-lang/acvm-backend-barretenberg/issues/182)) ([1727a79](https://github.com/noir-lang/acvm-backend-barretenberg/commit/1727a79ce7e66d95528f70c445cb4ec1b1ece636))
+
 ## [0.1.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.0...v0.1.1) (2023-05-11)
 
 
