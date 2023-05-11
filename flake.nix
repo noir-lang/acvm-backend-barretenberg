@@ -1,5 +1,5 @@
 {
-  description = "Build the Barretenberg acvm backend";
+  description = "An ACVM backend which allows proving/verifying ACIR circuits against Aztec Lab's Barretenberg library.";
 
   inputs = {
     nixpkgs = {
