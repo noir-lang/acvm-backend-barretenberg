@@ -778,16 +778,6 @@ mod test {
             qo: FieldElement::zero(),
             qc: FieldElement::one(),
         };
-        let two = Constraint {
-            a: 0,
-            b: 0,
-            c: 0,
-            qm: FieldElement::zero(),
-            ql: FieldElement::zero(),
-            qr: FieldElement::zero(),
-            qo: FieldElement::zero(),
-            qc: two_field,
-        };
 
         let two_x_constraint = Constraint {
             a: 1,
@@ -836,7 +826,7 @@ mod test {
             is_store: 0,
         };
         let op2 = MemOpBarretenberg {
-            index: x_1_constraint,
+            index: x_1_constraint.clone(),
             value: z_constraint,
             is_store: 0,
         };
@@ -854,15 +844,16 @@ mod test {
             ql: FieldElement::one(),
             qr: FieldElement::one(),
             qo: FieldElement::zero(),
-            qc: -(FieldElement::one() + two_field),
+            qc: -(two_field),
         };
         let constraint_system = ConstraintSystem::new()
-            .var_num(10)
+            .var_num(4)
             .block_constraints(vec![block_constraint])
             .constraints(vec![result_constraint]);
 
         let scalar_0 = FieldElement::zero();
-        let witness_values = vec![scalar_0];
+        let scalar_1 = FieldElement::one();
+        let witness_values = vec![scalar_0, scalar_1, scalar_1];
 
         let case_1 = WitnessResult {
             witness: witness_values.into(),

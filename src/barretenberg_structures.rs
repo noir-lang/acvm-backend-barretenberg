@@ -651,17 +651,17 @@ impl ConstraintSystem {
 
 #[derive(Clone, Hash, Debug)]
 pub(crate) struct MemOpBarretenberg {
-    index: Constraint,
-    value: Constraint,
-    is_store: i8,
+    pub(crate) index: Constraint,
+    pub(crate) value: Constraint,
+    pub(crate) is_store: i8,
 }
 impl MemOpBarretenberg {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
+        buffer.extend_from_slice(&self.is_store.to_be_bytes());
         buffer.extend_from_slice(&self.index.to_bytes());
         buffer.extend_from_slice(&self.value.to_bytes());
-        buffer.extend_from_slice(&self.is_store.to_be_bytes());
 
         buffer
     }
@@ -684,7 +684,7 @@ impl BlockConstraint {
             buffer.extend_from_slice(&value.to_bytes());
         }
 
-        let len = self.init.len() as u32;
+        let len = self.trace.len() as u32;
         buffer.extend_from_slice(&len.to_be_bytes());
         for op in self.trace.iter() {
             buffer.extend_from_slice(&op.to_bytes());
