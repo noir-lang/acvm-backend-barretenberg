@@ -150,21 +150,28 @@
       };
 
       networkTestArgs = {
-        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a simple static webserver
+        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a simple static server
         # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
         TRANSCRIPT_URL = "http://0.0.0.0:8000/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
 
         # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
-        # which avoids exposing the entire Nix store to the simple webserver it starts
-        # The simple webserver is moved to the background and killed after checks are completed
+        # which avoids exposing the entire Nix store to the simple static server it starts
+        # The simple static server is moved to the background and killed after checks are completed
         preCheck = ''
           cp ${pkgs.barretenberg-transcript00} .
+          echo "Starting simple static server"
           ${pkgs.simple-http-server}/bin/simple-http-server --silent &
           HTTP_SERVER_PID=$!
         '';
 
+        # We kill the background PID of the simple static server and wait on the PID until it exits
+        # The call to `wait` sets the process status code to the status code of the killed PID so we
+        # use an `if` to handle the status code and just print a basic message to exit successfully
         postCheck = ''
-          kill $HTTP_SERVER_PID
+          kill $HTTP_SERVER_PID;
+          if wait $HTTP_SERVER_PID; then
+            echo "Closed simple static server"
+          fi
         '';
       };
 
