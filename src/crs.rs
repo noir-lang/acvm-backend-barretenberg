@@ -10,7 +10,7 @@ const G2_END: usize = G2_START + 128 - 1;
 
 // TODO(#162): Allow downloading from more than just the first transcript
 const TRANSCRIPT_URL: &str =
-    "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
+    "https://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Default, Debug, PartialEq, Serialize, Deserialize)]
