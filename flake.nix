@@ -152,7 +152,7 @@
       networkTestArgs = {
         # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a simple static webserver
         # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
-        TRANSCRIPT_URL = "http://localhost:8000/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+        TRANSCRIPT_URL = "http://0.0.0.0:8000/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
 
         # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
         # which avoids exposing the entire Nix store to the simple webserver it starts
