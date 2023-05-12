@@ -165,14 +165,8 @@
           HTTP_SERVER_PID=$!
         '';
 
-        # We kill the background PID of the simple static server and wait on the PID until it exits
-        # The call to `wait` sets the process status code to the status code of the killed PID so we
-        # use an `if` to handle the status code and just print a basic message to exit successfully
         postCheck = ''
-          kill $HTTP_SERVER_PID;
-          if wait $HTTP_SERVER_PID; then
-            echo "Closed simple static server"
-          fi
+          kill $HTTP_SERVER_PID
         '';
       };
 
