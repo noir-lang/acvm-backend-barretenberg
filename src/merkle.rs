@@ -26,10 +26,10 @@ pub(crate) trait MessageHasher {
     fn hash(&mut self, msg: &[u8]) -> FieldElement;
 }
 
-impl MessageHasher for blake2::Blake2s {
+impl MessageHasher for blake2::Blake2s256 {
     fn new() -> Self {
         use blake2::Digest;
-        <blake2::Blake2s as Digest>::new()
+        <blake2::Blake2s256 as Digest>::new()
     }
 
     fn hash(&mut self, msg: &[u8]) -> FieldElement {
@@ -336,7 +336,7 @@ fn basic_interop_initial_root() {
     use tempfile::tempdir;
     let temp_dir = tempdir().unwrap();
     // Test that the initial root is computed correctly
-    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
     // Copied from barretenberg by copying the stdout from MemoryTree
     let expected_hex = "04ccfbbb859b8605546e03dcaf41393476642859ff7f99446c054b841f0e05c8";
     assert_eq!(tree.root().to_hex(), expected_hex)
@@ -347,7 +347,7 @@ fn basic_interop_hashpath() {
     use tempfile::tempdir;
     let temp_dir = tempdir().unwrap();
     // Test that the hashpath is correct
-    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
     let path = tree.get_hash_path(0);
 
@@ -377,7 +377,7 @@ fn basic_interop_update() -> Result<(), Error> {
     // Test that computing the HashPath is correct
     use tempfile::tempdir;
     let temp_dir = tempdir().unwrap();
-    let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let mut tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
     tree.update_message(0, &[0; 64])?;
     tree.update_message(1, &[1; 64])?;

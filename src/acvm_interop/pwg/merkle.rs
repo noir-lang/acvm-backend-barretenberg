@@ -94,9 +94,9 @@ mod tests {
 
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
-        let mut msg_hasher: blake2::Blake2s = MessageHasher::new();
+        let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
 
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let mut tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
         for test_vector in tests {
             let index = FieldElement::try_from_str(test_vector.index).unwrap();
@@ -145,7 +145,7 @@ mod tests {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
 
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let mut tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
 
         let barretenberg = Barretenberg::new();
         let pubkey_x = FieldElement::from_hex(

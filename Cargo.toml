@@ -39,7 +39,7 @@ getrandom = { version = "0.2", optional = true }
 pkg-config = "0.3"
 
 [dev-dependencies]
-blake2 = "0.9.1"
+blake2 = "0.10.6"
 sled = "0.34.6"
 tempfile = "3.3"
 
@@ -68,7 +68,12 @@ wasm = [
     "dep:dirs",
     "dep:indicatif",
 ]
-js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]
+js = [
+    "wasmer",
+    "dep:rust-embed",
+    "dep:getrandom",
+    "wasmer/js-default"
+]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "a83333b9e270dfcfd40a36271896840ec0201bc4" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "b248e606dd69c25d33ae77c5c5c0541adbf80cd6" }

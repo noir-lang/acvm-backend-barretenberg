@@ -5,18 +5,19 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=b248e606dd69c25d33ae77c5c5c0541adbf80cd6#b248e606dd69c25d33ae77c5c5c0541adbf80cd6"
 dependencies = [
  "acir_field",
  "flate2",
  "rmp-serde",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
 name = "acir_field"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=b248e606dd69c25d33ae77c5c5c0541adbf80cd6#b248e606dd69c25d33ae77c5c5c0541adbf80cd6"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,11 +30,11 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=b248e606dd69c25d33ae77c5c5c0541adbf80cd6#b248e606dd69c25d33ae77c5c5c0541adbf80cd6"
 dependencies = [
  "acir",
  "acvm_stdlib",
- "blake2 0.10.6",
+ "blake2",
  "crc32fast",
  "indexmap",
  "k256",
@@ -50,7 +51,7 @@ version = "0.1.2"
 dependencies = [
  "acvm",
  "barretenberg-sys",
- "blake2 0.9.2",
+ "blake2",
  "dirs 3.0.2",
  "futures-util",
  "getrandom",
@@ -68,7 +69,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=b248e606dd69c25d33ae77c5c5c0541adbf80cd6#b248e606dd69c25d33ae77c5c5c0541adbf80cd6"
 dependencies = [
  "acir",
 ]
@@ -314,17 +315,6 @@ dependencies = [
  "funty",
  "radium",
  "wyz",
-]
-
-[[package]]
-name = "blake2"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a4e37d16930f5459780f5621038b6382b9bb37c19016f39fb6b5808d831f174"
-dependencies = [
- "crypto-mac 0.8.0",
- "digest 0.9.0",
- "opaque-debug",
 ]
 
 [[package]]
@@ -622,16 +612,6 @@ checksum = "1bfb12502f3fc46cca1bb51ac28df9d618d813cdc3d2f25b9fe775a34af26bb3"
 dependencies = [
  "generic-array",
  "typenum",
-]
-
-[[package]]
-name = "crypto-mac"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b584a330336237c1eecd3e94266efb216c56ed91225d634cb2991c5f3fd1aeab"
-dependencies = [
- "generic-array",
- "subtle",
 ]
 
 [[package]]
@@ -1120,7 +1100,7 @@ version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1441c6b1e930e2817404b5046f1f989899143a12bf92de603b69f4e0aee1e15"
 dependencies = [
- "crypto-mac 0.10.1",
+ "crypto-mac",
  "digest 0.9.0",
 ]
 

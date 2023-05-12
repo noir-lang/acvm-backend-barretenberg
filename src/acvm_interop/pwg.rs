@@ -1,11 +1,9 @@
 use acvm::acir::circuit::opcodes::FunctionInput;
-use acvm::acir::native_types::Witness;
+use acvm::acir::native_types::{Witness, WitnessMap};
 use acvm::acir::BlackBoxFunc;
-use acvm::pwg::{hash, logic, range, signature, witness_to_value, OpcodeResolution};
-use acvm::FieldElement;
+use acvm::pwg::{hash, logic, range, signature, witness_to_value};
+use acvm::{pwg::OpcodeResolution, FieldElement};
 use acvm::{OpcodeResolutionError, PartialWitnessGenerator};
-
-use std::collections::BTreeMap;
 
 use crate::pedersen::Pedersen;
 use crate::scalar_mul::ScalarMul;
@@ -17,7 +15,7 @@ mod merkle;
 impl PartialWitnessGenerator for Barretenberg {
     fn aes(
         &self,
-        _initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        _initial_witness: &mut WitnessMap,
         _inputs: &[FunctionInput],
         _outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -28,7 +26,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn and(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         lhs: &FunctionInput,
         rhs: &FunctionInput,
         output: &Witness,
@@ -38,7 +36,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn xor(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         lhs: &FunctionInput,
         rhs: &FunctionInput,
         output: &Witness,
@@ -48,7 +46,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn range(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         input: &FunctionInput,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         range::solve_range_opcode(initial_witness, input)
@@ -56,7 +54,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn sha256(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -65,7 +63,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn blake2s(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -74,7 +72,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn compute_merkle_root(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         leaf: &FunctionInput,
         index: &FunctionInput,
         hash_path: &[FunctionInput],
@@ -108,7 +106,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn schnorr_verify(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         public_key_x: &FunctionInput,
         public_key_y: &FunctionInput,
         signature: &[FunctionInput],
@@ -196,7 +194,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn pedersen(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -216,7 +214,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn hash_to_field_128_security(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         output: &Witness,
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -225,7 +223,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn ecdsa_secp256k1(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         public_key_x: &[FunctionInput],
         public_key_y: &[FunctionInput],
         signature: &[FunctionInput],
@@ -244,7 +242,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn fixed_base_scalar_mul(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         input: &FunctionInput,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
@@ -264,7 +262,7 @@ impl PartialWitnessGenerator for Barretenberg {
 
     fn keccak256(
         &self,
-        initial_witness: &mut BTreeMap<Witness, FieldElement>,
+        initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
