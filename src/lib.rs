@@ -82,6 +82,7 @@ enum CRSError {
     Download { source: reqwest::Error },
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Error)]
 enum Error {
     #[error("The value {0} overflows in the pow2ceil function")]
