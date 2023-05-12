@@ -149,18 +149,19 @@
         buildInputs = [ ] ++ extraBuildInputs;
       };
 
-      networkTestArgs = {
-        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a simple static server
+      # The `port` is parameterized to support parallel test runs without colliding static servers
+      networkTestArgs = port: {
+        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a static server
         # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
-        TRANSCRIPT_URL = "http://0.0.0.0:8000/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+        TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
 
         # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
-        # which avoids exposing the entire Nix store to the simple static server it starts
-        # The simple static server is moved to the background and killed after checks are completed
+        # which avoids exposing the entire Nix store to the static server it starts
+        # The static server is moved to the background and killed after checks are completed
         preCheck = ''
           cp ${pkgs.barretenberg-transcript00} .
           echo "Starting simple static server"
-          ${pkgs.simple-http-server}/bin/simple-http-server --silent &
+          ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
           HTTP_SERVER_PID=$!
         '';
 
@@ -171,8 +172,6 @@
           kill $HTTP_SERVER_PID;
           if wait $HTTP_SERVER_PID; then
             echo "Closed simple static server"
-          else
-            echo "cmd FAILED!! (returned $?)"
           fi
         '';
       };
@@ -191,12 +190,18 @@
     rec {
       checks = {
         cargo-clippy-native = craneLib.cargoClippy (nativeArgs // {
+          # Crane appends "clippy"
+          pname = "native";
+
           cargoArtifacts = native-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-native = craneLib.cargoTest (nativeArgs // networkTestArgs // {
+        cargo-test-native = craneLib.cargoTest (nativeArgs // (networkTestArgs 8000) // {
+          # Crane appends "test"
+          pname = "native";
+
           cargoArtifacts = native-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
@@ -204,12 +209,18 @@
         });
 
         cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+          # Crane appends "clippy"
+          pname = "wasm";
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // networkTestArgs // {
+        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
+          # Crane appends "test"
+          pname = "wasm";
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
