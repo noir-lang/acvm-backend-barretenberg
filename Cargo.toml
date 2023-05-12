@@ -39,7 +39,7 @@ getrandom = { version = "0.2", optional = true }
 pkg-config = "0.3"
 
 [dev-dependencies]
-blake2 = "0.9.1"
+blake2 = "0.10.6"
 sled = "0.34.6"
 tempfile = "3.3"
 
