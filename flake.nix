@@ -163,12 +163,16 @@
     rec {
       checks = {
         cargo-clippy-native = craneLib.cargoClippy (nativeArgs // {
+          _ALLOW_LOCAL_NETWORKING = true;
+
           cargoArtifacts = native-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
         cargo-test-native = craneLib.cargoTest (nativeArgs // {
+          _ALLOW_LOCAL_NETWORKING = true;
+
           cargoArtifacts = native-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
@@ -176,12 +180,16 @@
         });
 
         cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+          _ALLOW_LOCAL_NETWORKING = true;
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
         cargo-test-wasm = craneLib.cargoTest (wasmArgs // {
+          _ALLOW_LOCAL_NETWORKING = true;
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
