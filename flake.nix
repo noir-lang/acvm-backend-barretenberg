@@ -171,6 +171,8 @@
           kill $HTTP_SERVER_PID;
           if wait $HTTP_SERVER_PID; then
             echo "Closed simple static server"
+          else
+            echo "cmd FAILED!! (returned $?)"
           fi
         '';
       };
