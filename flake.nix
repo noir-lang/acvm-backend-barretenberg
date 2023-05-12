@@ -1,5 +1,5 @@
 {
-  description = "Build the Barretenberg acvm backend";
+  description = "An ACVM backend which allows proving/verifying ACIR circuits against Aztec Lab's Barretenberg library.";
 
   inputs = {
     nixpkgs = {
@@ -114,7 +114,7 @@
       commonArgs = {
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
-        version = "0.1.0";
+        version = "0.1.2";
         # x-release-please-end
 
         src = pkgs.lib.cleanSourceWith {
