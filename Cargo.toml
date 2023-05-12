@@ -1,6 +1,7 @@
 [package]
 name = "acvm-backend-barretenberg"
-version = "0.0.0"
+description = "An ACVM backend which allows proving/verifying ACIR circuits against Aztec Lab's Barretenberg library."
+version = "0.1.2"
 authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 rust-version = "1.66"
@@ -9,11 +10,15 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { version = "0.10.3", features = ["bn254"] }
+acvm = { version = "0.11.0", features = ["bn254"] }
 
-blake2 = "0.9.1"
+thiserror = "1.0.21"
+
 dirs = { version = "3.0", optional = true }
-reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["stream", "rustls-tls"] }
+reqwest = { version = "0.11.16", optional = true, default-features = false, features = [
+    "stream",
+    "rustls-tls",
+] }
 tokio = { version = "1.0", optional = true }
 futures-util = { version = "0.3.14", optional = true }
 indicatif = { version = "0.17.3", optional = true }
@@ -22,16 +27,21 @@ indicatif = { version = "0.17.3", optional = true }
 barretenberg-sys = { version = "0.1.2", optional = true }
 
 # Wasm
-wasmer = { version = "*", optional = true, default-features = false }
-rust-embed = { version = "6.6.0", optional = true, features = ["debug-embed", "interpolate-folder-path", "include-exclude"] }
+wasmer = { version = "2.3", optional = true, default-features = false }
+rust-embed = { version = "6.6.0", optional = true, features = [
+    "debug-embed",
+    "interpolate-folder-path",
+    "include-exclude",
+] }
 getrandom = { version = "0.2", optional = true }
 
 [build-dependencies]
 pkg-config = "0.3"
 
 [dev-dependencies]
+blake2 = "0.9.1"
 sled = "0.34.6"
-tempfile = "*"
+tempfile = "3.3"
 
 [features]
 default = ["native"]
@@ -41,7 +51,7 @@ native = [
     "dep:tokio",
     "dep:futures-util",
     "dep:dirs",
-    "dep:indicatif"
+    "dep:indicatif",
 ]
 wasm = [
     "wasmer",
@@ -56,14 +66,14 @@ wasm = [
     "dep:tokio",
     "dep:futures-util",
     "dep:dirs",
-    "dep:indicatif"
+    "dep:indicatif",
 ]
 js = [
     "wasmer",
     "dep:rust-embed",
     "dep:getrandom",
-    "wasmer/js-default",
+    "wasmer/js-default"
 ]
 
 [patch.crates-io]
-acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", rev = "46c645233228c35bc22b6eb5fb5d1d3c0a33d507" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "b248e606dd69c25d33ae77c5c5c0541adbf80cd6" }
