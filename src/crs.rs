@@ -1,5 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::env;
 
 use crate::{CRSError, Error};
 
@@ -8,8 +9,8 @@ const G1_START: usize = 28;
 const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
-// TODO(#162): Allow downloading from more than just the first transcript
-const TRANSCRIPT_URL: &str =
+const TRANSCRIPT_URL_ENV_VAR: &str = "TRANSCRIPT_URL";
+const TRANSCRIPT_URL_FALLBACK: &str =
     "https://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
 
 #[allow(clippy::upper_case_acronyms)]
@@ -73,25 +74,33 @@ async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
     use bytes::{BufMut, BytesMut};
     use futures_util::StreamExt;
 
+    // TODO(#162): Allow downloading from more than just the first transcript
+    // We try to load a URL from the environment and otherwise fallback to a hardcoded URL to allow
+    // Nix to override the URL for testing in the sandbox, where there is no network access on Linux
+    let transcript_url = match env::var(TRANSCRIPT_URL_ENV_VAR) {
+        Ok(url) => url,
+        Err(_) => TRANSCRIPT_URL_FALLBACK.into(),
+    };
+
     let client = Client::new();
 
     let request = client
-        .get(TRANSCRIPT_URL)
+        .get(&transcript_url)
         .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
         .build()
         .map_err(|source| CRSError::Request {
-            url: TRANSCRIPT_URL.to_string(),
+            url: transcript_url.to_string(),
             source,
         })?;
     let response = client
         .execute(request)
         .await
         .map_err(|source| CRSError::Fetch {
-            url: TRANSCRIPT_URL.to_string(),
+            url: transcript_url.to_string(),
             source,
         })?;
     let total_size = response.content_length().ok_or(CRSError::Length {
-        url: TRANSCRIPT_URL.to_string(),
+        url: transcript_url.to_string(),
     })?;
 
     // Indicatif setup

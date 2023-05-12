@@ -149,6 +149,25 @@
         buildInputs = [ ] ++ extraBuildInputs;
       };
 
+      networkTestArgs = {
+        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a simple static webserver
+        # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
+        TRANSCRIPT_URL = "http://localhost:8000/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+
+        # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
+        # which avoids exposing the entire Nix store to the simple webserver it starts
+        # The simple webserver is moved to the background and killed after checks are completed
+        preCheck = ''
+          cp ${pkgs.barretenberg-transcript00} .
+          ${pkgs.simple-http-server}/bin/simple-http-server --silent &
+          HTTP_SERVER_PID=$!
+        '';
+
+        postCheck = ''
+          kill $HTTP_SERVER_PID
+        '';
+      };
+
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       native-cargo-artifacts = craneLib.buildDepsOnly nativeArgs;
       wasm-cargo-artifacts = craneLib.buildDepsOnly wasmArgs;
@@ -163,16 +182,12 @@
     rec {
       checks = {
         cargo-clippy-native = craneLib.cargoClippy (nativeArgs // {
-          _ALLOW_LOCAL_NETWORKING = true;
-
           cargoArtifacts = native-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-native = craneLib.cargoTest (nativeArgs // {
-          _ALLOW_LOCAL_NETWORKING = true;
-
+        cargo-test-native = craneLib.cargoTest (nativeArgs // networkTestArgs // {
           cargoArtifacts = native-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
@@ -180,16 +195,12 @@
         });
 
         cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
-          _ALLOW_LOCAL_NETWORKING = true;
-
           cargoArtifacts = wasm-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // {
-          _ALLOW_LOCAL_NETWORKING = true;
-
+        cargo-test-wasm = craneLib.cargoTest (wasmArgs // networkTestArgs // {
           cargoArtifacts = wasm-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
