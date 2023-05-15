@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=2e2865f8f2ba7305fbbf33616c62610a0509dbf5#2e2865f8f2ba7305fbbf33616c62610a0509dbf5"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,7 +16,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=2e2865f8f2ba7305fbbf33616c62610a0509dbf5#2e2865f8f2ba7305fbbf33616c62610a0509dbf5"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,7 +29,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=2e2865f8f2ba7305fbbf33616c62610a0509dbf5#2e2865f8f2ba7305fbbf33616c62610a0509dbf5"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=a83333b9e270dfcfd40a36271896840ec0201bc4#a83333b9e270dfcfd40a36271896840ec0201bc4"
+source = "git+https://github.com/noir-lang/acvm?rev=2e2865f8f2ba7305fbbf33616c62610a0509dbf5#2e2865f8f2ba7305fbbf33616c62610a0509dbf5"
 dependencies = [
  "acir",
 ]
@@ -259,9 +259,8 @@ dependencies = [
 
 [[package]]
 name = "barretenberg-sys"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bc96e40cc45e7d5622cbc57a140aee926a7fb6e4f7d07dda758daa9256f3317"
+version = "0.1.3"
+source = "git+https://github.com/noir-lang/barretenberg-sys?rev=e08b5d5cd185bc55c6f490312edd3dcb137cd7ec#e08b5d5cd185bc55c6f490312edd3dcb137cd7ec"
 dependencies = [
  "bindgen",
  "cc",

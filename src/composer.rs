@@ -720,6 +720,7 @@ mod test {
     fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
+            hash_index: 0,
             result_x: 3,
             result_y: 4,
         };

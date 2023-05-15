@@ -334,6 +334,7 @@ impl Keccak256Constraint {
 #[derive(Clone, Hash, Debug)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
+    pub(crate) hash_index: u32,
     pub(crate) result_x: i32,
     pub(crate) result_y: i32,
 }
@@ -347,6 +348,8 @@ impl PedersenConstraint {
         for constraint in self.inputs.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
+
+        buffer.extend_from_slice(&self.hash_index.to_be_bytes());
 
         buffer.extend_from_slice(&self.result_x.to_be_bytes());
         buffer.extend_from_slice(&self.result_y.to_be_bytes());
@@ -850,6 +853,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                         BlackBoxFuncCall::Pedersen {
                             inputs: gadget_call_inputs,
+                            domain_separator,
                             outputs,
                         } => {
                             let mut inputs = Vec::new();
@@ -864,6 +868,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
+                                hash_index: *domain_separator,
                                 result_x,
                                 result_y,
                             };

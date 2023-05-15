@@ -156,7 +156,7 @@ mod tests {
             "0x2a5d7253a6ed48462fedb2d350cc768d13956310f54e73a8a47914f34a34c5c4",
         )
         .unwrap();
-        let (note_commitment_x, _) = barretenberg.encrypt(vec![pubkey_x, pubkey_y])?;
+        let (note_commitment_x, _) = barretenberg.encrypt(vec![pubkey_x, pubkey_y], 0)?;
         dbg!(note_commitment_x.to_hex());
         let leaf = note_commitment_x;
 

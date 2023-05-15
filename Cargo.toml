@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { version = "0.11.0", features = ["bn254"] }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "2e2865f8f2ba7305fbbf33616c62610a0509dbf5", features = ["bn254"] }
 
 thiserror = "1.0.21"
 
@@ -23,7 +23,7 @@ futures-util = { version = "0.3.14", optional = true }
 indicatif = { version = "0.17.3", optional = true }
 
 # Native
-barretenberg-sys = { version = "0.1.2", optional = true }
+barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys", rev = "e08b5d5cd185bc55c6f490312edd3dcb137cd7ec", optional = true }
 
 # Wasm
 wasmer = { version = "*", optional = true, default-features = false }
@@ -68,6 +68,3 @@ wasm = [
     "dep:indicatif",
 ]
 js = ["wasmer", "dep:rust-embed", "dep:getrandom", "wasmer/js-default"]
-
-[patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "a83333b9e270dfcfd40a36271896840ec0201bc4" }
