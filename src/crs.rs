@@ -28,7 +28,7 @@ fn transcript_location(transcript_number: u16) -> PathBuf {
 /// Example: `100` will map to transcript100.dat
 ///
 /// TODO: Add smoke tests for this
-fn transcript_number_to_filename(transcript_number: u16) -> String {
+pub(crate) fn transcript_number_to_filename(transcript_number: u16) -> String {
     format!("transcript{:0>2}.dat", transcript_number.to_string())
 }
 
