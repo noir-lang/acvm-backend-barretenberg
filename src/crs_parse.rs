@@ -72,8 +72,8 @@ impl Manifest {
 
         num_fields_in_struct * size_of_each_field_in_bytes
     }
-    /// Reads `Manifest` from the given file
-    fn read_from_file(reader: &mut impl Read) -> std::io::Result<Manifest> {
+    /// Reads `Manifest` from the given `Reader`
+    fn read(reader: &mut impl Read) -> std::io::Result<Manifest> {
         let mut bytes = [0u8; 4];
         reader.read_exact(&mut bytes)?;
         let transcript_number = u32::from_be_bytes(bytes);
@@ -121,7 +121,7 @@ impl CRS {
     ) -> std::io::Result<(Vec<SerializedG1Affine>, u32)> {
         let file_to_transcript = File::open(&path_to_transcript)?;
         let mut reader = BufReader::new(&file_to_transcript);
-        let manifest = Manifest::read_from_file(&mut reader)?;
+        let manifest = Manifest::read(&mut reader)?;
         let g1_points = CRS::read_serialized_g1_points(&mut reader, num_points);
 
         let remaining_points = if manifest.num_g1_points < num_points {
@@ -138,7 +138,7 @@ impl CRS {
     ) -> std::io::Result<SerializedG2Affine> {
         let mut file_to_transcript = File::open(&path_to_first_transcript)?;
         let mut reader = BufReader::new(&file_to_transcript);
-        let manifest = Manifest::read_from_file(&mut reader)?;
+        let manifest = Manifest::read(&mut reader)?;
 
         use std::io::{Seek, SeekFrom};
 
