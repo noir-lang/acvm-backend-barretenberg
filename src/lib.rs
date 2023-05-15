@@ -13,6 +13,7 @@ mod barretenberg_structures;
 mod composer;
 #[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
+mod crs_parse;
 #[cfg(test)]
 mod merkle;
 mod pedersen;
