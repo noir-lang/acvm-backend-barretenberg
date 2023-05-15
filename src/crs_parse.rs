@@ -58,12 +58,6 @@ struct Manifest {
     start_from: u32,
 }
 
-#[derive(Debug)]
-pub enum CRSError {
-    IO(std::io::Error),
-    NotEnoughPoints { need: u32 },
-}
-
 impl Manifest {
     /// Returns the number of bytes needed to encode the `Manifest`
     fn size() -> u64 {
@@ -152,12 +146,11 @@ impl CRS {
     /// and stores those points in the CRS.
     ///
     /// If the `degree` is too much, then a `NotEnoughPoints` error is returned.
-    pub(crate) fn from_raw_dir<P: AsRef<Path>>(path: P, degree: u32) -> Result<CRS, CRSError> {
+    pub(crate) fn from_raw_dir<P: AsRef<Path>>(path: P, degree: u32) -> std::io::Result<CRS> {
         let path_to_transcript00 = path.as_ref().join(TRANSCRIPT_FILES[0]);
-        let (g1_points, remaining) =
-            Self::parse_g1_points(&path_to_transcript00, degree).map_err(CRSError::IO)?;
+        let (g1_points, remaining) = Self::parse_g1_points(&path_to_transcript00, degree)?;
 
-        let g2_point = Self::parse_g2_point(path_to_transcript00).map_err(CRSError::IO)?;
+        let g2_point = Self::parse_g2_point(path_to_transcript00)?;
 
         Ok(CRS {
             g1_points,
