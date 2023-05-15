@@ -3,9 +3,12 @@ use std::io::BufReader;
 use std::io::Read;
 use std::path::Path;
 
+use crate::crs::download_crs;
+use crate::crs::transcript_number_to_filename;
+
 const TRANSCRIPT_FILES: [&str; 1] = ["transcript00.dat"];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct SerializedFq([u64; 4]);
 
 impl SerializedFq {
@@ -16,7 +19,7 @@ impl SerializedFq {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct SerializedG1Affine {
     x: SerializedFq,
     y: SerializedFq,
@@ -30,18 +33,19 @@ impl SerializedG1Affine {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct SerializedFq2 {
     c0: SerializedFq,
     c1: SerializedFq,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct SerializedG2Affine {
     x: SerializedFq2,
     y: SerializedFq2,
 }
 
+#[derive(Debug, Default)]
 pub(crate) struct CRS {
     pub g1_points: Vec<SerializedG1Affine>,
     pub g2_point: SerializedG2Affine,
@@ -116,12 +120,15 @@ impl CRS {
         let file_to_transcript = File::open(&path_to_transcript)?;
         let mut reader = BufReader::new(&file_to_transcript);
         let manifest = Manifest::read(&mut reader)?;
-        let g1_points = CRS::read_serialized_g1_points(&mut reader, num_points);
+
+        // Compute the number of points to read from the transcript
+        let num_points_to_read = std::cmp::min(manifest.num_g1_points, num_points);
+        let g1_points = CRS::read_serialized_g1_points(&mut reader, num_points_to_read);
 
         let remaining_points = if manifest.num_g1_points < num_points {
             num_points - manifest.num_g1_points
         } else {
-            manifest.num_g1_points - num_points
+            0
         };
 
         return Ok((g1_points, remaining_points));
@@ -142,6 +149,9 @@ impl CRS {
         Ok(CRS::read_serialized_g2_point(&mut reader))
     }
 
+    #[deprecated(
+        note = "use `new` method as this method will only parse the first transcript. This is the current behavior before this PR"
+    )]
     /// Reads `degree` number of points from the file at `path`
     /// and stores those points in the CRS.
     ///
@@ -156,6 +166,40 @@ impl CRS {
             g1_points,
             g2_point,
         })
+    }
+
+    pub fn new<P: AsRef<Path>>(dir_to_save: P, num_points: u32) -> std::io::Result<CRS> {
+        let mut crs = CRS::default();
+
+        let mut points_left_to_parse = num_points;
+        for transcript_number in 0.. {
+            let path_to_transcript = dir_to_save
+                .as_ref()
+                .to_path_buf()
+                .join(transcript_number_to_filename(transcript_number));
+
+            if let Err(_) = download_crs(path_to_transcript.clone(), transcript_number) {
+                todo!("We should return a CRS Error here");
+                return Err(std::io::ErrorKind::InvalidInput.into());
+            }
+
+            // Parse G1 points
+            let (parsed_g1_points, remaining_to_parse) =
+                Self::parse_g1_points(&path_to_transcript, points_left_to_parse)?;
+            crs.g1_points.extend(parsed_g1_points);
+
+            // If we are on the first transcript file, then this contains G2 points so we parse those too
+            if transcript_number == 0 {
+                crs.g2_point = Self::parse_g2_point(path_to_transcript)?;
+            }
+
+            if remaining_to_parse == 0 {
+                return Ok(crs);
+            }
+            points_left_to_parse = remaining_to_parse;
+        }
+
+        Ok(crs)
     }
 
     /// Reads `degree` number of G1 Points from the transcript
@@ -267,11 +311,12 @@ mod tests {
         let dir = tempdir().unwrap();
 
         let dir_path = dir.path().to_path_buf();
-        let file_path = dir_path.join("transcript00.dat");
-        let res = download_crs(file_path, 0);
-        assert!(res.is_ok());
+        // let file_path = dir_path.join("transcript00.dat");
+        // let res = download_crs(file_path, 0);
+        // assert!(res.is_ok());
 
-        let crs = CRS::from_raw_dir(dir_path, 1_000).unwrap();
+        // let crs = CRS::from_raw_dir(dir_path, 1_000).unwrap();
+        let crs = CRS::new(dir_path, 1_000).unwrap();
         let crs = ArkCRS::from_raw_crs(crs);
         for point in &crs.g1_points {
             assert!(point.is_on_curve());
