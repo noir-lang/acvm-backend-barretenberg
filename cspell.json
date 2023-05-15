@@ -56,7 +56,6 @@
         "subshell",
         "thiserror",
         "bincode",
-        "thiserror",
         // In Solidity
         //
         "addmod",
