@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=bbd9ab7ca5be3fb31f3e141fee2522704852f5de#bbd9ab7ca5be3fb31f3e141fee2522704852f5de"
+source = "git+https://github.com/noir-lang/acvm?rev=44604f872126602787e38794026d86345380f2bb#44604f872126602787e38794026d86345380f2bb"
 dependencies = [
  "acir_field",
  "flate2",
@@ -17,7 +17,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=bbd9ab7ca5be3fb31f3e141fee2522704852f5de#bbd9ab7ca5be3fb31f3e141fee2522704852f5de"
+source = "git+https://github.com/noir-lang/acvm?rev=44604f872126602787e38794026d86345380f2bb#44604f872126602787e38794026d86345380f2bb"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,10 +30,11 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=bbd9ab7ca5be3fb31f3e141fee2522704852f5de#bbd9ab7ca5be3fb31f3e141fee2522704852f5de"
+source = "git+https://github.com/noir-lang/acvm?rev=44604f872126602787e38794026d86345380f2bb#44604f872126602787e38794026d86345380f2bb"
 dependencies = [
  "acir",
  "acvm_stdlib",
+ "async-trait",
  "blake2",
  "crc32fast",
  "indexmap",
@@ -71,7 +72,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=bbd9ab7ca5be3fb31f3e141fee2522704852f5de#bbd9ab7ca5be3fb31f3e141fee2522704852f5de"
+source = "git+https://github.com/noir-lang/acvm?rev=44604f872126602787e38794026d86345380f2bb#44604f872126602787e38794026d86345380f2bb"
 dependencies = [
  "acir",
 ]
@@ -237,6 +238,17 @@ checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
 dependencies = [
  "num-traits",
  "rand",
+]
+
+[[package]]
+name = "async-trait"
+version = "0.1.66"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b84f9ebcc6c1f5b8cb160f6990096a5c127f423fcb6e1ccc46c370cbdfb75dfc"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
