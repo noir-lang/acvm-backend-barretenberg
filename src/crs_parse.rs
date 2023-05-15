@@ -6,8 +6,6 @@ use std::path::Path;
 use crate::crs::download_crs;
 use crate::crs::transcript_number_to_filename;
 
-const TRANSCRIPT_FILES: [&str; 1] = ["transcript00.dat"];
-
 #[derive(Debug, Clone, Copy, Default)]
 pub(crate) struct SerializedFq([u64; 4]);
 
@@ -157,6 +155,7 @@ impl CRS {
     ///
     /// If the `degree` is too much, then a `NotEnoughPoints` error is returned.
     pub(crate) fn from_raw_dir<P: AsRef<Path>>(path: P, degree: u32) -> std::io::Result<CRS> {
+        const TRANSCRIPT_FILES: [&str; 1] = ["transcript00.dat"];
         let path_to_transcript00 = path.as_ref().join(TRANSCRIPT_FILES[0]);
         let (g1_points, remaining) = Self::parse_g1_points(&path_to_transcript00, degree)?;
 
@@ -255,8 +254,6 @@ mod tests {
     use ark_bn254::{Fq, Fq2, G1Affine, G2Affine};
     use ark_ff::{BigInteger256, PrimeField};
 
-    use crate::crs::download_crs;
-
     use super::{SerializedG1Affine, SerializedG2Affine, CRS};
 
     // Convert the limbs into montgomery form
@@ -280,7 +277,7 @@ mod tests {
     }
 
     fn to_arkworks_points_g1(points: &[SerializedG1Affine]) -> Vec<G1Affine> {
-        let mut ark_points = Vec::new();
+        let mut ark_points = Vec::with_capacity(points.len());
 
         for point in points {
             let ark_x = limbs_to_field_element(point.x.0);
@@ -309,14 +306,10 @@ mod tests {
 
         use tempfile::tempdir;
         let dir = tempdir().unwrap();
-
         let dir_path = dir.path().to_path_buf();
-        // let file_path = dir_path.join("transcript00.dat");
-        // let res = download_crs(file_path, 0);
-        // assert!(res.is_ok());
 
-        // let crs = CRS::from_raw_dir(dir_path, 1_000).unwrap();
         let crs = CRS::new(dir_path, 1_000).unwrap();
+
         let crs = ArkCRS::from_raw_crs(crs);
         for point in &crs.g1_points {
             assert!(point.is_on_curve());

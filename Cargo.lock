@@ -55,9 +55,7 @@ dependencies = [
  "ark-bn254 0.3.0",
  "ark-ec 0.3.0",
  "ark-ff 0.3.0",
- "ark-poly 0.3.0",
  "ark-serialize 0.3.0",
- "ark-std 0.3.0",
  "barretenberg-sys",
  "blake2",
  "dirs 3.0.2",
@@ -162,6 +160,7 @@ dependencies = [
  "ark-std 0.3.0",
  "derivative",
  "num-traits",
+ "rayon",
  "zeroize",
 ]
 
@@ -172,7 +171,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
 dependencies = [
  "ark-ff 0.4.2",
- "ark-poly 0.4.2",
+ "ark-poly",
  "ark-serialize 0.4.2",
  "ark-std 0.4.0",
  "derivative",
@@ -196,6 +195,7 @@ dependencies = [
  "num-bigint",
  "num-traits",
  "paste",
+ "rayon",
  "rustc_version 0.3.3",
  "zeroize",
 ]
@@ -267,19 +267,6 @@ dependencies = [
 
 [[package]]
 name = "ark-poly"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b0f78f47537c2f15706db7e98fe64cc1711dbf9def81218194e17239e53e5aa"
-dependencies = [
- "ark-ff 0.3.0",
- "ark-serialize 0.3.0",
- "ark-std 0.3.0",
- "derivative",
- "hashbrown 0.11.2",
-]
-
-[[package]]
-name = "ark-poly"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
@@ -297,7 +284,6 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d6c2b318ee6e10f8c2853e73a83adc0ccb88995aa978d8a3408d492ab2ee671"
 dependencies = [
- "ark-serialize-derive 0.3.0",
  "ark-std 0.3.0",
  "digest 0.9.0",
 ]
@@ -308,21 +294,10 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
 dependencies = [
- "ark-serialize-derive 0.4.2",
+ "ark-serialize-derive",
  "ark-std 0.4.0",
  "digest 0.10.6",
  "num-bigint",
-]
-
-[[package]]
-name = "ark-serialize-derive"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8dd4e5f0bf8285d5ed538d27fab7411f3e297908fd93c62195de8bee3f199e82"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -344,6 +319,7 @@ checksum = "1df2c09229cbc5a028b1d70e00fdb2acee28b1055dfb5ca73eea49c5a25c4e7c"
 dependencies = [
  "num-traits",
  "rand",
+ "rayon",
 ]
 
 [[package]]
