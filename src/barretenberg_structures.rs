@@ -3,6 +3,8 @@ use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
 
+use crate::Error;
+
 #[derive(Debug, Default, Clone)]
 pub(crate) struct Assignments(Vec<FieldElement>);
 
@@ -300,6 +302,34 @@ impl HashToFieldConstraint {
         buffer
     }
 }
+
+#[derive(Clone, Hash, Debug)]
+pub(crate) struct Keccak256Constraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
+}
+
+impl Keccak256Constraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let inputs_len = self.inputs.len() as u32;
+        buffer.extend_from_slice(&inputs_len.to_be_bytes());
+        for constraint in self.inputs.iter() {
+            buffer.extend_from_slice(&constraint.0.to_be_bytes());
+            buffer.extend_from_slice(&constraint.1.to_be_bytes());
+        }
+
+        let result_len = self.result.len() as u32;
+        buffer.extend_from_slice(&result_len.to_be_bytes());
+        for constraint in self.result.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer
+    }
+}
+
 #[derive(Clone, Hash, Debug)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
@@ -396,6 +426,7 @@ pub(crate) struct ConstraintSystem {
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
+    keccak_constraints: Vec<Keccak256Constraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -468,6 +499,14 @@ impl ConstraintSystem {
         blake2s_constraints: Vec<Blake2sConstraint>,
     ) -> Self {
         self.blake2s_constraints = blake2s_constraints;
+        self
+    }
+
+    pub(crate) fn keccak256_constraints(
+        mut self,
+        keccak256_constraints: Vec<Keccak256Constraint>,
+    ) -> Self {
+        self.keccak_constraints = keccak256_constraints;
         self
     }
 
@@ -567,6 +606,13 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
+        // Serialize each Keccak constraint
+        let keccak_len = self.keccak_constraints.len() as u32;
+        buffer.extend_from_slice(&keccak_len.to_be_bytes());
+        for constraint in self.keccak_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
         // Serialize each Pedersen constraint
         let pedersen_len = self.pedersen_constraints.len() as u32;
         buffer.extend_from_slice(&pedersen_len.to_be_bytes());
@@ -599,15 +645,18 @@ impl ConstraintSystem {
     }
 }
 
-impl From<&Circuit> for ConstraintSystem {
+impl TryFrom<&Circuit> for ConstraintSystem {
+    type Error = Error;
+
     /// Converts an `IR` into the `StandardFormat` constraint system
-    fn from(circuit: &Circuit) -> Self {
+    fn try_from(circuit: &Circuit) -> Result<Self, Self::Error> {
         // Create constraint system
         let mut constraints: Vec<Constraint> = Vec::new();
         let mut range_constraints: Vec<RangeConstraint> = Vec::new();
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
+        let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
@@ -685,11 +734,12 @@ impl From<&Circuit> for ConstraintSystem {
                             let mut outputs_iter = gadget_call.outputs.iter();
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
-                                let out_byte = outputs_iter.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "missing rest of output. Tried to get byte {i} but failed"
+                                let out_byte = outputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        format!("Missing rest of output. Tried to get byte {i} but failed"),
                                     )
-                                });
+                                })?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
@@ -714,11 +764,13 @@ impl From<&Circuit> for ConstraintSystem {
                             let mut outputs_iter = gadget_call.outputs.iter();
                             let mut result = [0i32; 32];
                             for (i, res) in result.iter_mut().enumerate() {
-                                let out_byte = outputs_iter.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "missing rest of output. Tried to get byte {i} but failed"
-                                    )
-                                });
+                                let out_byte =
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
 
                                 let out_byte_index = out_byte.witness_index() as i32;
                                 *res = out_byte_index
@@ -735,15 +787,22 @@ impl From<&Circuit> for ConstraintSystem {
 
                             // leaf
                             let leaf = {
-                                let leaf_input = inputs_iter
-                                    .next()
-                                    .expect("missing leaf to check membership for");
+                                let leaf_input = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing leaf to check membership for".into(),
+                                    )
+                                })?;
                                 leaf_input.witness.witness_index() as i32
                             };
                             // index
                             let index = {
-                                let index_input =
-                                    inputs_iter.next().expect("missing index for leaf");
+                                let index_input = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing index for leaf".into(),
+                                    )
+                                })?;
                                 index_input.witness.witness_index() as i32
                             };
 
@@ -775,26 +834,35 @@ impl From<&Circuit> for ConstraintSystem {
 
                             // pub_key_x
                             let public_key_x = {
-                                let pub_key_x = inputs_iter
-                                    .next()
-                                    .expect("missing `x` component for public key");
+                                let pub_key_x = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing `x` component for public key".into(),
+                                    )
+                                })?;
                                 pub_key_x.witness.witness_index() as i32
                             };
                             // pub_key_y
                             let public_key_y = {
-                                let pub_key_y = inputs_iter
-                                    .next()
-                                    .expect("missing `y` component for public key");
+                                let pub_key_y = inputs_iter.next().ok_or_else(|| {
+                                    Error::MalformedBlackBoxFunc(
+                                        gadget_call.name,
+                                        "Missing `y` component for public key".into(),
+                                    )
+                                })?;
                                 pub_key_y.witness.witness_index() as i32
                             };
                             // signature
+
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
-                                let sig_byte = inputs_iter.next().unwrap_or_else(|| {
-                                    panic!(
-                                    "missing rest of signature. Tried to get byte {i} but failed",
-                                )
-                                });
+                                let sig_byte =
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let sig_byte_index = sig_byte.witness.witness_index() as i32;
                                 *sig = sig_byte_index
                             }
@@ -862,7 +930,13 @@ impl From<&Circuit> for ConstraintSystem {
                             // public key x
                             let mut public_key_x = [0i32; 32];
                             for (i, pkx) in public_key_x.iter_mut().enumerate() {
-                                let x_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of x component for public key. Tried to get byte {i} but failed"));
+                                let x_byte =
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of `x` component for public key. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let x_byte_index = x_byte.witness.witness_index() as i32;
                                 *pkx = x_byte_index;
                             }
@@ -870,7 +944,13 @@ impl From<&Circuit> for ConstraintSystem {
                             // public key y
                             let mut public_key_y = [0i32; 32];
                             for (i, pky) in public_key_y.iter_mut().enumerate() {
-                                let y_byte = inputs_iter.next().unwrap_or_else(|| panic!("missing rest of y component for public key. Tried to get byte {i} but failed"));
+                                let y_byte =
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of `y` component for public key. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let y_byte_index = y_byte.witness.witness_index() as i32;
                                 *pky = y_byte_index;
                             }
@@ -878,11 +958,13 @@ impl From<&Circuit> for ConstraintSystem {
                             // signature
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
-                                let sig_byte = inputs_iter.next().unwrap_or_else(|| {
-                                    panic!(
-                                    "missing rest of signature. Tried to get byte {i} but failed",
-                                )
-                                });
+                                let sig_byte =
+                                    inputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
                                 let sig_byte_index = sig_byte.witness.witness_index() as i32;
                                 *sig = sig_byte_index;
                             }
@@ -923,8 +1005,40 @@ impl From<&Circuit> for ConstraintSystem {
 
                             fixed_base_scalar_mul_constraints.push(fixed_base_scalar_mul);
                         }
-                        BlackBoxFunc::Keccak256 => panic!("Keccak256 has not yet been implemented"),
-                        BlackBoxFunc::AES => panic!("AES has not yet been implemented"),
+                        BlackBoxFunc::Keccak256 => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in gadget_call.inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
+
+                            assert_eq!(gadget_call.outputs.len(), 32);
+
+                            let mut outputs_iter = gadget_call.outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte =
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            gadget_call.name,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
+
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_constraint = Keccak256Constraint {
+                                inputs: keccak_inputs,
+                                result,
+                            };
+
+                            keccak_constraints.push(keccak_constraint);
+                        }
+                        BlackBoxFunc::AES => {
+                            return Err(Error::UnsupportedBlackBoxFunc(gadget_call.name))
+                        }
                     };
                 }
                 Opcode::Directive(_) | Opcode::Oracle(_) => {
@@ -937,7 +1051,7 @@ impl From<&Circuit> for ConstraintSystem {
         }
 
         // Create constraint system
-        ConstraintSystem {
+        Ok(ConstraintSystem {
             var_num: circuit.current_witness_index + 1, // number of witnesses is the witness index + 1;
             public_inputs: circuit.public_inputs().indices(),
             logic_constraints,
@@ -948,10 +1062,11 @@ impl From<&Circuit> for ConstraintSystem {
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
+            keccak_constraints,
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
-        }
+        })
     }
 }
 

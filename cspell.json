@@ -54,6 +54,7 @@
         "nixpkgs",
         "envrc",
         "subshell",
+        "thiserror",
         // In Solidity
         //
         "addmod",
