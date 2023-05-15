@@ -168,8 +168,7 @@ impl Composer for Barretenberg {
         unsafe {
             result = Vec::from_raw_parts(proof_addr, proof_size, proof_size);
         }
-        // println!("{:?}", result);
-        dbg!(proof_size);
+
         // Barretenberg returns proofs which are prepended with the public inputs.
         // This behavior is nonstandard so we strip the public inputs from the proof.
         remove_public_inputs(constraint_system.public_inputs_size(), &result)
@@ -189,7 +188,6 @@ impl Composer for Barretenberg {
 
         // Barretenberg expects public inputs to be prepended onto the proof
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
-        // dbg!(proof.len());
         let cs_buf = constraint_system.to_bytes();
 
         let verified;
@@ -207,7 +205,6 @@ impl Composer for Barretenberg {
 
     fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Vec<u8> {
         let num_public_inputs = public_inputs.len();
-        dbg!(num_public_inputs);
         let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
         let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
@@ -1026,37 +1023,30 @@ mod test {
         num_public_inputs: i32,
     }
 
-    fn fetch_inner_circuit_data() -> RecursiveCircuitData {
-        let (inner_constraint_system, inner_witness_res) = create_logic_constraint_circuit();
-
+    fn fetch_recursive_circuit_data(constraint_system: ConstraintSystem, witness_res: WitnessResult) -> RecursiveCircuitData {
         let bb = Barretenberg::new();
 
-        let proving_key = bb.compute_proving_key(&inner_constraint_system);
-        let verification_key = bb.compute_verification_key(&inner_constraint_system, &proving_key);
+        let proving_key = bb.compute_proving_key(&constraint_system);
+        let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
 
         let proof = bb.create_proof_with_pk(
-            &inner_constraint_system,
-            inner_witness_res.witness,
+            &constraint_system,
+            witness_res.witness,
             &proving_key,
             true,
         );
-        dbg!(proof.len());
-        let encoded_proof = hex::encode(&proof);
-        dbg!(encoded_proof.len());
+
         let verified = bb.verify_with_vk(
-            &inner_constraint_system,
+            &constraint_system,
             &proof,
-            inner_witness_res.public_inputs.clone(),
+            witness_res.public_inputs.clone(),
             &verification_key,
             true,
         );
-        assert_eq!(verified, inner_witness_res.result);
+        assert_eq!(verified, witness_res.result);
 
         // NOTE: We need to get the field bytes in non-montgomery form to read them in correctly using the acir_field API
-        let proof_fields_as_bytes = bb.proof_as_fields(&proof, inner_witness_res.public_inputs);
-        dbg!(proof_fields_as_bytes.len());
-        // let encoded_proof_fields = hex::encode(&proof_fields_as_bytes);
-        // dbg!(encoded_proof_fields.len());
+        let proof_fields_as_bytes = bb.proof_as_fields(&proof, witness_res.public_inputs);
         let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut proof_witness_values: Vec<FieldElement> = Vec::new();
         for proof_field_bytes in proof_fields_bytes_slices {
@@ -1065,8 +1055,7 @@ mod test {
 
         let (vk_fields_as_bytes, vk_hash_as_bytes) =
             bb.verification_key_as_fields(&verification_key);
-        // let vk_hash_hex = FieldElement::from_be_bytes_reduce(&vk_hash_as_bytes);
-        // dbg!(vk_hash_hex.to_hex());
+
         let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut vk_witness_values: Vec<FieldElement> = Vec::new();
         for vk_field_bytes in vk_fields_as_bytes_slices {
@@ -1079,14 +1068,18 @@ mod test {
             key_witnesses: vk_witness_values,
             vk_hash_value,
             proof_witnesses: proof_witness_values,
-            num_public_inputs: inner_constraint_system.public_inputs_size() as i32,
+            num_public_inputs: constraint_system.public_inputs_size() as i32,
         }
+    }
+
+    fn fetch_inner_circuit_data() -> RecursiveCircuitData {
+        let (inner_constraint_system, inner_witness_res) = create_logic_constraint_circuit();
+
+        fetch_recursive_circuit_data(inner_constraint_system, inner_witness_res)
     }
 
     #[test]
     fn test_recursion_constraint() {
-        // let (inner_constraint_system, inner_witness_res) = create_logic_constraint_circuit();
-
         let RecursiveCircuitData {
             key_witnesses,
             proof_witnesses,
@@ -1134,24 +1127,31 @@ mod test {
         let mut witness: Vec<FieldElement> = Vec::new();
         witness.extend(vec![FieldElement::zero(); 18]);
 
-        for witness_val in proof_witnesses {
+        for witness_val in proof_witnesses.clone() {
             witness.push(witness_val);
         }
 
-        for witness_val in key_witnesses {
+        for witness_val in key_witnesses.clone() {
             witness.push(witness_val);
         }
+
+        let public_inputs = output_vars.to_vec().into_iter().map(|v| {
+            v as u32
+        }).collect();
 
         let outer_constraint_system = ConstraintSystem::new()
             .var_num(witness.len() as u32 + 1)
-            .public_inputs(vec![1])
+            .public_inputs(public_inputs)
             .recursion_constraints(vec![recurison_constraint])
             .constraints(vec![vk_equality_constraint]);
 
-        let scalar_10 = FieldElement::from_hex("0x0a").unwrap();
+        let bb = Barretenberg::new();
+        let output_agg_to_insert_into_witness = bb.verify_proof(
+            key_witnesses.clone(), proof_witnesses.clone(), 1, [FieldElement::zero(); 16]);
+
         let outer_witness_res = WitnessResult {
             witness: witness.into(),
-            public_inputs: vec![scalar_10].into(),
+            public_inputs: output_agg_to_insert_into_witness.to_vec().into(),
             result: true,
         };
 
@@ -1162,8 +1162,7 @@ mod test {
 
         let mut recursion_constraints = Vec::new();
 
-        let witness_start_offset: i32 = 1;
-        let mut witness_offset: i32 = witness_start_offset;
+        let mut witness_offset: i32 = 1;
         let mut output_aggregation_object = [0 as i32; 16];
         let mut witness: Vec<FieldElement> = Vec::new();
 
@@ -1178,8 +1177,6 @@ mod test {
             let proof_witnesses = inner_circuit.proof_witnesses;
             let key_witnesses = inner_circuit.key_witnesses;
 
-            // TODO
-            // dbg!(key_witnesses[5]);
             let has_nested_proof: bool = key_witnesses[5] == FieldElement::one();
 
             let num_inner_public_inputs = inner_circuit.num_public_inputs as i32;
@@ -1205,7 +1202,7 @@ mod test {
             if has_nested_proof {
                 for i in 6..22 {
                     let key_witness_as_int = key_witnesses[i].to_u128() as i32;
-                    nested_aggregation_object[i] = key_witness_as_int;
+                    nested_aggregation_object[i - 6] = key_witness_as_int;
                 }
             }
 
@@ -1214,7 +1211,6 @@ mod test {
             for i in 0..proof_size {
                 proof_indices.push(i + proof_indices_start_idx);
             }
-            dbg!(key_witnesses.len());
             for i in 0..key_witnesses.len() as i32 {
                 key_indices.push(i + key_indices_start_idx);
             }
@@ -1238,19 +1234,8 @@ mod test {
                 witness.push(FieldElement::zero());
             }
 
-            // let output_agg_to_insert_into_witness;
-            // let mut input_aggregation_state = [FieldElement::zero(); 16];
-            // if has_input_aggregation_object {
-            //     for i in 0..16 {
-            //         let input_agg_idx = input_aggregation_object[i] as usize;
-            //         let input_agg = witness[input_agg_idx - witness_start_offset as usize];
-            //         input_aggregation_state[i as usize] = input_agg;
-            //     }
-            // }
             output_agg_to_insert_into_witness = bb.verify_proof(
-                key_witnesses.clone(), proof_witnesses.clone(), FieldElement::from_hex("0x0a").unwrap(), output_agg_to_insert_into_witness);
-            let output_agg_as_hex = output_agg_to_insert_into_witness.clone().into_iter().map(|w: FieldElement| w.to_hex()).collect::<Vec<String>>();
-            dbg!(output_agg_as_hex.clone());
+                key_witnesses.clone(), proof_witnesses.clone(), num_inner_public_inputs as u32, output_agg_to_insert_into_witness);
 
             for witness_val in proof_witnesses {
                 witness.push(witness_val);
@@ -1262,16 +1247,9 @@ mod test {
             }
         }
 
-        let witness_as_hex = witness.clone().into_iter().map(|w: FieldElement| w.to_hex()).collect::<Vec<String>>();
-        // dbg!(witness_as_hex.clone());
-        // dbg!(witness_as_hex.len());
-
-        let public_inputs = output_aggregation_object.to_vec().into_iter().map(|v| {
-            // public_input_values.push(witness[v as usize - 1]);
-            v as u32
-        }).collect();
+        let public_inputs = output_aggregation_object.to_vec().into_iter().map(|v| v as u32).collect();
         let constraint_system = ConstraintSystem::new().var_num((witness.len() + 1) as u32).public_inputs(public_inputs).recursion_constraints(recursion_constraints);
-        // dbg!(public_input_values.clone());
+
         let witness_res = WitnessResult {
             witness: witness.into(),
             public_inputs: output_agg_to_insert_into_witness.to_vec().into(),
@@ -1285,33 +1263,31 @@ mod test {
         let mut inner_circuits = Vec::new();
         let a = fetch_inner_circuit_data();
         inner_circuits.push(a);
+
         let b = fetch_inner_circuit_data();
         inner_circuits.push(b);
+
         let c = create_outer_circuit(inner_circuits);
-        dbg!(c.0.clone());
+
         test_composer_with_pk_vk(c.0, vec![c.1]);
+    }
 
-        // let constraint_system = c.0;
-        // let witness = c.1;
-        // let bb = Barretenberg::new();
+    #[test]
+    fn test_full_recursive_composition() {
+        let mut layer_1_circuits = Vec::new();
+        let a_circuit = fetch_inner_circuit_data();
+        layer_1_circuits.push(a_circuit);
 
-        // let proving_key = bb.compute_proving_key(&constraint_system);
-        // let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
+        let mut layer_2_circuits = Vec::new();
+        let a2_circuit = fetch_inner_circuit_data();
+        layer_2_circuits.push(a2_circuit);
 
-        // let proof =
-        // bb.create_proof_with_pk(&constraint_system, witness.into(), &proving_key, false);
-        // dbg!(proof.len());
-        // // println!("{:?}", proof.clone());
+        let b_cs_and_witness = create_outer_circuit(layer_1_circuits);
+        let b_circuit = fetch_recursive_circuit_data(b_cs_and_witness.0, b_cs_and_witness.1);
+        layer_2_circuits.push(b_circuit);
 
-        // // dbg!(encoded_proof);
-        // let verified = bb.verify_with_vk(
-        //     &constraint_system,
-        //     &proof,
-        //     vec![FieldElement::zero(); 16].into(),
-        //     &verification_key,
-        //     false,
-        // );
-        // assert_eq!(verified, true);
+        let c_cs_and_witness = create_outer_circuit(layer_2_circuits);
+        test_composer_with_pk_vk(c_cs_and_witness.0, vec![c_cs_and_witness.1]);
     }
 
     fn create_outer_circuit_debug(inner_circuits: Vec<RecursiveCircuitData>) -> (ConstraintSystem, WitnessResult) {
@@ -1332,10 +1308,7 @@ mod test {
             let proof_witnesses = inner_circuit.proof_witnesses;
             let key_witnesses = inner_circuit.key_witnesses;
 
-            // TODO
-            // dbg!(key_witnesses[5]);
             let has_nested_proof: bool = key_witnesses[5] == FieldElement::one();
-            dbg!(has_nested_proof);
 
             let num_inner_public_inputs = inner_circuit.num_public_inputs as i32;
 
@@ -1357,7 +1330,6 @@ mod test {
             for i in 0..16 {
                 output_aggregation_object[i] = i as i32 + output_aggregation_object_start_idx;
             }
-            dbg!(output_aggregation_object);
             if has_nested_proof {
                 for i in 6..22 {
                     let key_witness_as_int = key_witnesses[i].to_u128() as i32;
@@ -1365,12 +1337,10 @@ mod test {
                 }
             }
 
-            dbg!(proof_witnesses.len());
             let proof_size = proof_witnesses.len() as i32;
             for i in 0..proof_size {
                 proof_indices.push(i + proof_indices_start_idx);
             }
-            dbg!(key_witnesses.len());
             for i in 0..key_witnesses.len() as i32 {
                 key_indices.push(i + key_indices_start_idx);
             }
@@ -1407,9 +1377,8 @@ mod test {
                 }
             }
             output_agg_to_insert_into_witness = bb.verify_proof(
-                key_witnesses.clone(), proof_witnesses.clone(), FieldElement::from_hex("0x0a").unwrap(), input_aggregation_state);
-            // let output_agg_as_hex = output_agg_to_insert_into_witness.clone().into_iter().map(|w: FieldElement| w.to_hex()).collect::<Vec<String>>();
-            // dbg!(output_agg_as_hex.clone());
+                key_witnesses.clone(), proof_witnesses.clone(), num_inner_public_inputs as u32, input_aggregation_state);
+
             for i in 0..16 {
                 let witness_index = i + (output_aggregation_object_start_idx - witness_start_offset) as usize;
 
@@ -1426,19 +1395,11 @@ mod test {
             }
         }
 
-        // let witness_as_hex = witness.clone().into_iter().map(|w: FieldElement| w.to_hex()).collect::<Vec<String>>();
-        // dbg!(witness_as_hex.clone());
-        // dbg!(witness_as_hex.len());
-
         let mut public_input_values = Vec::new();
         let public_inputs = output_aggregation_object.to_vec().into_iter().map(|v| {
             public_input_values.push(witness[v as usize - witness_start_offset as usize]);
             v as u32
         }).collect::<Vec<_>>();
-
-        let public_input_values_hex = public_input_values.clone().into_iter().map(|w: FieldElement| w.to_hex()).collect::<Vec<String>>();
-        dbg!(public_input_values_hex.clone());
-        dbg!(public_inputs.clone());
 
         let constraint_system = ConstraintSystem::new().var_num((witness.len() + 1) as u32).public_inputs(public_inputs).recursion_constraints(recursion_constraints);
         let witness_res = WitnessResult {
@@ -1446,7 +1407,6 @@ mod test {
             public_inputs: public_input_values.into(),
             result: true,
         };
-        // dbg!(constraint_system.clone());
 
         (constraint_system, witness_res)
     }
@@ -1456,31 +1416,12 @@ mod test {
         let mut inner_circuits = Vec::new();
         let a = fetch_inner_circuit_data();
         inner_circuits.push(a);
+
         let b = fetch_inner_circuit_data();
         inner_circuits.push(b);
+
         let c = create_outer_circuit_debug(inner_circuits);
         test_composer_with_pk_vk(c.0, vec![c.1]);
-
-        // let constraint_system = c.0;
-        // let bb = Barretenberg::new();
-
-        // let proving_key = bb.compute_proving_key(&constraint_system);
-        // let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
-
-        // let proof =
-        // bb.create_proof_with_pk(&constraint_system, c.1.witness.into(), &proving_key, false);
-        // dbg!(proof.len());
-        // // println!("{:?}", proof.clone());
-
-        // // dbg!(encoded_proof);
-        // let verified = bb.verify_with_vk(
-        //     &constraint_system,
-        //     &proof,
-        //     c.1.public_inputs,
-        //     &verification_key,
-        //     false,
-        // );
-        // assert_eq!(verified, true);
     }
 
     #[derive(Clone, Debug)]
@@ -1502,10 +1443,7 @@ mod test {
         for test_case in test_cases.into_iter() {
             let proof =
                 bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key, false);
-            // dbg!(proof.len());
-            // println!("{:?}", proof.clone());
-            // dbg!(encoded_proof);
-            dbg!("about to verify");
+            dbg!(proof.len());
             let verified = bb.verify_with_vk(
                 &constraint_system,
                 &proof,

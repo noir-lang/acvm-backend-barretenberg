@@ -192,7 +192,7 @@ impl PartialWitnessGenerator for Barretenberg {
                 // TODO: handle input_aggregation_object once we enable arbitrary depth recursion in bberg
 
                 let output_aggregation_object =
-                    self.verify_proof(key, proof, public_input, [FieldElement::zero(); 16]);
+                    self.verify_proof(key, proof, 1, [FieldElement::zero(); 16]);
 
                 assert_eq!(func_call.outputs.len(), 16);
 

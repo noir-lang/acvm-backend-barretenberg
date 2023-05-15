@@ -1,3 +1,5 @@
+use core::num;
+
 use acvm::FieldElement;
 
 use super::{Barretenberg, FIELD_BYTES};
@@ -7,7 +9,7 @@ pub(crate) trait Recursion {
         &self,
         key: Vec<FieldElement>,
         proof: Vec<FieldElement>,
-        public_input: FieldElement,
+        num_public_inputs: u32,
         input_aggregation_object: [FieldElement; 16],
     ) -> [FieldElement; 16];
 }
@@ -18,7 +20,7 @@ impl Recursion for Barretenberg {
         &self,
         key: Vec<FieldElement>,
         proof: Vec<FieldElement>,
-        public_input: FieldElement,
+        num_public_inputs: u32,
         input_aggregation_object: [FieldElement; 16],
     ) -> [FieldElement; 16] {
         let mut vk_as_bytes = Vec::new();
@@ -41,12 +43,13 @@ impl Recursion for Barretenberg {
         let mut output_agg_obj_addr: *mut u8 = std::ptr::null_mut();
         let p_output_agg_obj = &mut output_agg_obj_addr as *mut *mut u8;
 
+        // let public_inputs = vec![1];
         let output_agg_size;
         unsafe {
             output_agg_size = barretenberg_sys::recursion::verify_proof(
                 &vk_as_bytes,
                 &proof_fields_as_bytes,
-                1 as u32,
+                num_public_inputs,
                 &input_agg_obj_bytes,
                 p_output_agg_obj,
             );
