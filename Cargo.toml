@@ -76,4 +76,4 @@ js = [
 ]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "b248e606dd69c25d33ae77c5c5c0541adbf80cd6" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "bbd9ab7ca5be3fb31f3e141fee2522704852f5de" }
