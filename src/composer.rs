@@ -866,7 +866,14 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        let bad_values = vec![scalar_0, scalar_1, scalar_1 + scalar_1];
+        let case_2 = WitnessResult {
+            witness: bad_values.into(),
+            public_inputs: Assignments::default(),
+            result: false,
+        };
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
     }
 
     #[test]
