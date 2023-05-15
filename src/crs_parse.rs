@@ -73,7 +73,7 @@ impl Manifest {
         num_fields_in_struct * size_of_each_field_in_bytes
     }
     /// Reads `Manifest` from the given file
-    fn read_from_file(reader: &mut BufReader<File>) -> std::io::Result<Manifest> {
+    fn read_from_file(reader: &mut impl Read) -> std::io::Result<Manifest> {
         let mut bytes = [0u8; 4];
         reader.read_exact(&mut bytes)?;
         let transcript_number = u32::from_be_bytes(bytes);
@@ -115,34 +115,49 @@ impl Manifest {
 }
 
 impl CRS {
+    pub(crate) fn parse_g1_points<P: AsRef<Path>>(
+        path_to_transcript: P,
+        num_points: u32,
+    ) -> std::io::Result<(Vec<SerializedG1Affine>, u32)> {
+        let file_to_transcript = File::open(&path_to_transcript)?;
+        let mut reader = BufReader::new(&file_to_transcript);
+        let manifest = Manifest::read_from_file(&mut reader)?;
+        let g1_points = CRS::read_serialized_g1_points(&mut reader, num_points);
+
+        let remaining_points = if manifest.num_g1_points < num_points {
+            num_points - manifest.num_g1_points
+        } else {
+            manifest.num_g1_points - num_points
+        };
+
+        return Ok((g1_points, remaining_points));
+    }
+
+    pub(crate) fn parse_g2_point<P: AsRef<Path>>(
+        path_to_first_transcript: P,
+    ) -> std::io::Result<SerializedG2Affine> {
+        let mut file_to_transcript = File::open(&path_to_first_transcript)?;
+        let mut reader = BufReader::new(&file_to_transcript);
+        let manifest = Manifest::read_from_file(&mut reader)?;
+
+        use std::io::{Seek, SeekFrom};
+
+        let g2_offset = SerializedG1Affine::size_in_bytes() * manifest.num_g1_points as u64;
+        file_to_transcript.seek(SeekFrom::Start(g2_offset + Manifest::size()))?;
+        let mut reader = BufReader::new(file_to_transcript);
+        Ok(CRS::read_serialized_g2_point(&mut reader))
+    }
+
     /// Reads `degree` number of points from the file at `path`
     /// and stores those points in the CRS.
     ///
     /// If the `degree` is too much, then a `NotEnoughPoints` error is returned.
     pub(crate) fn from_raw_dir<P: AsRef<Path>>(path: P, degree: u32) -> Result<CRS, CRSError> {
         let path_to_transcript00 = path.as_ref().join(TRANSCRIPT_FILES[0]);
-        let file_to_transcript00 = File::open(&path_to_transcript00).map_err(CRSError::IO)?;
-        let mut reader = BufReader::new(file_to_transcript00);
+        let (g1_points, remaining) =
+            Self::parse_g1_points(&path_to_transcript00, degree).map_err(CRSError::IO)?;
 
-        let manifest = Manifest::read_from_file(&mut reader).map_err(CRSError::IO)?;
-
-        // if manifest.num_g1_points < degree {
-        //     return Err(CRSError::NotEnoughPoints {
-        //         need: degree - manifest.num_g1_points,
-        //     });
-        // }
-        let g1_points = CRS::read_serialized_g1_points(&mut reader, degree);
-
-        let mut file_to_transcript00 = File::open(path_to_transcript00).map_err(CRSError::IO)?;
-        use std::io::{Seek, SeekFrom};
-
-        let g2_offset = SerializedG1Affine::size_in_bytes() * manifest.num_g1_points as u64;
-
-        file_to_transcript00
-            .seek(SeekFrom::Start(g2_offset + Manifest::size()))
-            .map_err(CRSError::IO)?;
-        let mut reader = BufReader::new(file_to_transcript00);
-        let g2_point = CRS::read_serialized_g2_point(&mut reader);
+        let g2_point = Self::parse_g2_point(path_to_transcript00).map_err(CRSError::IO)?;
 
         Ok(CRS {
             g1_points,
@@ -151,10 +166,7 @@ impl CRS {
     }
 
     /// Reads `degree` number of G1 Points from the transcript
-    fn read_serialized_g1_points(
-        reader: &mut BufReader<File>,
-        degree: u32,
-    ) -> Vec<SerializedG1Affine> {
+    fn read_serialized_g1_points(reader: &mut impl Read, degree: u32) -> Vec<SerializedG1Affine> {
         let mut g1_points = Vec::with_capacity(degree as usize);
 
         for _ in 0..degree {
