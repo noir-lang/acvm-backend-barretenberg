@@ -41,9 +41,16 @@ pkg-config = "0.3"
 [dev-dependencies]
 sled = "0.34.6"
 tempfile = "3.3"
+# arkworks CRS test
+ark-ec = { version = "0.3", default-features = false }
+ark-serialize = { version = "0.3", default-features = false }
+ark-poly = { version = "^0.3.0", default-features = false }
+ark-ff = { version = "^0.3.0", default-features = false }
+ark-bn254 = "^0.3.0"
+ark-std = "^0.3.0"
 
 [features]
-default = ["native"]
+default = ["wasm"]
 native = [
     "dep:barretenberg-sys",
     "dep:reqwest",
