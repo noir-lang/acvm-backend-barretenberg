@@ -8,11 +8,10 @@ const G2_START: usize = 28 + (5_040_001 * 64);
 const G2_END: usize = G2_START + 128 - 1;
 
 const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
-const TRANSCRIPT_NAME: &str = "transcript00.dat";
-const TRANSCRIPT_URL: &str =
-    "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/transcript00.dat";
+const PARTIAL_TRANSCRIPT_URL: &str =
+    "http://aztec-ignition.s3.amazonaws.com/MAIN%20IGNITION/monomial/";
 
-fn transcript_location() -> PathBuf {
+fn transcript_location(transcript_number: u16) -> PathBuf {
     match env::var("BARRETENBERG_TRANSCRIPT") {
         Ok(dir) => PathBuf::from(dir),
         Err(_) => dirs::home_dir()
@@ -20,8 +19,17 @@ fn transcript_location() -> PathBuf {
             .join(".nargo")
             .join("backends")
             .join(BACKEND_IDENTIFIER)
-            .join(TRANSCRIPT_NAME),
+            .join(transcript_number_to_filename(transcript_number)),
     }
+}
+/// Converts a number into the appropriate transcript filename plus extension
+///
+/// Example: `0` will map to transcript00.dat
+/// Example: `100` will map to transcript100.dat
+///
+/// TODO: Add smoke tests for this
+fn transcript_number_to_filename(transcript_number: u16) -> String {
+    format!("transcript{:0>2}.dat", transcript_number.to_string())
 }
 
 #[allow(clippy::upper_case_acronyms)]
@@ -39,15 +47,15 @@ impl CRS {
         let g1_end = G1_START + ((num_points + 1) * 64) - 1;
 
         // If the CRS does not exist, then download it from S3
-        if !transcript_location().exists() {
-            download_crs(transcript_location()).unwrap();
+        if !transcript_location(0).exists() {
+            download_crs(transcript_location(0), 0).unwrap();
         }
 
         // Read CRS, if it's incomplete, download it
-        let mut crs = read_crs(transcript_location());
+        let mut crs = read_crs(transcript_location(0));
         if crs.len() < G2_END + 1 {
-            download_crs(transcript_location()).unwrap();
-            crs = read_crs(transcript_location());
+            download_crs(transcript_location(0), 0).unwrap();
+            crs = read_crs(transcript_location(0));
         }
 
         let g1_data = crs[G1_START..=g1_end].to_vec();
@@ -70,15 +78,15 @@ pub(crate) struct G2 {
 impl G2 {
     pub(crate) fn new() -> G2 {
         // If the CRS does not exist, then download it from S3
-        if !transcript_location().exists() {
-            download_crs(transcript_location()).unwrap();
+        if !transcript_location(0).exists() {
+            download_crs(transcript_location(0), 0).unwrap();
         }
 
         // Read CRS, if it's incomplete, download it
-        let mut crs = read_crs(transcript_location());
+        let mut crs = read_crs(transcript_location(0));
         if crs.len() < G2_END + 1 {
-            download_crs(transcript_location()).unwrap();
-            crs = read_crs(transcript_location());
+            download_crs(transcript_location(0), 0).unwrap();
+            crs = read_crs(transcript_location(0));
         }
 
         let data = crs[G2_START..=G2_END].to_vec();
@@ -111,15 +119,21 @@ fn read_crs(path: PathBuf) -> Vec<u8> {
 
 // XXX: Below is the logic to download the CRS if it is not already present
 
-pub(crate) fn download_crs(path_to_transcript: PathBuf) -> Result<(), String> {
+pub(crate) fn download_crs(
+    path_to_transcript: PathBuf,
+    transcript_number: u16,
+) -> Result<(), String> {
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
-        .block_on(download_crs_async(path_to_transcript))
+        .block_on(download_crs_async(path_to_transcript, transcript_number))
 }
 
-async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
+async fn download_crs_async(
+    path_to_transcript: PathBuf,
+    transcript_number: u16,
+) -> Result<(), String> {
     // Remove old crs
     if path_to_transcript.exists() {
         let _ = std::fs::remove_file(path_to_transcript.as_path());
@@ -134,12 +148,18 @@ async fn download_crs_async(path_to_transcript: PathBuf) -> Result<(), String> {
         std::fs::create_dir_all(transcript_dir).unwrap();
     }
 
-    let res = reqwest::get(TRANSCRIPT_URL)
+    let full_transcript_url = format!(
+        "{}{}",
+        PARTIAL_TRANSCRIPT_URL,
+        transcript_number_to_filename(transcript_number)
+    );
+
+    let res = reqwest::get(&full_transcript_url)
         .await
-        .map_err(|err| format!("Failed to GET from '{}' ({})", TRANSCRIPT_URL, err))?;
+        .map_err(|err| format!("Failed to GET from '{}' ({})", full_transcript_url, err))?;
     let total_size = res.content_length().ok_or(format!(
         "Failed to get content length from '{}'",
-        TRANSCRIPT_URL
+        full_transcript_url
     ))?;
 
     // Indicatif setup
@@ -199,6 +219,6 @@ fn downloading() {
     let dir = tempdir().unwrap();
 
     let file_path = dir.path().to_path_buf().join("transcript00.dat");
-    let res = download_crs(file_path);
+    let res = download_crs(file_path, 0);
     assert_eq!(res, Ok(()));
 }
