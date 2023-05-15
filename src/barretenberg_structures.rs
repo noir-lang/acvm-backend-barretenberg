@@ -661,9 +661,9 @@ impl ConstraintSystem {
 
 #[derive(Clone, Hash, Debug)]
 pub(crate) struct MemOpBarretenberg {
+    pub(crate) is_store: i8,
     pub(crate) index: Constraint,
     pub(crate) value: Constraint,
-    pub(crate) is_store: i8,
 }
 impl MemOpBarretenberg {
     fn to_bytes(&self) -> Vec<u8> {
