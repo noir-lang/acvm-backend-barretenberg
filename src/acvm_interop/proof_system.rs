@@ -22,7 +22,7 @@ impl ProofSystemCompiler for Barretenberg {
         )?)
     }
 
-    fn opcode_supported(&self, opcode: &Opcode) -> bool {
+    fn supports_opcode(&self, opcode: &Opcode) -> bool {
         match opcode {
             Opcode::Arithmetic(_) => true,
             Opcode::Directive(_) => true,
