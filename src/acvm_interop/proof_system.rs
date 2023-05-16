@@ -44,7 +44,7 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::EcdsaSecp256k1
                 | BlackBoxFunc::FixedBaseScalarMul => true,
 
-                BlackBoxFunc::AES |  => false,
+                BlackBoxFunc::AES => false,
             },
         }
     }
