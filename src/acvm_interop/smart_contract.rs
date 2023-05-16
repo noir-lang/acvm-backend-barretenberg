@@ -5,7 +5,7 @@ use crate::{crs::CRS, BackendError, Barretenberg};
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
@@ -39,7 +39,7 @@ impl SmartContract for Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
@@ -75,47 +75,60 @@ impl SmartContract for Barretenberg {
     }
 }
 
-#[test]
-fn test_smart_contract() -> Result<(), BackendError> {
-    use crate::barretenberg_structures::{Constraint, ConstraintSystem};
-    use crate::composer::Composer;
-    use crate::Barretenberg;
-    use acvm::FieldElement;
-    use tokio::runtime::Builder;
+#[cfg(test)]
+mod tests {
+    use acvm::SmartContract;
 
-    let constraint = Constraint {
-        a: 1,
-        b: 2,
-        c: 3,
-        qm: FieldElement::zero(),
-        ql: FieldElement::one(),
-        qr: FieldElement::one(),
-        qo: -FieldElement::one(),
-        qc: FieldElement::zero(),
-    };
+    use crate::BackendError;
 
-    let constraint_system = ConstraintSystem::new()
-        .var_num(4)
-        .public_inputs(vec![1, 2])
-        .constraints(vec![constraint]);
+    #[test]
+    #[cfg(not(target_arch = "wasm32"))]
+    fn test_smart_contract() -> Result<(), BackendError> {
+        use tokio::runtime::Builder;
 
-    let bb = Barretenberg::new();
-    let crs = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(bb.get_crs(&constraint_system))?;
+        Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(test_smart_contract_async())
+    }
 
-    let proving_key = bb.compute_proving_key(&constraint_system)?;
-    let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
+    async fn test_smart_contract_async() -> Result<(), BackendError> {
+        use crate::barretenberg_structures::{Constraint, ConstraintSystem};
+        use crate::composer::Composer;
+        use crate::Barretenberg;
+        use acvm::FieldElement;
 
-    let common_reference_string: Vec<u8> = crs.try_into()?;
+        let constraint = Constraint {
+            a: 1,
+            b: 2,
+            c: 3,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
+        };
 
-    let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .public_inputs(vec![1, 2])
+            .constraints(vec![constraint]);
 
-    assert!(contract.contains("contract BaseUltraVerifier"));
-    assert!(contract.contains("contract UltraVerifier"));
-    assert!(contract.contains("library UltraVerificationKey"));
+        let bb = Barretenberg::new();
+        let crs = bb.get_crs(&constraint_system).await?;
 
-    Ok(())
+        let proving_key = bb.compute_proving_key(&constraint_system)?;
+        let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
+
+        let common_reference_string: Vec<u8> = crs.try_into()?;
+
+        let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+
+        assert!(contract.contains("contract BaseUltraVerifier"));
+        assert!(contract.contains("contract UltraVerifier"));
+        assert!(contract.contains("library UltraVerificationKey"));
+
+        Ok(())
+    }
 }

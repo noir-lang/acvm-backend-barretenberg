@@ -6,7 +6,7 @@ pub(crate) trait ScalarMul {
     fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error>;
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl ScalarMul for Barretenberg {
     fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error> {
         use super::native::field_to_array;
@@ -23,7 +23,7 @@ impl ScalarMul for Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl ScalarMul for Barretenberg {
     fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error> {
         let lhs_ptr: usize = 0;

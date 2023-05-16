@@ -1,5 +1,6 @@
 #![warn(unused_crate_dependencies, unused_extern_crates)]
 #![warn(unreachable_pub)]
+#![feature(async_closure)]
 
 // `acvm-backend-barretenberg` can either interact with the Barretenberg backend through a static library
 // or through an embedded wasm binary. It does not make sense to include both of these backends at the same time.
@@ -11,9 +12,8 @@ compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the
 mod acvm_interop;
 mod barretenberg_structures;
 mod composer;
-#[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod merkle;
 mod pedersen;
 mod pippenger;
@@ -23,7 +23,7 @@ mod schnorr;
 use acvm::acir::BlackBoxFunc;
 use thiserror::Error;
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 #[derive(Debug, Error)]
 enum FeatureError {
     #[error("Could not slice field element")]
@@ -34,7 +34,7 @@ enum FeatureError {
     FieldToArray(usize, usize),
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 #[derive(Debug, Error)]
 enum FeatureError {
     #[error("Trying to call {name} resulted in an error")]
@@ -63,6 +63,8 @@ enum FeatureError {
     },
     #[error("Value expected to be 0 or 1 representing a boolean")]
     InvalidBool,
+    #[error("Unknown error occurred")]
+    Unknown,
 }
 
 #[derive(Debug, Error)]
@@ -122,9 +124,9 @@ const FIELD_BYTES: usize = 32;
 
 #[derive(Debug)]
 pub struct Barretenberg {
-    #[cfg(feature = "wasm")]
+    #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
     memory: wasmer::Memory,
-    #[cfg(feature = "wasm")]
+    #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
     instance: wasmer::Instance,
 }
 
@@ -144,7 +146,7 @@ fn smoke() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 mod native {
     use super::{Barretenberg, Error, FeatureError};
 
@@ -163,9 +165,8 @@ mod native {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 mod wasm {
-    use std::cell::Cell;
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
     use super::{Barretenberg, Error, FeatureError};
@@ -279,7 +280,7 @@ mod wasm {
         pub(super) fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
             let memory = &self.memory;
 
-            #[cfg(feature = "js")]
+            #[cfg(target_arch = "wasm32")]
             {
                 let view: js_sys::Uint8Array = memory.uint8view();
                 for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
@@ -288,7 +289,7 @@ mod wasm {
                 return;
             }
 
-            #[cfg(not(feature = "js"))]
+            #[cfg(not(target_arch = "wasm32"))]
             {
                 for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
                     .iter()
@@ -310,13 +311,13 @@ mod wasm {
             let memory = &self.memory;
             let end = start + length;
 
-            #[cfg(feature = "js")]
+            #[cfg(target_arch = "wasm32")]
             return memory.uint8view().to_vec()[start..end].to_vec();
 
-            #[cfg(not(feature = "js"))]
+            #[cfg(not(target_arch = "wasm32"))]
             return memory.view()[start..end]
                 .iter()
-                .map(|cell: &Cell<u8>| cell.get())
+                .map(|cell| cell.get())
                 .collect();
         }
 
@@ -432,14 +433,32 @@ mod wasm {
         let mut ptr_end = 0;
         let byte_view = env.memory.uint8view();
 
-        for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-            if cell != &Cell::new(0) {
+        #[cfg(target_arch = "wasm32")]
+        for (i, cell) in byte_view.to_vec()[ptr as usize..].iter().enumerate() {
+            if cell != &0_u8 {
                 ptr_end = i;
             } else {
                 break;
             }
         }
 
+        #[cfg(not(target_arch = "wasm32"))]
+        for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+            if cell != &0.into() {
+                ptr_end = i;
+            } else {
+                break;
+            }
+        }
+
+        #[cfg(target_arch = "wasm32")]
+        let str_vec: Vec<_> = byte_view.to_vec()[ptr as usize..=(ptr + ptr_end as i32) as usize]
+            .iter()
+            .cloned()
+            .map(|chr| chr)
+            .collect();
+
+        #[cfg(not(target_arch = "wasm32"))]
         let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
             .iter()
             .cloned()
@@ -459,12 +478,12 @@ mod wasm {
         let res = getrandom::getrandom(&mut u8_buffer);
         match res {
             Ok(()) => {
-                unsafe {
-                    env.memory
-                        .uint8view()
-                        .subarray(buf as u32, buf as u32 + buf_len as u32)
-                        .copy_from(&u8_buffer);
-                }
+                // unsafe {
+                //     env.memory
+                //         .uint8view()
+                //         .subarray(buf as u32, buf as u32 + buf_len as u32)
+                //         .copy_from(&u8_buffer);
+                // }
                 0_i32 // __WASI_ESUCCESS
             }
             Err(_) => 29_i32, // __WASI_EIO

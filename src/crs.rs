@@ -70,6 +70,48 @@ impl TryFrom<&CRS> for Vec<u8> {
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
+    // TODO(#162): Allow downloading from more than just the first transcript
+    // We try to load a URL from the environment and otherwise fallback to a hardcoded URL to allow
+    // Nix to override the URL for testing in the sandbox, where there is no network access on Linux
+    let transcript_url = match env::var(TRANSCRIPT_URL_ENV_VAR) {
+        Ok(url) => url,
+        Err(_) => TRANSCRIPT_URL_FALLBACK.into(),
+    };
+
+    let client = Client::new();
+
+    let request = client
+        .get(&transcript_url)
+        .header(reqwest::header::RANGE, format!("bytes={start}-{end}"))
+        .build()
+        .map_err(|source| CRSError::Request {
+            url: transcript_url.to_string(),
+            source,
+        })?;
+    let response = client
+        .execute(request)
+        .await
+        .map_err(|source| CRSError::Fetch {
+            url: transcript_url.to_string(),
+            source,
+        })?;
+    // TODO: Console.log?
+    let _total_size = response.content_length().ok_or(CRSError::Length {
+        url: transcript_url.to_string(),
+    })?;
+
+    // download chunks
+    let crs_bytes = response
+        .bytes()
+        .await
+        .map_err(|source| CRSError::Download { source })?;
+
+    Ok(crs_bytes.into())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
     use bytes::{BufMut, BytesMut};
     use futures_util::StreamExt;
@@ -145,7 +187,7 @@ pub(crate) async fn download_crs(num_points: usize) -> Result<CRS, Error> {
     })
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 #[test]
 fn does_not_panic() -> Result<(), Error> {
     use tokio::runtime::Builder;
@@ -169,6 +211,7 @@ fn does_not_panic() -> Result<(), Error> {
 }
 
 #[test]
+#[cfg(not(target_arch = "wasm32"))]
 fn crs_update() -> Result<(), Error> {
     use tokio::runtime::Builder;
 

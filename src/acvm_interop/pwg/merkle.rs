@@ -31,7 +31,7 @@ pub(super) fn compute_merkle_root(
     )
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use crate::merkle::{MerkleTree, MessageHasher};
     use crate::Error;

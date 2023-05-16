@@ -12,7 +12,7 @@ pub(crate) trait Pedersen {
     fn encrypt(&self, inputs: Vec<FieldElement>) -> Result<(FieldElement, FieldElement), Error>;
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl Pedersen for Barretenberg {
     fn compress_native(
         &self,
@@ -65,7 +65,7 @@ impl Pedersen for Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl Pedersen for Barretenberg {
     fn compress_native(
         &self,

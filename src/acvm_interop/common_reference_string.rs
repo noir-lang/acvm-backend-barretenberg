@@ -2,8 +2,7 @@ use acvm::{acir::circuit::Circuit, async_trait, CommonReferenceString};
 
 use crate::{composer::Composer, BackendError, Barretenberg};
 
-// TODO: Separate impl for JS feature
-#[async_trait]
+#[async_trait(?Send)]
 impl CommonReferenceString for Barretenberg {
     type Error = BackendError;
 

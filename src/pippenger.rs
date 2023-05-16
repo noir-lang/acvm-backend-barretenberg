@@ -1,27 +1,27 @@
 use crate::{Barretenberg, Error};
 
 pub(crate) struct Pippenger {
-    #[cfg(feature = "native")]
+    #[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
     pippenger_ptr: *mut std::os::raw::c_void,
-    #[cfg(not(feature = "native"))]
+    #[cfg(any(feature = "wasm", target_arch = "wasm32"))]
     pippenger_ptr: crate::wasm::WASMValue,
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl Pippenger {
     pub(crate) fn pointer(&self) -> *mut std::os::raw::c_void {
         self.pippenger_ptr
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl Pippenger {
     pub(crate) fn pointer(&self) -> crate::wasm::WASMValue {
         self.pippenger_ptr.clone()
     }
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl Barretenberg {
     pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Result<Pippenger, Error> {
         let pippenger_ptr = barretenberg_sys::pippenger::new(crs_data);
@@ -30,7 +30,7 @@ impl Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl Barretenberg {
     pub(crate) fn get_pippenger(&self, crs_data: &[u8]) -> Result<Pippenger, Error> {
         use super::FIELD_BYTES;

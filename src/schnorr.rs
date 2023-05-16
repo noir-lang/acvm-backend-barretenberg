@@ -16,7 +16,7 @@ pub(crate) trait SchnorrSig {
     ) -> Result<bool, Error>;
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl SchnorrSig for Barretenberg {
     fn construct_signature(
         &self,
@@ -51,7 +51,7 @@ impl SchnorrSig for Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl SchnorrSig for Barretenberg {
     fn construct_signature(
         &self,

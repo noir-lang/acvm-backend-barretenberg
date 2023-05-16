@@ -3,10 +3,11 @@ use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
+use serde::{Deserialize, Serialize};
 
 use crate::Error;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub(crate) struct Assignments(Vec<FieldElement>);
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
@@ -51,7 +52,7 @@ impl From<Vec<FieldElement>> for Assignments {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Constraint {
     pub(crate) a: i32,
     pub(crate) b: i32,
@@ -112,7 +113,7 @@ impl Constraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct RangeConstraint {
     pub(crate) a: i32,
     pub(crate) num_bits: i32,
@@ -128,10 +129,11 @@ impl RangeConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct EcdsaConstraint {
     pub(crate) hashed_message: Vec<i32>,
-    pub(crate) signature: [i32; 64],
+    pub(crate) sig_s: [i32; 32],
+    pub(crate) sig_e: [i32; 32],
     pub(crate) public_key_x: [i32; 32],
     pub(crate) public_key_y: [i32; 32],
     pub(crate) result: i32,
@@ -147,9 +149,14 @@ impl EcdsaConstraint {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        let sig_len = (self.signature.len()) as u32;
-        buffer.extend_from_slice(&sig_len.to_be_bytes());
-        for sig_byte in self.signature.iter() {
+        let sig_s_len = (self.sig_s.len()) as u32;
+        buffer.extend_from_slice(&sig_s_len.to_be_bytes());
+        for sig_byte in self.sig_s.iter() {
+            buffer.extend_from_slice(&sig_byte.to_be_bytes());
+        }
+        let sig_e_len = (self.sig_e.len()) as u32;
+        buffer.extend_from_slice(&sig_e_len.to_be_bytes());
+        for sig_byte in self.sig_e.iter() {
             buffer.extend_from_slice(&sig_byte.to_be_bytes());
         }
 
@@ -170,10 +177,11 @@ impl EcdsaConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct SchnorrConstraint {
     pub(crate) message: Vec<i32>,
-    pub(crate) signature: [i32; 64],
+    pub(crate) sig_s: [i32; 32],
+    pub(crate) sig_e: [i32; 32],
     pub(crate) public_key_x: i32,
     pub(crate) public_key_y: i32,
     pub(crate) result: i32,
@@ -189,9 +197,14 @@ impl SchnorrConstraint {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        let sig_len = (self.signature.len()) as u32;
-        buffer.extend_from_slice(&sig_len.to_be_bytes());
-        for sig_byte in self.signature.iter() {
+        let sig_s_len = (self.sig_s.len()) as u32;
+        buffer.extend_from_slice(&sig_s_len.to_be_bytes());
+        for sig_byte in self.sig_s.iter() {
+            buffer.extend_from_slice(&sig_byte.to_be_bytes());
+        }
+        let sig_e_len = (self.sig_e.len()) as u32;
+        buffer.extend_from_slice(&sig_e_len.to_be_bytes());
+        for sig_byte in self.sig_e.iter() {
             buffer.extend_from_slice(&sig_byte.to_be_bytes());
         }
 
@@ -202,7 +215,7 @@ impl SchnorrConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct ComputeMerkleRootConstraint {
     pub(crate) hash_path: Vec<i32>,
     pub(crate) leaf: i32,
@@ -229,7 +242,7 @@ impl ComputeMerkleRootConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Sha256Constraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -255,7 +268,7 @@ impl Sha256Constraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Blake2sConstraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -281,7 +294,7 @@ impl Blake2sConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct HashToFieldConstraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: i32,
@@ -304,7 +317,7 @@ impl HashToFieldConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Keccak256Constraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -331,7 +344,7 @@ impl Keccak256Constraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
     pub(crate) result_x: i32,
@@ -354,7 +367,7 @@ impl PedersenConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct FixedBaseScalarMulConstraint {
     pub(crate) scalar: i32,
     pub(crate) pubkey_x: i32,
@@ -373,7 +386,7 @@ impl FixedBaseScalarMulConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct LogicConstraint {
     pub(crate) a: i32,
     pub(crate) b: i32,
@@ -415,7 +428,7 @@ impl LogicConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug, Default)]
+#[derive(Clone, Hash, Debug, Default, Serialize, Deserialize)]
 pub(crate) struct ConstraintSystem {
     var_num: u32,
     public_inputs: Vec<u32>,
@@ -659,7 +672,7 @@ impl ConstraintSystem {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct MemOpBarretenberg {
     pub(crate) is_store: i8,
     pub(crate) index: Constraint,
@@ -677,7 +690,7 @@ impl MemOpBarretenberg {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct BlockConstraint {
     pub(crate) init: Vec<Constraint>,
     pub(crate) trace: Vec<MemOpBarretenberg>,
@@ -902,8 +915,18 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let public_key_y = public_key_y.witness.witness_index() as i32;
                             // signature
                             let mut signature_iter = signature.iter();
-                            let mut signature = [0i32; 64];
-                            for (i, sig) in signature.iter_mut().enumerate() {
+                            let mut sig_s = [0i32; 32];
+                            for (i, sig) in sig_s.iter_mut().enumerate() {
+                                let sig_byte =
+                                    signature_iter.next().ok_or_else(||Error::MalformedBlackBoxFunc(
+                                        BlackBoxFunc::SchnorrVerify,
+                                        format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                    ))?;
+                                let sig_byte_index = sig_byte.witness.witness_index() as i32;
+                                *sig = sig_byte_index
+                            }
+                            let mut sig_e = [0i32; 32];
+                            for (i, sig) in sig_e.iter_mut().enumerate() {
                                 let sig_byte =
                                     signature_iter.next().ok_or_else(||Error::MalformedBlackBoxFunc(
                                         BlackBoxFunc::SchnorrVerify,
@@ -925,7 +948,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = SchnorrConstraint {
                                 message,
-                                signature,
+                                sig_s,
+                                sig_e,
                                 public_key_x,
                                 public_key_y,
                                 result,
@@ -1009,8 +1033,18 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             // signature
                             let mut signature_inputs = signature_inputs.iter();
-                            let mut signature = [0i32; 64];
-                            for (i, sig) in signature.iter_mut().enumerate() {
+                            let mut sig_s = [0i32; 32];
+                            for (i, sig) in sig_s.iter_mut().enumerate() {
+                                let sig_byte =
+                                    signature_inputs.next().ok_or_else(|| Error::MalformedBlackBoxFunc(
+                                        BlackBoxFunc::EcdsaSecp256k1,
+                                        format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                    ))?;
+                                let sig_byte_index = sig_byte.witness.witness_index() as i32;
+                                *sig = sig_byte_index;
+                            }
+                            let mut sig_e = [0i32; 32];
+                            for (i, sig) in sig_e.iter_mut().enumerate() {
                                 let sig_byte =
                                     signature_inputs.next().ok_or_else(|| Error::MalformedBlackBoxFunc(
                                         BlackBoxFunc::EcdsaSecp256k1,
@@ -1032,7 +1066,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = EcdsaConstraint {
                                 hashed_message,
-                                signature,
+                                sig_s,
+                                sig_e,
                                 public_key_x,
                                 public_key_y,
                                 result,

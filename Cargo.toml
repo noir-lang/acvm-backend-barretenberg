@@ -9,23 +9,32 @@ license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 acvm = { version = "0.11.0", features = ["bn254"] }
-
-thiserror = "1.0.21"
-serde = { version = "1.0.136", features = ["derive"] }
 bincode = "1.3.3"
-bytes = "1.4"
+serde = { version = "1.0.136", features = ["derive"] }
+thiserror = "1.0.21"
 
-reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["stream", "rustls-tls"] }
-futures-util = { version = "0.3.14", optional = true }
-indicatif = { version = "0.17.3", optional = true }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+futures-util = { version = "0.3.14" }
+indicatif = { version = "0.17.3" }
+bytes = { version = "1.4" }
+reqwest = { version = "0.11.16", default-features = false, features = ["stream", "rustls-tls"] }
 
 # Native
 barretenberg-sys = { version = "0.1.2", optional = true }
 
 # Wasm
-wasmer = { version = "2.3", optional = true, default-features = false }
+wasmer = { version = "2.3", optional = true, default-features = false, features = [
+    "sys-default",
+    "cranelift",
+    "default-compiler",
+    "default-cranelift",
+    "default-universal",
+] }
 rust-embed = { version = "6.6.0", optional = true, features = [
     "debug-embed",
     "interpolate-folder-path",
@@ -33,42 +42,41 @@ rust-embed = { version = "6.6.0", optional = true, features = [
 ] }
 getrandom = { version = "0.2", optional = true }
 
-[build-dependencies]
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = [ "js" ] }
+js-sys = { version = "*" }
+reqwest = { version = "0.11.16", default-features = false }
+rust-embed = { version = "6.6.0", features = [
+    "debug-embed",
+    "interpolate-folder-path",
+    "include-exclude",
+] }
+wasmer = { version = "2.3", default-features = false, features = [ "js-default" ] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.build-dependencies]
 pkg-config = "0.3"
 
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 blake2 = "0.10.6"
 sled = "0.34.6"
 tempfile = "3.3"
-tokio = "1.0"
+tokio = { version = "1.0", features = [ "macros" ] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.0"
+wasm-bindgen-futures = "*"
+wasm-mt = "*"
+serde_closure = "0.3"
+wasm-bindgen = "*"
+wasm-mt-test = "*"
 
 [features]
-default = ["native"]
-native = [
-    "dep:barretenberg-sys",
-    "dep:reqwest",
-    "dep:futures-util",
-    "dep:indicatif"
-]
+default = ["dep:barretenberg-sys"]
 wasm = [
-    "wasmer",
     "dep:rust-embed",
     "dep:getrandom",
-    "wasmer/sys-default",
-    "wasmer/cranelift",
-    "wasmer/default-compiler",
-    "wasmer/default-cranelift",
-    "wasmer/default-universal",
-    "dep:reqwest",
-    "dep:futures-util",
-    "dep:indicatif"
-]
-js = [
-    "wasmer",
-    "dep:rust-embed",
-    "dep:getrandom",
-    "wasmer/js-default"
+    "dep:wasmer"
 ]
 
 [patch.crates-io]
-acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", rev = "44604f872126602787e38794026d86345380f2bb" }
+acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", rev = "959e4e42b690ec0eac7d284286cd8de1cb8358c7" }

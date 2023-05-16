@@ -6,7 +6,7 @@ use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-#[async_trait]
+#[async_trait(?Send)]
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
@@ -55,7 +55,7 @@ pub(crate) trait Composer {
     ) -> Result<bool, Error>;
 }
 
-#[cfg(feature = "native")]
+#[cfg(not(any(feature = "wasm", target_arch = "wasm32")))]
 impl Composer for Barretenberg {
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
@@ -206,7 +206,7 @@ impl Composer for Barretenberg {
     }
 }
 
-#[cfg(not(feature = "native"))]
+#[cfg(any(feature = "wasm", target_arch = "wasm32"))]
 impl Composer for Barretenberg {
     // XXX: There seems to be a bug in the C++ code
     // where it causes a `HeapAccessOutOfBound` error
@@ -407,19 +407,23 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> 
 #[cfg(test)]
 mod test {
     use acvm::FieldElement;
+    use serde::{Deserialize, Serialize};
+
+    #[cfg(not(target_arch = "wasm32"))]
+    use tokio::test;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::{wasm_bindgen_test as test, wasm_bindgen_test_configure};
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_test_configure!(run_in_browser);
 
     use super::*;
-    use crate::{
-        barretenberg_structures::{
-            BlockConstraint, ComputeMerkleRootConstraint, Constraint, Keccak256Constraint,
-            LogicConstraint, MemOpBarretenberg, PedersenConstraint, RangeConstraint,
-            SchnorrConstraint,
-        },
-        merkle::{MerkleTree, MessageHasher},
+    use crate::barretenberg_structures::{
+        BlockConstraint, Constraint, Keccak256Constraint, LogicConstraint, MemOpBarretenberg,
+        PedersenConstraint, RangeConstraint, SchnorrConstraint,
     };
 
     #[test]
-    fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
+    async fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
         let constraint_system = ConstraintSystem::new();
 
         let case_1 = WitnessResult {
@@ -429,11 +433,11 @@ mod test {
         };
         let test_cases = vec![case_1];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -486,10 +490,11 @@ mod test {
         };
         let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
+
     #[test]
-    fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -558,11 +563,11 @@ mod test {
             /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
         ];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_multiple_constraints() -> Result<(), Error> {
+    async fn test_multiple_constraints() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -600,22 +605,27 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_schnorr_constraints() -> Result<(), Error> {
-        let mut signature_indices = [0i32; 64];
-        for i in 13..(13 + 64) {
-            signature_indices[i - 13] = i as i32;
+    async fn test_schnorr_constraints() -> Result<(), Error> {
+        let mut sig_s_indices = [0i32; 32];
+        for i in 13..(13 + 32) {
+            sig_s_indices[i - 13] = i as i32;
         }
-        let result_index = signature_indices.last().unwrap() + 1;
+        let mut sig_e_indices = [0i32; 32];
+        for i in 46..(46 + 32) {
+            sig_e_indices[i + 32 - 13] = i as i32;
+        }
+        let result_index = sig_e_indices.last().unwrap() + 1;
 
         let constraint = SchnorrConstraint {
             message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             public_key_x: 11,
             public_key_y: 12,
-            signature: signature_indices,
+            sig_s: sig_s_indices,
+            sig_e: sig_e_indices,
             result: result_index,
         };
 
@@ -677,11 +687,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_keccak256_constraint() -> Result<(), Error> {
+    async fn test_keccak256_constraint() -> Result<(), Error> {
         let input_value: u128 = 0xbd;
         let input_index = 1;
 
@@ -728,10 +738,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
+
     #[test]
-    fn test_ped_constraints() -> Result<(), Error> {
+    async fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
             result_x: 3,
@@ -780,11 +791,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_memory_constraints() -> Result<(), Error> {
+    async fn test_memory_constraints() -> Result<(), Error> {
         let two_field = FieldElement::one() + FieldElement::one();
         let one = Constraint {
             a: 0,
@@ -886,12 +897,18 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_compute_merkle_root_constraint() -> Result<(), Error> {
+    #[cfg(all(test, not(target_arch = "wasm32")))]
+    async fn test_compute_merkle_root_constraint() -> Result<(), Error> {
+        use crate::{
+            barretenberg_structures::ComputeMerkleRootConstraint,
+            merkle::{MerkleTree, MessageHasher},
+        };
         use tempfile::tempdir;
+
         let temp_dir = tempdir().unwrap();
         let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
 
@@ -937,11 +954,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_logic_constraints() -> Result<(), Error> {
+    async fn test_logic_constraints() -> Result<(), Error> {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -1027,28 +1044,60 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Serialize, Deserialize)]
     struct WitnessResult {
         witness: Assignments,
         public_inputs: Assignments,
         result: bool,
     }
 
-    fn test_composer_with_pk_vk(
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn test_composer_with_pk_vk(
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) -> Result<(), Error> {
-        use tokio::runtime::Builder;
+        prove_and_verify(constraint_system, test_cases).await
+    }
 
+    #[cfg(target_arch = "wasm32")]
+    async fn test_composer_with_pk_vk(
+        constraint_system: ConstraintSystem,
+        test_cases: Vec<WitnessResult>,
+    ) -> Result<(), Error> {
+        use crate::FeatureError;
+        use wasm_bindgen::prelude::*;
+        use wasm_mt::prelude::*;
+
+        let pkg_js_uri = wasm_mt_test::get_pkg_js_uri();
+
+        let th = wasm_mt_test::create_mt(&pkg_js_uri)
+            .await
+            .thread()
+            .and_init()
+            .await
+            .unwrap();
+
+        exec!(th, async move || {
+            let res = prove_and_verify(constraint_system, test_cases)
+                .await
+                .map_err(|err| JsValue::UNDEFINED)?;
+            Ok(JsValue::UNDEFINED)
+        })
+        .await
+        .map_err(|err| FeatureError::Unknown)?;
+
+        Ok(())
+    }
+
+    async fn prove_and_verify(
+        constraint_system: ConstraintSystem,
+        test_cases: Vec<WitnessResult>,
+    ) -> Result<(), Error> {
         let bb = Barretenberg::new();
-        let crs = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(bb.get_crs(&constraint_system))?;
+        let crs = bb.get_crs(&constraint_system).await?;
 
         let proving_key = bb.compute_proving_key(&constraint_system)?;
         let verification_key = bb.compute_verification_key(&crs, &proving_key)?;

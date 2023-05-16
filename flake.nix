@@ -60,10 +60,11 @@
         ];
       };
 
-      rustToolchain = pkgs.rust-bin.stable."1.66.0".default.override {
+      rustToolchain = pkgs.rust-bin.nightly."2023-04-13".default.override {
         # We include rust-src to ensure rust-analyzer works.
         # See https://discourse.nixos.org/t/rust-src-not-found-and-other-misadventures-of-developing-rust-on-nixos/11570/4
         extensions = [ "rust-src" ];
+        targets = ["wasm32-unknown-unknown"];
       };
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
