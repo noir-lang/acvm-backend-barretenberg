@@ -30,7 +30,7 @@ impl ProofSystemCompiler for Barretenberg {
             Opcode::ROM(_) => true,
             Opcode::RAM(_) => true,
             Opcode::Oracle(_) => true,
-            Opcode::BlackBoxFuncCall(func) => match func {
+            Opcode::BlackBoxFuncCall(func) => match func.name {
                 BlackBoxFunc::AND
                 | BlackBoxFunc::XOR
                 | BlackBoxFunc::RANGE
