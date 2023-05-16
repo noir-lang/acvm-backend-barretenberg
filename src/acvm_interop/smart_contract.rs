@@ -75,47 +75,50 @@ impl SmartContract for Barretenberg {
     }
 }
 
-#[test]
-fn test_smart_contract() -> Result<(), BackendError> {
-    use crate::barretenberg_structures::{Constraint, ConstraintSystem};
-    use crate::composer::Composer;
-    use crate::Barretenberg;
-    use acvm::FieldElement;
-    use tokio::runtime::Builder;
+#[cfg(test)]
+mod tests {
+    use acvm::SmartContract;
+    use tokio::test;
 
-    let constraint = Constraint {
-        a: 1,
-        b: 2,
-        c: 3,
-        qm: FieldElement::zero(),
-        ql: FieldElement::one(),
-        qr: FieldElement::one(),
-        qo: -FieldElement::one(),
-        qc: FieldElement::zero(),
-    };
+    use crate::BackendError;
 
-    let constraint_system = ConstraintSystem::new()
-        .var_num(4)
-        .public_inputs(vec![1, 2])
-        .constraints(vec![constraint]);
+    #[test]
+    async fn test_smart_contract() -> Result<(), BackendError> {
+        use crate::barretenberg_structures::{Constraint, ConstraintSystem};
+        use crate::composer::Composer;
+        use crate::Barretenberg;
+        use acvm::FieldElement;
 
-    let bb = Barretenberg::new();
-    let crs = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(bb.get_crs(&constraint_system))?;
+        let constraint = Constraint {
+            a: 1,
+            b: 2,
+            c: 3,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
+        };
 
-    let proving_key = bb.compute_proving_key(&constraint_system)?;
-    let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .public_inputs(vec![1, 2])
+            .constraints(vec![constraint]);
 
-    let common_reference_string: Vec<u8> = crs.try_into()?;
+        let bb = Barretenberg::new();
+        let crs = bb.get_crs(&constraint_system).await?;
 
-    let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+        let proving_key = bb.compute_proving_key(&constraint_system)?;
+        let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
 
-    assert!(contract.contains("contract BaseUltraVerifier"));
-    assert!(contract.contains("contract UltraVerifier"));
-    assert!(contract.contains("library UltraVerificationKey"));
+        let common_reference_string: Vec<u8> = crs.try_into()?;
 
-    Ok(())
+        let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+
+        assert!(contract.contains("contract BaseUltraVerifier"));
+        assert!(contract.contains("contract UltraVerifier"));
+        assert!(contract.contains("library UltraVerificationKey"));
+
+        Ok(())
+    }
 }

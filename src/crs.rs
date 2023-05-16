@@ -145,57 +145,43 @@ pub(crate) async fn download_crs(num_points: usize) -> Result<CRS, Error> {
     })
 }
 
-#[cfg(feature = "native")]
-#[test]
-fn does_not_panic() -> Result<(), Error> {
-    use tokio::runtime::Builder;
+#[cfg(test)]
+mod tests {
+    use tokio::test;
 
-    let num_points = 4 * 1024;
+    use crate::{crs::download_crs, Error};
 
-    let crs = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(download_crs(num_points))?;
+    #[test]
+    async fn does_not_panic() -> Result<(), Error> {
+        use crate::Barretenberg;
 
-    let p_points = barretenberg_sys::pippenger::new(&crs.g1_data);
+        let backend = Barretenberg::default();
+        let num_points = 4 * 1024;
 
-    unsafe {
-        Vec::from_raw_parts(p_points as *mut u8, num_points * 32, num_points * 32);
+        let crs = download_crs(num_points).await?;
+
+        let _pippenger = backend.get_pippenger(&crs.g1_data)?;
+
+        //TODO check that p_points memory is properly free
+
+        Ok(())
     }
-    //TODO check that p_points memory is properly free
 
-    Ok(())
-}
+    #[test]
+    async fn crs_update() -> Result<(), Error> {
+        let partial_num_points = 2;
+        let full_num_points = 12;
 
-#[test]
-fn crs_update() -> Result<(), Error> {
-    use tokio::runtime::Builder;
+        // Create a partial CRS
+        let mut partial_crs = download_crs(partial_num_points).await?;
 
-    let partial_num_points = 2;
-    let full_num_points = 12;
+        // Update the partial CRS to the full number of points
+        partial_crs.update(full_num_points).await?;
 
-    // Create a partial CRS
-    let mut partial_crs = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(download_crs(partial_num_points))?;
+        // Fetch a full CRS to compare
+        let full_crs = download_crs(full_num_points).await?;
 
-    // Update the partial CRS to the full number of points
-    Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(partial_crs.update(full_num_points))?;
-
-    // Fetch a full CRS to compare
-    let full_crs = Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(download_crs(full_num_points))?;
-
-    assert_eq!(partial_crs, full_crs);
-    Ok(())
+        assert_eq!(partial_crs, full_crs);
+        Ok(())
+    }
 }
