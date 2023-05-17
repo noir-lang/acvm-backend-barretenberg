@@ -1,17 +1,22 @@
 use acvm::SmartContract;
 
-use crate::crs::G2;
-use crate::Barretenberg;
+use crate::{crs::CRS, BackendError, Barretenberg};
 
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
 
 #[cfg(feature = "native")]
 impl SmartContract for Barretenberg {
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
+    type Error = BackendError;
+
+    fn eth_contract_from_vk(
+        &self,
+        common_reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error> {
         use std::slice;
 
-        let g2 = G2::new();
+        let CRS { g2_data, .. } = common_reference_string.try_into()?;
 
         let mut contract_ptr: *mut u8 = std::ptr::null_mut();
         let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
@@ -20,7 +25,7 @@ impl SmartContract for Barretenberg {
         let contract_size;
         unsafe {
             contract_size = barretenberg_sys::composer::get_solidity_verifier(
-                &g2.data,
+                &g2_data,
                 &verification_key,
                 p_contract_ptr,
             );
@@ -28,75 +33,92 @@ impl SmartContract for Barretenberg {
         };
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
-        format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")
+        Ok(format!(
+            "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
+        ))
     }
 }
 
 #[cfg(not(feature = "native"))]
 impl SmartContract for Barretenberg {
-    fn eth_contract_from_vk(&self, verification_key: &[u8]) -> String {
-        use crate::wasm::POINTER_BYTES;
+    type Error = BackendError;
 
-        let g2 = G2::new();
+    fn eth_contract_from_vk(
+        &self,
+        common_reference_string: &[u8],
+        verification_key: &[u8],
+    ) -> Result<String, Self::Error> {
+        let CRS { g2_data, .. } = common_reference_string.try_into()?;
 
-        let g2_ptr = self.allocate(&g2.data);
-        let vk_ptr = self.allocate(verification_key);
+        let g2_ptr = self.allocate(&g2_data)?;
+        let vk_ptr = self.allocate(verification_key)?;
 
         // The smart contract string is not actually written to this pointer.
         // `contract_ptr_ptr` is a pointer to a pointer which holds the smart contract string.
         let contract_ptr_ptr: usize = 0;
 
-        let contract_size = self
-            .call_multiple(
-                "acir_proofs_get_solidity_verifier",
-                vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
-            )
-            .value();
-        let contract_size: usize = contract_size.unwrap_i32() as usize;
+        let contract_size = self.call_multiple(
+            "acir_proofs_get_solidity_verifier",
+            vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
+        )?;
 
         // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
         // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
-        let contract_ptr: [u8; POINTER_BYTES] = self.read_memory(contract_ptr_ptr);
-        let contract_ptr: usize = u32::from_le_bytes(contract_ptr) as usize;
+        let contract_ptr = self.get_pointer(contract_ptr_ptr);
 
-        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size);
+        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size.try_into()?);
 
         let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
-        format!("{verification_key_library}{ULTRA_VERIFIER_CONTRACT}")
+        Ok(format!(
+            "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
+        ))
     }
 }
 
-#[test]
-fn test_smart_contract() {
-    use crate::barretenberg_structures::{Constraint, ConstraintSystem};
-    use crate::composer::Composer;
-    use crate::Barretenberg;
-    use acvm::FieldElement;
+#[cfg(test)]
+mod tests {
+    use acvm::SmartContract;
+    use tokio::test;
 
-    let constraint = Constraint {
-        a: 1,
-        b: 2,
-        c: 3,
-        qm: FieldElement::zero(),
-        ql: FieldElement::one(),
-        qr: FieldElement::one(),
-        qo: -FieldElement::one(),
-        qc: FieldElement::zero(),
-    };
+    use crate::BackendError;
 
-    let constraint_system = ConstraintSystem::new()
-        .var_num(4)
-        .public_inputs(vec![1, 2])
-        .constraints(vec![constraint]);
+    #[test]
+    async fn test_smart_contract() -> Result<(), BackendError> {
+        use crate::barretenberg_structures::{Constraint, ConstraintSystem};
+        use crate::composer::Composer;
+        use crate::Barretenberg;
+        use acvm::FieldElement;
 
-    let bb = Barretenberg::new();
+        let constraint = Constraint {
+            a: 1,
+            b: 2,
+            c: 3,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: -FieldElement::one(),
+            qc: FieldElement::zero(),
+        };
 
-    let proving_key = bb.compute_proving_key(&constraint_system);
-    let verification_key = bb.compute_verification_key(&constraint_system, &proving_key);
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .public_inputs(vec![1, 2])
+            .constraints(vec![constraint]);
 
-    let contract = bb.eth_contract_from_vk(&verification_key);
+        let bb = Barretenberg::new();
+        let crs = bb.get_crs(&constraint_system).await?;
 
-    assert!(contract.contains("contract BaseUltraVerifier"));
-    assert!(contract.contains("contract UltraVerifier"));
-    assert!(contract.contains("library UltraVerificationKey"));
+        let proving_key = bb.compute_proving_key(&constraint_system)?;
+        let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
+
+        let common_reference_string: Vec<u8> = crs.try_into()?;
+
+        let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+
+        assert!(contract.contains("contract BaseUltraVerifier"));
+        assert!(contract.contains("contract UltraVerifier"));
+        assert!(contract.contains("library UltraVerificationKey"));
+
+        Ok(())
+    }
 }

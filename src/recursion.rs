@@ -5,7 +5,7 @@ use acvm::FieldElement;
 use super::{Barretenberg, FIELD_BYTES};
 
 pub(crate) trait Recursion {
-    fn verify_proof(
+    fn verify_proof_(
         &self,
         key: Vec<FieldElement>,
         proof: Vec<FieldElement>,
@@ -16,7 +16,7 @@ pub(crate) trait Recursion {
 
 #[cfg(feature = "native")]
 impl Recursion for Barretenberg {
-    fn verify_proof(
+    fn verify_proof_(
         &self,
         key: Vec<FieldElement>,
         proof: Vec<FieldElement>,

@@ -54,6 +54,8 @@
         "nixpkgs",
         "envrc",
         "subshell",
+        "thiserror",
+        "bincode",
         // In Solidity
         //
         "addmod",
@@ -72,8 +74,6 @@
         "acvm",
         "barretenberg",
         "indicatif",
-        "tempdir",
-        "tempfile",
         "wasmer",
         "getrandom"
     ]

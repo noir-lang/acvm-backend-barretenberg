@@ -1,5 +1,5 @@
 {
-  description = "Build the Barretenberg acvm backend";
+  description = "An ACVM backend which allows proving/verifying ACIR circuits against Aztec Lab's Barretenberg library.";
 
   inputs = {
     nixpkgs = {
@@ -75,10 +75,6 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         RUST_TEST_THREADS = "1";
-
-        # We provide `barretenberg-transcript00` from the overlay to the build.
-        # This is necessary because the Nix sandbox is read-only and downloading during tests would fail
-        BARRETENBERG_TRANSCRIPT = pkgs.barretenberg-transcript00;
       };
 
       nativeEnvironment = sharedEnvironment // {
@@ -114,7 +110,7 @@
       commonArgs = {
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
-        version = "0.0.0";
+        version = "0.1.2";
         # x-release-please-end
 
         src = pkgs.lib.cleanSourceWith {
@@ -153,6 +149,27 @@
         buildInputs = [ ] ++ extraBuildInputs;
       };
 
+      # The `port` is parameterized to support parallel test runs without colliding static servers
+      networkTestArgs = port: {
+        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a static server
+        # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
+        TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+
+        # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
+        # which avoids exposing the entire Nix store to the static server it starts
+        # The static server is moved to the background and killed after checks are completed
+        preCheck = ''
+          cp ${pkgs.barretenberg-transcript00} .
+          echo "Starting simple static server"
+          ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
+          HTTP_SERVER_PID=$!
+        '';
+
+        postCheck = ''
+          kill $HTTP_SERVER_PID
+        '';
+      };
+
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       native-cargo-artifacts = craneLib.buildDepsOnly nativeArgs;
       wasm-cargo-artifacts = craneLib.buildDepsOnly wasmArgs;
@@ -167,12 +184,18 @@
     rec {
       checks = {
         cargo-clippy-native = craneLib.cargoClippy (nativeArgs // {
+          # Crane appends "clippy"
+          pname = "native";
+
           cargoArtifacts = native-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-native = craneLib.cargoTest (nativeArgs // {
+        cargo-test-native = craneLib.cargoTest (nativeArgs // (networkTestArgs 8000) // {
+          # Crane appends "test"
+          pname = "native";
+
           cargoArtifacts = native-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
@@ -180,12 +203,18 @@
         });
 
         cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+          # Crane appends "clippy"
+          pname = "wasm";
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           cargoClippyExtraArgs = "--all-targets -- -D warnings";
         });
 
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // {
+        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
+          # Crane appends "test"
+          pname = "wasm";
+
           cargoArtifacts = wasm-cargo-artifacts;
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
