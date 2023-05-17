@@ -132,6 +132,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
     fn insert_root(&mut self, value: FieldElement) {
         self.db.insert("ROOT".as_bytes(), value.to_be_bytes());
     }
+
     fn fetch_root(&self) -> FieldElement {
         let value = self
             .db
@@ -139,10 +140,12 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             .expect("merkle root should always be present");
         FieldElement::from_be_bytes_reduce(value)
     }
+
     fn insert_depth(&mut self, value: u32) {
         self.db
             .insert("DEPTH".as_bytes(), value.to_be_bytes().into());
     }
+
     fn fetch_depth(&self) -> u32 {
         let value = self
             .db
@@ -150,6 +153,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             .expect("depth should always be present");
         u32::from_be_bytes(value.to_vec().try_into().unwrap())
     }
+
     fn insert_empty_index(&mut self, index: u32) {
         // First fetch the depth to see that this is less than
         let depth = self.fetch_depth();
@@ -160,6 +164,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         self.db
             .insert("EMPTY".as_bytes(), index.to_be_bytes().into());
     }
+
     fn fetch_empty_index(&self) -> u32 {
         let value = self
             .db
@@ -167,10 +172,12 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             .expect("empty index should always be present");
         u32::from_be_bytes(value.to_vec().try_into().unwrap())
     }
+
     fn insert_preimage(&mut self, index: u32, value: Vec<u8>) {
         let index = index as u128;
         self.preimages_tree.insert(index.to_be_bytes(), value);
     }
+
     #[allow(dead_code)]
     fn fetch_preimage(&self, index: usize) -> Vec<u8> {
         let index = index as u128;
@@ -179,18 +186,21 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             .unwrap()
             .to_vec()
     }
+
     fn fetch_hash(&self, index: usize) -> FieldElement {
         let index = index as u128;
 
         let i_vec = self.hashes_tree.get(&index.to_be_bytes()).unwrap();
         FieldElement::from_be_bytes_reduce(i_vec)
     }
+
     fn insert_hash(&mut self, index: u32, hash: FieldElement) {
         let index = index as u128;
 
         self.hashes_tree
             .insert(index.to_be_bytes(), hash.to_be_bytes());
     }
+
     fn find_hash_from_value(&self, leaf_value: &FieldElement) -> Option<u128> {
         for index_db_lef_hash in self.hashes_tree.iter() {
             let (key, db_leaf_hash) = index_db_lef_hash;
