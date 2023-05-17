@@ -73,7 +73,7 @@
         "acir",
         "acvm",
         "barretenberg",
-        "indicatif",
+        "bytesize",
         "wasmer",
         "getrandom"
     ]
