@@ -1,3 +1,4 @@
+use bytesize::ByteSize;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
@@ -71,9 +72,6 @@ impl TryFrom<&CRS> for Vec<u8> {
 }
 
 async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
-    use bytes::{BufMut, BytesMut};
-    use futures_util::StreamExt;
-
     // TODO(#187): Allow downloading from more than just the first transcript
     // We try to load a URL from the environment and otherwise fallback to a hardcoded URL to allow
     // Nix to override the URL for testing in the sandbox, where there is no network access on Linux
@@ -103,29 +101,16 @@ async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
         url: transcript_url.to_string(),
     })?;
 
-    // Indicatif setup
-    use indicatif::{HumanBytes, ProgressBar, ProgressStyle};
-    let pb = ProgressBar::new(total_size).with_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}] {bar:40.cyan/blue} {bytes:>7}/{total_bytes:7} {msg}")
-            .unwrap()
-            .progress_chars("##-"),
-    );
-
-    // download chunks
-    let mut crs_bytes = BytesMut::default();
-    let mut stream = response.bytes_stream();
-
+    // TODO: We probably want to consider an injectable logger so we can have logging in JS
     println!(
-        "\nDownloading the Ignite SRS ({})\n",
-        HumanBytes(total_size)
+        "\nDownloading the Ignite SRS ({})",
+        ByteSize(total_size).to_string_as(false)
     );
-    while let Some(item) = stream.next().await {
-        let mut chunk = item.map_err(|source| CRSError::Download { source })?;
-        crs_bytes.put(&mut chunk);
-        pb.inc(chunk.len() as u64);
-    }
-    pb.finish_with_message("Downloaded the SRS successfully!\n");
+    let crs_bytes = response
+        .bytes()
+        .await
+        .map_err(|source| CRSError::Download { source })?;
+    println!("Downloaded the SRS successfully!");
 
     Ok(crs_bytes.into())
 }
