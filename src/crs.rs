@@ -30,10 +30,13 @@ impl CRS {
         // We need to bump our polynomial degrees by 1 to handle zero knowledge
         let g1_end = G1_START + ((num_points + 1) * 64) - 1;
 
-        let mut g1_data = download(g1_start, g1_end).await?;
+        // If the `g1_end` is <= the `g1_start`, we already have enough CRS
+        if g1_end > g1_start {
+            let mut g1_data = download(g1_start, g1_end).await?;
 
-        self.g1_data.append(&mut g1_data);
-        self.num_points = num_points;
+            self.g1_data.append(&mut g1_data);
+            self.num_points = num_points;
+        }
 
         Ok(())
     }
