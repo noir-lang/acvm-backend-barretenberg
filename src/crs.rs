@@ -162,7 +162,7 @@ mod tests {
 
         let _pippenger = backend.get_pippenger(&crs.g1_data)?;
 
-        //TODO check that p_points memory is properly free
+        // TODO(#193) check that p_points memory is properly free
 
         Ok(())
     }
