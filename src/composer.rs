@@ -407,6 +407,7 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> 
 #[cfg(test)]
 mod test {
     use acvm::FieldElement;
+    use tokio::test;
 
     use super::*;
     use crate::{
@@ -419,7 +420,7 @@ mod test {
     };
 
     #[test]
-    fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
+    async fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
         let constraint_system = ConstraintSystem::new();
 
         let case_1 = WitnessResult {
@@ -429,11 +430,11 @@ mod test {
         };
         let test_cases = vec![case_1];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -486,10 +487,11 @@ mod test {
         };
         let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
+
     #[test]
-    fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -558,11 +560,11 @@ mod test {
             /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
         ];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_multiple_constraints() -> Result<(), Error> {
+    async fn test_multiple_constraints() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -600,11 +602,11 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_schnorr_constraints() -> Result<(), Error> {
+    async fn test_schnorr_constraints() -> Result<(), Error> {
         let mut signature_indices = [0i32; 64];
         for i in 13..(13 + 64) {
             signature_indices[i - 13] = i as i32;
@@ -677,11 +679,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_keccak256_constraint() -> Result<(), Error> {
+    async fn test_keccak256_constraint() -> Result<(), Error> {
         let input_value: u128 = 0xbd;
         let input_index = 1;
 
@@ -728,10 +730,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
+
     #[test]
-    fn test_ped_constraints() -> Result<(), Error> {
+    async fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
             result_x: 3,
@@ -780,11 +783,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_memory_constraints() -> Result<(), Error> {
+    async fn test_memory_constraints() -> Result<(), Error> {
         let two_field = FieldElement::one() + FieldElement::one();
         let one = Constraint {
             a: 0,
@@ -886,11 +889,11 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_compute_merkle_root_constraint() -> Result<(), Error> {
+    async fn test_compute_merkle_root_constraint() -> Result<(), Error> {
         use tempfile::tempdir;
         let temp_dir = tempdir().unwrap();
         let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
@@ -937,11 +940,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_logic_constraints() -> Result<(), Error> {
+    async fn test_logic_constraints() -> Result<(), Error> {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -1027,7 +1030,7 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[derive(Clone, Debug)]
@@ -1037,18 +1040,12 @@ mod test {
         result: bool,
     }
 
-    fn test_composer_with_pk_vk(
+    async fn test_composer_with_pk_vk(
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) -> Result<(), Error> {
-        use tokio::runtime::Builder;
-
         let bb = Barretenberg::new();
-        let crs = Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-            .block_on(bb.get_crs(&constraint_system))?;
+        let crs = bb.get_crs(&constraint_system).await?;
 
         let proving_key = bb.compute_proving_key(&constraint_system)?;
         let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
