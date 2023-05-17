@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=eeddcf179880f246383f7f67a11e589269c4e3ff#eeddcf179880f246383f7f67a11e589269c4e3ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c831802bad8d6810bfdb57cd00913157dfe710a185dc360c9a94eecd043bbf12"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,8 +17,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=eeddcf179880f246383f7f67a11e589269c4e3ff#eeddcf179880f246383f7f67a11e589269c4e3ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d455746f51b4421548e42d34e2ce46b6db637cb048095d78766612d26bf526db"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,14 +31,14 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=eeddcf179880f246383f7f67a11e589269c4e3ff#eeddcf179880f246383f7f67a11e589269c4e3ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd8e75cf737b52195a8c109e0ee776e468e1c2ec42f0f88aa4465cd76a09b4ed"
 dependencies = [
  "acir",
  "acvm_stdlib",
  "async-trait",
  "blake2",
- "crc32fast",
  "indexmap",
  "k256",
  "num-bigint",
@@ -67,8 +69,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm?rev=eeddcf179880f246383f7f67a11e589269c4e3ff#eeddcf179880f246383f7f67a11e589269c4e3ff"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2e87549b987593eeb1902990006443f2fe5817db927035f081008e4b8a46a49"
 dependencies = [
  "acir",
 ]
@@ -238,13 +241,13 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.66"
+version = "0.1.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84f9ebcc6c1f5b8cb160f6990096a5c127f423fcb6e1ccc46c370cbdfb75dfc"
+checksum = "b9ccdd8f2a161be9bd5c023df56f1b2a0bd1d83872ae53b71a84a12c9bf6e842"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.16",
 ]
 
 [[package]]
