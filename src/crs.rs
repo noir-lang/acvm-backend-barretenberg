@@ -192,13 +192,3 @@ fn does_not_panic() {
     }
     //TODO check that p_points memory is properly free
 }
-#[test]
-#[ignore]
-fn downloading() {
-    use tempfile::tempdir;
-    let dir = tempdir().unwrap();
-
-    let file_path = dir.path().to_path_buf().join("transcript00.dat");
-    let res = download_crs(file_path);
-    assert_eq!(res, Ok(()));
-}

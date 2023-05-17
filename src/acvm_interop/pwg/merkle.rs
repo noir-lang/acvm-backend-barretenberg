@@ -92,11 +92,9 @@ mod tests {
             },
         ];
 
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
         let mut msg_hasher: blake2::Blake2s = MessageHasher::new();
 
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3);
 
         for test_vector in tests {
             let index = FieldElement::try_from_str(test_vector.index).unwrap();
@@ -142,10 +140,7 @@ mod tests {
     // This test uses `update_leaf` directly rather than `update_message`
     #[test]
     fn simple_shield() -> Result<(), Error> {
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
-
-        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3);
 
         let barretenberg = Barretenberg::new();
         let pubkey_x = FieldElement::from_hex(
