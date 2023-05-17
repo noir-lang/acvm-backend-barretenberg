@@ -138,7 +138,6 @@ mod native {
 
 #[cfg(not(feature = "native"))]
 mod wasm {
-    use std::cell::Cell;
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
     use super::{Barretenberg, Error, FeatureError};
@@ -249,26 +248,13 @@ mod wasm {
 
     impl Barretenberg {
         /// Transfer bytes to WASM heap
-        pub(super) fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
+        pub(super) fn transfer_to_heap(&self, arr: &[u8], start: usize) {
             let memory = &self.memory;
+            let view = memory.view();
+            let end = start + arr.len();
 
-            #[cfg(feature = "js")]
-            {
-                let view: js_sys::Uint8Array = memory.uint8view();
-                for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
-                    view.set_index(cell_id as u32, arr[byte_id])
-                }
-                return;
-            }
-
-            #[cfg(not(feature = "js"))]
-            {
-                for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
-                    .iter()
-                    .enumerate()
-                {
-                    cell.set(arr[byte_id]);
-                }
+            for (byte_id, cell) in view[start..end].iter().enumerate() {
+                cell.set(arr[byte_id]);
             }
         }
 
@@ -281,16 +267,10 @@ mod wasm {
 
         pub(super) fn read_memory_variable_length(&self, start: usize, length: usize) -> Vec<u8> {
             let memory = &self.memory;
+            let view = memory.view();
             let end = start + length;
 
-            #[cfg(feature = "js")]
-            return memory.uint8view().to_vec()[start..end].to_vec();
-
-            #[cfg(not(feature = "js"))]
-            return memory.view()[start..end]
-                .iter()
-                .map(|cell: &Cell<u8>| cell.get())
-                .collect();
+            return view[start..end].iter().map(|cell| cell.get()).collect();
         }
 
         pub(super) fn get_pointer(&self, ptr_ptr: usize) -> usize {
@@ -403,10 +383,10 @@ mod wasm {
 
     fn logstr(env: &Env, ptr: i32) {
         let mut ptr_end = 0;
-        let byte_view = env.memory.uint8view();
+        let byte_view = env.memory.view();
 
         for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-            if cell != &Cell::new(0) {
+            if cell.get() != 0 {
                 ptr_end = i;
             } else {
                 break;
@@ -427,16 +407,17 @@ mod wasm {
     }
 
     // Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
-    fn random_get(env: &Env, buf: i32, buf_len: i32) -> i32 {
-        let mut u8_buffer = vec![0; buf_len as usize];
+    fn random_get(env: &Env, start: i32, length: i32) -> i32 {
+        let mut u8_buffer = vec![0; length as usize];
         let res = getrandom::getrandom(&mut u8_buffer);
         match res {
             Ok(()) => {
-                unsafe {
-                    env.memory
-                        .uint8view()
-                        .subarray(buf as u32, buf as u32 + buf_len as u32)
-                        .copy_from(&u8_buffer);
+                let view = env.memory.view();
+                let start = start as usize;
+                let end = start + length as usize;
+
+                for (byte_id, cell) in view[start..end].iter().enumerate() {
+                    cell.set(u8_buffer[byte_id]);
                 }
                 0_i32 // __WASI_ESUCCESS
             }
