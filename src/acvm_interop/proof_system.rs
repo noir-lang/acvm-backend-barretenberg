@@ -4,14 +4,8 @@ use acvm::{Language, ProofSystemCompiler};
 
 use crate::{barretenberg_structures::Assignments, composer::Composer, BackendError, Barretenberg};
 
-const BACKEND_IDENTIFIER: &str = "acvm-backend-barretenberg";
-
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
-
-    fn backend_identifier(&self) -> String {
-        BACKEND_IDENTIFIER.to_owned()
-    }
 
     fn np_language(&self) -> Language {
         Language::PLONKCSat { width: 3 }
