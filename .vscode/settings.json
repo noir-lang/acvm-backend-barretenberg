@@ -13,4 +13,12 @@
             }
         }
     },
+    "rust-analyzer.cargo.noDefaultFeatures": true,
+    "rust-analyzer.cargo.features": [
+        "wasm"
+    ],
+    "rust-analyzer.check.features": [
+        "wasm"
+    ],
+    "rust-analyzer.check.noDefaultFeatures": true,
 }
