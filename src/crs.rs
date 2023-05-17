@@ -101,7 +101,7 @@ async fn download(start: usize, end: usize) -> Result<Vec<u8>, CRSError> {
         url: transcript_url.to_string(),
     })?;
 
-    // TODO: We probably want to consider an injectable logger so we can have logging in JS
+    // TODO(#195): We probably want to consider an injectable logger so we can have logging in JS
     println!(
         "\nDownloading the Ignite SRS ({})",
         ByteSize(total_size).to_string_as(false)
