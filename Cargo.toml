@@ -11,13 +11,11 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 acvm = { version = "0.11.0", features = ["bn254"] }
-
-thiserror = "1.0.21"
-serde = { version = "1.0.136", features = ["derive"] }
 bincode = "1.3.3"
 bytesize = "1.2"
-
-reqwest = { version = "0.11.16", optional = true, default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11.16", default-features = false, features = ["rustls-tls"] }
+serde = { version = "1.0.136", features = ["derive"] }
+thiserror = "1.0.21"
 
 # Native
 barretenberg-sys = { version = "0.1.2", optional = true }
@@ -41,8 +39,7 @@ tokio = { version = "1.0", features = [ "macros" ] }
 [features]
 default = ["native"]
 native = [
-    "dep:barretenberg-sys",
-    "dep:reqwest"
+    "dep:barretenberg-sys"
 ]
 wasm = [
     "wasmer",
@@ -52,8 +49,7 @@ wasm = [
     "wasmer/cranelift",
     "wasmer/default-compiler",
     "wasmer/default-cranelift",
-    "wasmer/default-universal",
-    "dep:reqwest"
+    "wasmer/default-universal"
 ]
 js = [
     "wasmer",
