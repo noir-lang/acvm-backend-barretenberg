@@ -74,8 +74,6 @@
         "acvm",
         "barretenberg",
         "indicatif",
-        "tempdir",
-        "tempfile",
         "wasmer",
         "getrandom"
     ]

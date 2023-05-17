@@ -38,8 +38,6 @@ pkg-config = "0.3"
 
 [dev-dependencies]
 blake2 = "0.10.6"
-sled = "0.34.6"
-tempfile = "3.3"
 tokio = { version = "1.0", features = [ "macros" ] }
 
 [features]

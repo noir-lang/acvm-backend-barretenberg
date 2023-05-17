@@ -894,11 +894,9 @@ mod test {
 
     #[test]
     async fn test_compute_merkle_root_constraint() -> Result<(), Error> {
-        use tempfile::tempdir;
-        let temp_dir = tempdir().unwrap();
         let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
 
-        let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3, &temp_dir);
+        let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
 
         let empty_leaf = vec![0; 64];
 
