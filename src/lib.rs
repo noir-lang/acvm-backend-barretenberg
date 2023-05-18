@@ -262,7 +262,7 @@ mod wasm {
             &self,
             data: &[u8],
             offset: usize,
-        ) -> Result<(), wasmer::MemoryAccessError> {
+        ) {
             let memory = &self.memory;
             let store = self.store.borrow();
             let memory_view = memory.view(&store);
@@ -278,7 +278,10 @@ mod wasm {
 
             #[cfg(not(feature = "js"))]
             {
-                memory_view.write(offset as u64, data)
+                match memory_view.write(offset as u64, data) {
+                    Ok(_) => {},
+                    Err(_) => print!("Could not write to Wasm Memory"),
+                };
             }
         }
 
@@ -295,7 +298,7 @@ mod wasm {
             let memory_view = memory.view(&store);
 
             // let end = start + length;
-            let mut buf = vec![0; length as usize]; //Vec::with_capacity(length).as_mut_slice();
+            let mut buf = vec![0; length]; //Vec::with_capacity(length).as_mut_slice();
 
             #[cfg(feature = "js")]
             return memory.uint8view().to_vec()[start..end].to_vec();
@@ -404,18 +407,18 @@ mod wasm {
                     // },
                     logstr,
                 ),
-                "set_data" => Function::new_native(&mut store, set_data),
-                "get_data" => Function::new_native(&mut store, get_data),
-                "env_load_verifier_crs" => Function::new_native(&mut store, env_load_verifier_crs),
-                "env_load_prover_crs" => Function::new_native(&mut store, env_load_prover_crs),
+                "set_data" => Function::new_typed(&mut store, set_data),
+                "get_data" => Function::new_typed(&mut store, get_data),
+                "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
+                "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
                 "memory" => memory.clone(),
             },
             "wasi_snapshot_preview1" => {
-                "fd_read" => Function::new_native(&mut store, fd_read),
-                "fd_close" => Function::new_native(&mut store, fd_close),
-                "proc_exit" =>  Function::new_native(&mut store, proc_exit),
-                "fd_fdstat_get" => Function::new_native(&mut store, fd_fdstat_get),
-                "random_get" => Function::new_native_with_env(
+                "fd_read" => Function::new_typed(&mut store, fd_read),
+                "fd_close" => Function::new_typed(&mut store, fd_close),
+                "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
+                "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
+                "random_get" => Function::new_typed_with_env(
                     &mut store,
                     random_get_env,
                     // Env {
@@ -423,10 +426,10 @@ mod wasm {
                     // },
                     random_get
                 ),
-                "fd_seek" => Function::new_native(&mut store, fd_seek),
-                "fd_write" => Function::new_native(&mut store, fd_write),
-                "environ_sizes_get" => Function::new_native(&mut store, environ_sizes_get),
-                "environ_get" => Function::new_native(&mut store, environ_get),
+                "fd_seek" => Function::new_typed(&mut store, fd_seek),
+                "fd_write" => Function::new_typed(&mut store, fd_write),
+                "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
+                "environ_get" => Function::new_typed(&mut store, environ_get),
             },
         };
 
@@ -479,7 +482,7 @@ mod wasm {
             Ok(()) => {
                 let (env, store) = _env.data_and_store_mut();
                 let memory_view = env.memory.view(&store);
-                match memory_view.write(buf_ptr as u64, &u8_buffer.as_mut_slice()) {
+                match memory_view.write(buf_ptr as u64, u8_buffer.as_mut_slice()) {
                     Ok(_) => {
                         println!("RandomNumber successfully written to Wasm Memory");
                         0_i32 // __WASI_ESUCCESS

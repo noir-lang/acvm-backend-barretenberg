@@ -88,7 +88,8 @@
 
       wasmEnvironment = sharedEnvironment // {
         # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        # BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
+        BARRETENBERG_BIN_DIR = "./.";
       };
 
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
@@ -151,6 +152,11 @@
         cargoExtraArgs = "--no-default-features --features='wasm'";
 
         buildInputs = [ ] ++ extraBuildInputs;
+
+        shellHook = ''
+          echo BARRETENBERG_BIN_DIR=$BARRETENBERG_BIN_DIR
+        '';
+
       };
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
@@ -220,6 +226,7 @@
         ];
 
         shellHook = ''
+          echo BARRETENBERG_BIN_DIR=$BARRETENBERG_BIN_DIR
           eval "$(starship init bash)"
         '';
       });
