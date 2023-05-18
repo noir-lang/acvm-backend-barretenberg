@@ -216,18 +216,6 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn find_index_from_leaf(&self, leaf_value: &FieldElement) -> Option<u32> {
-        self.find_hash_from_value(leaf_value)
-    }
-
-    #[allow(dead_code)]
-    // TODO: this gets updated to be -1 on the latest barretenberg branch
-    pub(crate) fn find_index_for_empty_leaf(&self) -> u32 {
-        let index = self.fetch_empty_index();
-        index
-    }
-
     /// Update the element at index and compute the new tree root
     pub(crate) fn update_leaf(
         &mut self,
@@ -258,19 +246,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         Ok(current)
     }
 
-    #[allow(dead_code)]
-    /// Gets a message at `index`. This is not the leaf
-    pub(crate) fn get_message_at_index(&self, index: u32) -> Vec<u8> {
-        self.fetch_preimage(index)
-    }
-
     pub(crate) fn root(&self) -> FieldElement {
         self.fetch_root()
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn depth(&self) -> u32 {
-        self.depth
     }
 }
 
