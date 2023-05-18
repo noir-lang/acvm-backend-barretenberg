@@ -64,13 +64,13 @@ pub(crate) struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     db: BTreeMap<&'static [u8], Vec<u8>>,
     preimages_tree: BTreeMap<[u8; 16], Vec<u8>>,
     hashes_tree: BTreeMap<[u8; 16], Vec<u8>>,
-    barretenberg: PH,
+    path_hasher: PH,
     msg_hasher: MH,
 }
 
 impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
     pub(crate) fn new(depth: u32) -> Self {
-        let barretenberg = PH::new();
+        let path_hasher = PH::new();
         let mut msg_hasher = MH::new();
 
         assert!((1..=20).contains(&depth)); // Why can depth != 0 and depth not more than 20?
@@ -96,7 +96,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             for i in 0..layer_size {
                 hashes[offset + i] = current;
             }
-            current = barretenberg.hash(&current, &current).unwrap();
+            current = path_hasher.hash(&current, &current).unwrap();
 
             offset += layer_size;
             layer_size /= 2;
@@ -105,10 +105,10 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         let mut merkle_tree = MerkleTree {
             depth,
             total_size,
-            barretenberg,
             db,
             preimages_tree,
             hashes_tree,
+            path_hasher,
             msg_hasher,
         };
 
@@ -282,7 +282,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             self.insert_hash((offset + index) as u32, current);
 
             index &= (!0) - 1;
-            current = self.barretenberg.hash(
+            current = self.path_hasher.hash(
                 &self.fetch_hash(offset + index),
                 &self.fetch_hash(offset + index + 1),
             )?;
