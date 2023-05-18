@@ -98,7 +98,7 @@ mod tests {
 
         for test_vector in tests {
             let index = FieldElement::try_from_str(test_vector.index).unwrap();
-            let index_as_usize: usize = test_vector.index.parse().unwrap();
+            let index_as_u32: u32 = test_vector.index.parse().unwrap();
             let mut index_bits = index.bits();
             index_bits.reverse();
 
@@ -106,10 +106,10 @@ mod tests {
 
             let mut root = tree.root();
             if test_vector.should_update_tree {
-                root = tree.update_message(index_as_usize, &test_vector.message)?;
+                root = tree.update_message(index_as_u32, &test_vector.message)?;
             }
 
-            let hash_path = tree.get_hash_path(index_as_usize);
+            let hash_path = tree.get_hash_path(index_as_u32);
             let mut hash_path_ref = Vec::new();
             for (i, path_pair) in hash_path.into_iter().enumerate() {
                 let path_bit = index_bits[i];
@@ -156,13 +156,13 @@ mod tests {
         let leaf = note_commitment_x;
 
         let index = FieldElement::try_from_str("0").unwrap();
-        let index_as_usize: usize = 0_usize;
+        let index_as_u32: u32 = 0_u32;
         let mut index_bits = index.bits();
         index_bits.reverse();
 
-        let root = tree.update_leaf(index_as_usize, leaf)?;
+        let root = tree.update_leaf(index_as_u32, leaf)?;
 
-        let hash_path = tree.get_hash_path(index_as_usize);
+        let hash_path = tree.get_hash_path(index_as_u32);
         let mut hash_path_ref = Vec::new();
         for (i, path_pair) in hash_path.into_iter().enumerate() {
             let path_bit = index_bits[i];

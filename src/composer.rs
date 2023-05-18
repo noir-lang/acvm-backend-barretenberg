@@ -885,7 +885,7 @@ mod test {
         let empty_leaf = vec![0; 64];
 
         let index = FieldElement::zero();
-        let index_as_usize: usize = 0;
+        let index_as_u32: u32 = 0;
         let mut index_bits = index.bits();
         index_bits.reverse();
 
@@ -893,7 +893,7 @@ mod test {
 
         let root = tree.root();
 
-        let hash_path = tree.get_hash_path(index_as_usize);
+        let hash_path = tree.get_hash_path(index_as_u32);
         let mut hash_path_ref = Vec::new();
         for (i, path_pair) in hash_path.into_iter().enumerate() {
             let path_bit = index_bits[i];
