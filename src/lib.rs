@@ -380,7 +380,7 @@ mod wasm {
     fn instance_load() -> (Instance, Memory, Store) {
         let (module, mut store) = load_module();
 
-        let mem_type = MemoryType::new(130, None, false);
+        let mem_type = MemoryType::new(130, Some(65536), true);
         let memory = Memory::new(&mut store, mem_type).unwrap();
 
         let log_str_env = &FunctionEnv::new(
@@ -412,6 +412,7 @@ mod wasm {
                 "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
                 "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
                 "memory" => memory.clone(),
+                "env_hardware_concurrency" => Function::new_typed(&mut store, env_hardware_concurrency),
             },
             "wasi_snapshot_preview1" => {
                 "fd_read" => Function::new_typed(&mut store, fd_read),
@@ -430,6 +431,10 @@ mod wasm {
                 "fd_write" => Function::new_typed(&mut store, fd_write),
                 "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
                 "environ_get" => Function::new_typed(&mut store, environ_get),
+                "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
+            },
+            "wasi" => {
+                "thread-spawn" => Function::new_typed(&mut store, thread_spawn),
             },
         };
 
@@ -507,6 +512,18 @@ mod wasm {
         }
     }
 
+    fn env_hardware_concurrency() -> i32 {
+        return 4;
+    }
+
+    fn clock_time_get(_:i32, _:i64, _:i32) -> i32 {
+        unimplemented!("proc_exit: clock_time_get is not implemented")
+    }
+
+    fn thread_spawn(_:i32) -> i32 {
+        unimplemented!("proc_exit: thread_spawn is not implemented")
+    }
+
     fn proc_exit(_: i32) {
         unimplemented!("proc_exit is not implemented")
     }
@@ -555,3 +572,29 @@ mod wasm {
         unimplemented!("env_load_prover_crs is not implemented")
     }
 }
+
+
+// running 23 tests
+// test acvm_interop::pwg::merkle::tests::simple_shield ... ok
+// test acvm_interop::pwg::merkle::tests::test_check_membership ... ok
+// test acvm_interop::smart_contract::test_smart_contract ... FAILED
+// test barretenberg_structures::tests::serialize_expression ... ok
+// test composer::test::test_a_single_constraint_no_pub_inputs ... FAILED
+// test composer::test::test_a_single_constraint_with_pub_inputs ... FAILED
+// test composer::test::test_compute_merkle_root_constraint ... FAILED
+// test composer::test::test_keccak256_constraint ... FAILED
+// test composer::test::test_logic_constraints ... FAILED
+// test composer::test::test_memory_constraints ... FAILED
+// test composer::test::test_multiple_constraints ... FAILED
+// test composer::test::test_no_constraints_no_pub_inputs ... FAILED
+// test composer::test::test_ped_constraints ... FAILED
+// test composer::test::test_schnorr_constraints ... FAILED
+// test crs::downloading ... ignored
+// test merkle::basic_interop_hashpath ... ok
+// test merkle::basic_interop_initial_root ... ok
+// test merkle::basic_interop_update ... ok
+// test pedersen::basic_interop ... ok
+// test pedersen::pedersen_hash_to_point ... ok
+// test scalar_mul::test::smoke_test ... FAILED
+// test schnorr::basic_interop ... FAILED
+// test smoke ... ok
