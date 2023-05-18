@@ -76,20 +76,15 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
 
         assert!((1..=20).contains(&depth)); // Why can depth != 0 and depth not more than 20?
 
-        let preimages_tree = BTreeMap::new();
-        let hashes_tree = BTreeMap::new();
-
         let total_size = 1u32 << depth;
 
+        const ZERO_MESSAGE: [u8; 64] = [0u8; 64];
+        let pre_images = (0..total_size).map(|_| ZERO_MESSAGE.to_vec());
+
+        let mut current = msg_hasher.hash(&ZERO_MESSAGE);
         let mut hashes: Vec<_> = (0..total_size * 2 - 2)
             .map(|_| FieldElement::zero())
             .collect();
-
-        let zero_message = [0u8; 64];
-        let pre_images = (0..total_size).map(|_| zero_message.to_vec());
-
-        let mut current = msg_hasher.hash(&zero_message);
-
         let mut offset = 0u32;
         let mut layer_size = total_size; // XXX: On 32 bit architectures, this `as` cast may silently truncate, when total_size > 2^32?
         while offset < hashes.len() as u32 {
@@ -102,6 +97,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             layer_size /= 2;
         }
 
+        let preimages_tree = BTreeMap::new();
+        let hashes_tree = BTreeMap::new();
         let mut merkle_tree = MerkleTree {
             depth,
             total_size,
@@ -124,16 +121,20 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         merkle_tree
     }
 
+    pub(crate) fn root(&self) -> FieldElement {
+        self.root
+    }
+
     fn insert_root(&mut self, value: FieldElement) {
         self.root = value;
     }
 
-    fn fetch_root(&self) -> FieldElement {
-        self.root
-    }
-
     fn fetch_depth(&self) -> u32 {
         self.depth
+    }
+
+    fn fetch_empty_index(&self) -> u32 {
+        self.empty_index
     }
 
     fn insert_empty_index(&mut self, index: u32) {
@@ -146,17 +147,13 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         self.empty_index = index;
     }
 
-    fn fetch_empty_index(&self) -> u32 {
-        self.empty_index
+    #[allow(dead_code)]
+    fn fetch_preimage(&self, index: u32) -> Vec<u8> {
+        self.preimages_tree.get(&index).unwrap().to_vec()
     }
 
     fn insert_preimage(&mut self, index: u32, value: Vec<u8>) {
         self.preimages_tree.insert(index, value);
-    }
-
-    #[allow(dead_code)]
-    fn fetch_preimage(&self, index: u32) -> Vec<u8> {
-        self.preimages_tree.get(&index).unwrap().to_vec()
     }
 
     fn fetch_hash(&self, index: u32) -> FieldElement {
@@ -167,6 +164,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         self.hashes_tree.insert(index, hash);
     }
 
+    #[allow(dead_code)]
     fn find_hash_from_value(&self, leaf_value: &FieldElement) -> Option<u32> {
         for (&index, db_leaf_hash) in self.hashes_tree.iter() {
             if db_leaf_hash == leaf_value {
@@ -193,6 +191,7 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         }
         path
     }
+
     /// Updates the message at index and computes the new tree root
     pub(crate) fn update_message(
         &mut self,
@@ -244,10 +243,6 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
 
         self.insert_root(current);
         Ok(current)
-    }
-
-    pub(crate) fn root(&self) -> FieldElement {
-        self.fetch_root()
     }
 }
 
