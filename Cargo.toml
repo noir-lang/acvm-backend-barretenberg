@@ -9,6 +9,9 @@ license = "MIT OR Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 acvm = { version = "0.12.0", features = ["bn254"] }
 bincode = "1.3.3"
@@ -18,22 +21,38 @@ serde = { version = "1.0.136", features = ["derive"] }
 serde-big-array = "0.5.1"
 thiserror = "1.0.21"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # Native
 barretenberg-sys = { version = "0.1.2", optional = true }
 
 # Wasm
-wasmer = { version = "2.3", optional = true, default-features = false }
+getrandom = { version = "0.2", optional = true }
 rust-embed = { version = "6.6.0", optional = true, features = [
     "debug-embed",
     "interpolate-folder-path",
     "include-exclude",
 ] }
-getrandom = { version = "0.2", optional = true }
+wasmer = { version = "2.3", optional = true, default-features = false, features = [
+    "sys-default",
+    "cranelift",
+    "default-compiler",
+    "default-cranelift",
+    "default-universal"
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = [ "js" ] }
+rust-embed = { version = "6.6.0", features = [
+    "debug-embed",
+    "interpolate-folder-path",
+    "include-exclude",
+] }
+wasmer = { version = "2.3", default-features = false, features = [ "js-default" ] }
 
 [build-dependencies]
 pkg-config = "0.3"
 
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1.0", features = [ "macros" ] }
 
 [features]
@@ -42,20 +61,9 @@ native = [
     "dep:barretenberg-sys"
 ]
 wasm = [
-    "wasmer",
+    "dep:wasmer",
     "dep:rust-embed",
-    "dep:getrandom",
-    "wasmer/sys-default",
-    "wasmer/cranelift",
-    "wasmer/default-compiler",
-    "wasmer/default-cranelift",
-    "wasmer/default-universal"
-]
-js = [
-    "wasmer",
-    "dep:rust-embed",
-    "dep:getrandom",
-    "wasmer/js-default"
+    "dep:getrandom"
 ]
 
 [patch.crates-io]
