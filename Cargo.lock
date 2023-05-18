@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm.git?branch=mv/verify-proof-2#4934dd30877ebb16b9f7d73f78c30b829d62cce0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c831802bad8d6810bfdb57cd00913157dfe710a185dc360c9a94eecd043bbf12"
 dependencies = [
  "acir_field",
  "flate2",
@@ -16,8 +17,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm.git?branch=mv/verify-proof-2#4934dd30877ebb16b9f7d73f78c30b829d62cce0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d455746f51b4421548e42d34e2ce46b6db637cb048095d78766612d26bf526db"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -29,14 +31,14 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm.git?branch=mv/verify-proof-2#4934dd30877ebb16b9f7d73f78c30b829d62cce0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd8e75cf737b52195a8c109e0ee776e468e1c2ec42f0f88aa4465cd76a09b4ed"
 dependencies = [
  "acir",
  "acvm_stdlib",
  "async-trait",
  "blake2",
- "crc32fast",
  "indexmap",
  "k256",
  "num-bigint",
@@ -69,8 +71,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.11.0"
-source = "git+https://github.com/noir-lang/acvm.git?branch=mv/verify-proof-2#4934dd30877ebb16b9f7d73f78c30b829d62cce0"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2e87549b987593eeb1902990006443f2fe5817db927035f081008e4b8a46a49"
 dependencies = [
  "acir",
 ]
@@ -3255,3 +3258,8 @@ dependencies = [
  "quote",
  "syn 2.0.16",
 ]
+
+[[patch.unused]]
+name = "acvm"
+version = "0.11.0"
+source = "git+https://github.com/noir-lang/acvm?branch=mv/verify-proof-2#4934dd30877ebb16b9f7d73f78c30b829d62cce0"

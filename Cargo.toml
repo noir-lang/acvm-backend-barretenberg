@@ -10,7 +10,7 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-acvm = { version = "0.11.0", features = ["bn254"] }
+acvm = { version = "0.12.0", features = ["bn254"] }
 # acvm = { features = ["bn254"], path = "/Users/maximvezenov/Documents/dev/noir-lang/acvm/acvm" }
 thiserror = "1.0.21"
 serde = { version = "1.0.136", features = ["derive"] }
@@ -71,5 +71,5 @@ js = [
 ]
 
 [patch.crates-io]
-acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm.git", branch = "mv/verify-proof-2" }
+acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", branch = "mv/verify-proof-2" }
 # acvm = { package = "acvm", git = "https://github.com/noir-lang/acvm", rev = "eeddcf179880f246383f7f67a11e589269c4e3ff" }
