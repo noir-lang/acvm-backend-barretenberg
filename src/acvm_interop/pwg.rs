@@ -115,14 +115,29 @@ impl PartialWitnessGenerator for Barretenberg {
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // In barretenberg, if the signature fails, then the whole thing fails.
 
+        fn to_u8_vec(
+            initial_witness: &WitnessMap,
+            inputs: &[FunctionInput],
+        ) -> Result<Vec<u8>, OpcodeResolutionError> {
+            let mut result = Vec::with_capacity(inputs.len());
+            for input in inputs {
+                let witness_value_bytes =
+                    witness_to_value(initial_witness, input.witness)?.to_be_bytes();
+                let byte: &u8 = witness_value_bytes.last().ok_or_else(|| {
+                    OpcodeResolutionError::BlackBoxFunctionFailed(
+                        BlackBoxFunc::SchnorrVerify,
+                        "could not get last byte".into(),
+                    )
+                })?;
+                result.push(*byte);
+            }
+            Ok(result)
+        }
+
         let pub_key_x = witness_to_value(initial_witness, public_key_x.witness)?.to_be_bytes();
         let pub_key_y = witness_to_value(initial_witness, public_key_y.witness)?.to_be_bytes();
 
-        let pub_key_bytes: Vec<u8> = pub_key_x
-            .iter()
-            .copied()
-            .chain(pub_key_y.to_vec())
-            .collect();
+        let pub_key_bytes: Vec<u8> = pub_key_x.iter().copied().chain(pub_key_y).collect();
         let pub_key: [u8; 64] = pub_key_bytes.try_into().map_err(|v: Vec<u8>| {
             OpcodeResolutionError::BlackBoxFunctionFailed(
                 BlackBoxFunc::SchnorrVerify,
@@ -130,51 +145,24 @@ impl PartialWitnessGenerator for Barretenberg {
             )
         })?;
 
-        let mut signature = signature.iter();
-        let mut sig_s = [0u8; 32];
-        for (i, sig) in sig_s.iter_mut().enumerate() {
-            let _sig_i = signature.next().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    format!("sig_s should be 32 bytes long, found only {i} bytes"),
-                )
-            })?;
-            let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-            *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    "could not get last bytes".into(),
-                )
-            })?;
-        }
-        let mut sig_e = [0u8; 32];
-        for (i, sig) in sig_e.iter_mut().enumerate() {
-            let _sig_i = signature.next().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    format!("sig_e should be 32 bytes long, found only {i} bytes"),
-                )
-            })?;
-            let sig_i = witness_to_value(initial_witness, _sig_i.witness)?;
-            *sig = *sig_i.to_be_bytes().last().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    "could not get last bytes".into(),
-                )
-            })?;
-        }
+        let signature_bytes: [u8; 64] =
+            to_u8_vec(initial_witness, signature)?
+                .try_into()
+                .map_err(|v: Vec<u8>| {
+                    OpcodeResolutionError::BlackBoxFunctionFailed(
+                        BlackBoxFunc::SchnorrVerify,
+                        format!("expected signature size {} but received {}", 64, v.len()),
+                    )
+                })?;
 
-        let mut message_bytes = Vec::new();
-        for msg in message.iter() {
-            let msg_i_field = witness_to_value(initial_witness, msg.witness)?;
-            let msg_i = *msg_i_field.to_be_bytes().last().ok_or_else(|| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    "could not get last bytes".into(),
-                )
-            })?;
-            message_bytes.push(msg_i);
-        }
+        let sig_s: [u8; 32] = signature_bytes[0..32]
+            .try_into()
+            .expect("bisecting 64 element array into 2 32 element arrays");
+        let sig_e: [u8; 32] = signature_bytes[32..64]
+            .try_into()
+            .expect("bisecting 64 element array into 2 32 element arrays");
+
+        let message_bytes = to_u8_vec(initial_witness, message)?;
 
         let valid_signature = self
             .verify_signature(pub_key, sig_s, sig_e, &message_bytes)
