@@ -95,9 +95,9 @@ const FIELD_BYTES: usize = 32;
 
 #[derive(Debug)]
 pub struct Barretenberg {
-    #[cfg(feature = "wasm")]
+    #[cfg(not(feature = "native"))]
     memory: wasmer::Memory,
-    #[cfg(feature = "wasm")]
+    #[cfg(not(feature = "native"))]
     instance: wasmer::Instance,
 }
 
