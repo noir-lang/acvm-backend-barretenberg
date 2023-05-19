@@ -1,5 +1,3 @@
-use core::num;
-
 use acvm::FieldElement;
 
 use super::{Barretenberg, FIELD_BYTES};

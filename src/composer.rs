@@ -3,7 +3,6 @@ use acvm::async_trait;
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::download_crs;
 use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
-use core::num;
 use std::slice;
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
@@ -234,8 +233,6 @@ impl Composer for Barretenberg {
             )
         }
 
-        std::mem::forget(proof);
-
         let result;
         unsafe {
             result = Vec::from_raw_parts(proof_fields_addr, proof_fields_size, proof_fields_size);
@@ -257,15 +254,12 @@ impl Composer for Barretenberg {
         unsafe {
             vk_fields_size =
                 barretenberg_sys::composer::serialize_verification_key_into_field_elements(
-                    &g2_data,
+                    g2_data,
                     verification_key,
                     p_vk_fields,
                     p_vk_hash_fields,
                 )
         }
-
-        std::mem::forget(g2_data);
-        std::mem::forget(verification_key);
 
         let vk_result;
         let vk_hash_result;
@@ -1204,6 +1198,8 @@ mod test {
             output_vars[i] = i as i32 + 3;
         }
 
+        // let nested_vars = key_indices[6..22].try_into().unwrap();
+
         let recurison_constraint = RecursionConstraint {
             key: key_indices,
             proof: proof_indices,
@@ -1312,7 +1308,6 @@ mod test {
                 }
             }
 
-            dbg!(proof_witnesses.len());
             let proof_size = proof_witnesses.len() as i32;
             for i in 0..proof_size {
                 proof_indices.push(i + proof_indices_start_idx);

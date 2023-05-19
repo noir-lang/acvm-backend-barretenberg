@@ -1,4 +1,4 @@
-use acvm::acir::{circuit::Circuit, native_types::WitnessMap, BlackBoxFunc};
+use acvm::acir::{circuit::Circuit, native_types::WitnessMap};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 
@@ -18,29 +18,9 @@ impl ProofSystemCompiler for Barretenberg {
         )?)
     }
 
-    fn supports_opcode(&self, opcode: &acvm::acir::circuit::Opcode) -> bool {
+    fn supports_opcode(&self, _opcode: &acvm::acir::circuit::Opcode) -> bool {
         todo!()
     }
-
-    // fn black_box_function_supported(&self, opcode: &BlackBoxFunc) -> bool {
-    //     match opcode {
-    //         BlackBoxFunc::AND
-    //         | BlackBoxFunc::XOR
-    //         | BlackBoxFunc::RANGE
-    //         | BlackBoxFunc::SHA256
-    //         | BlackBoxFunc::Blake2s
-    //         | BlackBoxFunc::Keccak256
-    //         | BlackBoxFunc::ComputeMerkleRoot
-    //         | BlackBoxFunc::SchnorrVerify
-    //         | BlackBoxFunc::Pedersen
-    //         | BlackBoxFunc::HashToField128Security
-    //         | BlackBoxFunc::EcdsaSecp256k1
-    //         | BlackBoxFunc::FixedBaseScalarMul
-    //         | BlackBoxFunc::VerifyProof => true,
-
-    //         BlackBoxFunc::AES => false,
-    //     }
-    // }
 
     fn preprocess(
         &self,
@@ -62,6 +42,7 @@ impl ProofSystemCompiler for Barretenberg {
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let crs = common_reference_string.try_into()?;
         let assignments = flatten_witness_map(circuit, witness_values);
@@ -71,7 +52,7 @@ impl ProofSystemCompiler for Barretenberg {
             &circuit.try_into()?,
             assignments,
             proving_key,
-            false,
+            is_recursive,
         )?)
     }
 
@@ -82,6 +63,7 @@ impl ProofSystemCompiler for Barretenberg {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let crs = common_reference_string.try_into()?;
         // Unlike when proving, we omit any unassigned witnesses.
@@ -96,7 +78,7 @@ impl ProofSystemCompiler for Barretenberg {
             proof,
             flattened_public_inputs.into(),
             verification_key,
-            false,
+            is_recursive,
         )?)
     }
 
@@ -109,7 +91,7 @@ impl ProofSystemCompiler for Barretenberg {
             public_inputs.into_iter().map(|(_, el)| el).collect();
 
         let proof_fields_as_bytes =
-            Composer::proof_as_fields(self, &proof, flattened_public_inputs.into());
+            Composer::proof_as_fields(self, proof, flattened_public_inputs.into());
         let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
 
         let mut proof_fields: Vec<FieldElement> = Vec::new();
@@ -127,7 +109,7 @@ impl ProofSystemCompiler for Barretenberg {
         let crs = common_reference_string.try_into()?;
 
         let (vk_fields_as_bytes, vk_hash_as_bytes) =
-            Composer::verification_key_as_fields(self, &crs, &verification_key);
+            Composer::verification_key_as_fields(self, &crs, verification_key);
 
         let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
         let mut vk_fields: Vec<FieldElement> = Vec::new();

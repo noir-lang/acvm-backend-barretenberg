@@ -1,5 +1,3 @@
-use std::num;
-
 use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
@@ -1167,8 +1165,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             public_inputs: public_inputs_inputs,
                             key_hash,
                             input_aggregation_object: input_agg_obj_inputs,
-                            nested_aggregation_object: nested_agg_obj_inputs,
                             outputs,
+                            ..
                         } => {
                             let mut key_inputs = key_inputs.iter();
                             let mut key_array = [0i32; 114];
@@ -1183,32 +1181,17 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             }
                             let key = key_array.to_vec();
 
-                            let num_public_inputs = public_inputs_inputs.len();
-
-                            let mut proof_inputs = proof_inputs.iter();
-                            let mut proof = Vec::with_capacity(93 + num_public_inputs);
-                            for (i, proof_witness) in proof.iter_mut().enumerate() {
-                                let proof_field = proof_inputs.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "missing rest of proof. Tried to get field {i} but failed"
-                                    )
-                                });
+                            let mut proof = Vec::new();
+                            for proof_field in proof_inputs.iter() {
                                 let proof_field_index = proof_field.witness.witness_index() as i32;
-                                *proof_witness = proof_field_index;
+                                proof.push(proof_field_index);
                             }
 
-                            let mut public_inputs_inputs = public_inputs_inputs.iter();
-                            let mut public_inputs = Vec::with_capacity(num_public_inputs);
-                            for (i, public_input_witness) in public_inputs.iter_mut().enumerate() {
-                                let public_input_field =
-                                    public_inputs_inputs.next().unwrap_or_else(|| {
-                                        panic!(
-                                        "missing rest of proof. Tried to get field {i} but failed"
-                                    )
-                                    });
+                            let mut public_inputs = Vec::new();
+                            for public_input in public_inputs_inputs.iter() {
                                 let public_input_field_index =
-                                    public_input_field.witness.witness_index() as i32;
-                                *public_input_witness = public_input_field_index;
+                                    public_input.witness.witness_index() as i32;
+                                public_inputs.push(public_input_field_index);
                             }
 
                             // key_hash
@@ -1223,13 +1206,10 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 *var = var_field_index;
                             }
 
-                            // nested_aggregation_object
-                            let mut nested_agg_obj_inputs = nested_agg_obj_inputs.iter();
-                            let mut nested_aggregation_object = [0i32; 16];
-                            for (i, var) in nested_aggregation_object.iter_mut().enumerate() {
-                                let var_field = nested_agg_obj_inputs.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
-                                let var_field_index = var_field.witness.witness_index() as i32;
-                                *var = var_field_index;
+                            // TODO: remove unwrap();
+                            let mut nested_aggregation_object: [i32; 16] = [0; 16];
+                            if key[5] == 1 {
+                                nested_aggregation_object = key[6..22].try_into().unwrap();
                             }
 
                             // output_aggregation_object

@@ -276,10 +276,7 @@ impl PartialWitnessGenerator for Barretenberg {
         key: &[FunctionInput],
         proof: &[FunctionInput],
         public_inputs: &[FunctionInput],
-        key_hash: &FunctionInput,
         input_aggregation_object: &[FunctionInput],
-        // TODO: might not need this at all as the current bberg impl fetches it from the verification key
-        _nested_aggregation_object: &[FunctionInput],
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         // Sanity check that we have the correct aggregation object size
@@ -299,36 +296,37 @@ impl PartialWitnessGenerator for Barretenberg {
 
         let num_public_inputs = public_inputs.len();
 
-        let mut proof_iter = proof.iter();
-        let mut proof = Vec::with_capacity(93 + num_public_inputs);
-        for (i, proof_i) in proof.iter_mut().enumerate() {
-            let _proof_i = proof_iter.next().unwrap_or_else(|| {
-                panic!("missing rest of proof. Tried to get field {i} but failed")
-            });
-            *proof_i = *witness_to_value(initial_witness, _proof_i.witness)?;
+        let proof_iter = proof.iter();
+        let mut proof = Vec::new();
+        for proof_i in proof_iter {
+            let proof_field = *witness_to_value(initial_witness, proof_i.witness)?;
+            proof.push(proof_field);
         }
 
-        let mut public_inputs_iter = public_inputs.iter();
-        let mut public_inputs = Vec::with_capacity(num_public_inputs);
-        for (i, public_input_i) in public_inputs.iter_mut().enumerate() {
-            let _public_input_i = public_inputs_iter.next().unwrap_or_else(|| {
-                panic!("missing rest of proof. Tried to get field {i} but failed")
-            });
-            *public_input_i = *witness_to_value(initial_witness, _public_input_i.witness)?;
+        let public_inputs_iter = public_inputs.iter();
+        let mut public_inputs = Vec::new();
+        for public_input_i in public_inputs_iter {
+            let public_input = *witness_to_value(initial_witness, public_input_i.witness)?;
+            public_inputs.push(public_input);
         }
 
-        let key_hash = witness_to_value(initial_witness, key_hash.witness)?.to_be_bytes();
-
+        let mut inner_aggregation_indices_all_zero = true;
         let mut input_agg_obj_iter = input_aggregation_object.iter();
-        let mut input_aggregation_object = [FieldElement::zero(); 16];
-        for (i, var_i) in input_aggregation_object.iter_mut().enumerate() {
-            let _var_i = input_agg_obj_iter.next().unwrap_or_else(|| {
-                panic!("missing rest of proof. Tried to get field {i} but failed")
-            });
-            *var_i = *witness_to_value(initial_witness, _var_i.witness)?;
+        for w in input_agg_obj_iter.clone() {
+            inner_aggregation_indices_all_zero = w.witness == Witness(0);
         }
 
-        // TODO: nested aggregation object should be a part of the verification key
+        let mut input_aggregation_object = [FieldElement::zero(); 16];
+        if !inner_aggregation_indices_all_zero {
+            for (i, var_i) in input_aggregation_object.iter_mut().enumerate() {
+                let _var_i = input_agg_obj_iter.next().unwrap_or_else(|| {
+                    panic!("missing rest of proof. Tried to get field {i} but failed")
+                });
+                *var_i = *witness_to_value(initial_witness, _var_i.witness)?;
+            }
+        }
+
+        // NOTE: nested aggregation object should be a part of the verification key
         // and be unnecessary to accept as inputs/outputs
 
         let output_aggregation_object = self.verify_proof_(
