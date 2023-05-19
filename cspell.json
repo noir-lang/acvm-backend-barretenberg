@@ -55,6 +55,7 @@
         "envrc",
         "subshell",
         "thiserror",
+        "bincode",
         // In Solidity
         //
         "addmod",
@@ -72,7 +73,7 @@
         "acir",
         "acvm",
         "barretenberg",
-        "indicatif",
+        "bytesize",
         "wasmer",
         "getrandom"
     ]

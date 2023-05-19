@@ -1,23 +1,43 @@
+use acvm::async_trait;
+
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
-use crate::crs::{CRS, G2};
-use crate::{Barretenberg, Error, FIELD_BYTES};
+use crate::crs::download_crs;
+use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
+#[async_trait]
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
     fn get_exact_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
-    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
-    fn compute_verification_key(
+    async fn get_crs(&self, constraint_system: &ConstraintSystem) -> Result<CRS, Error> {
+        let num_points = self.get_circuit_size(constraint_system)?;
+
+        download_crs(num_points as usize).await
+    }
+
+    async fn update_crs<'a>(
         &self,
+        crs: &'a mut CRS,
         constraint_system: &ConstraintSystem,
-        proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error>;
+    ) -> Result<&'a CRS, Error> {
+        let num_points = self.get_circuit_size(constraint_system)?;
+
+        if crs.num_points < num_points as usize {
+            crs.update(num_points as usize).await?;
+        }
+
+        Ok(crs)
+    }
+
+    fn compute_proving_key(&self, constraint_system: &ConstraintSystem) -> Result<Vec<u8>, Error>;
+    fn compute_verification_key(&self, crs: &CRS, proving_key: &[u8]) -> Result<Vec<u8>, Error>;
 
     fn create_proof_with_pk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
@@ -25,6 +45,7 @@ pub(crate) trait Composer {
 
     fn verify_with_vk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
@@ -88,16 +109,11 @@ impl Composer for Barretenberg {
         Ok(result)
     }
 
-    fn compute_verification_key(
-        &self,
-        constraint_system: &ConstraintSystem,
-        proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error> {
-        let circuit_size = self.get_circuit_size(constraint_system)?;
+    fn compute_verification_key(&self, crs: &CRS, proving_key: &[u8]) -> Result<Vec<u8>, Error> {
         let CRS {
             g1_data, g2_data, ..
-        } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
+        } = crs;
+        let pippenger_ptr = self.get_pippenger(g1_data)?.pointer();
 
         let mut vk_addr: *mut u8 = std::ptr::null_mut();
         let vk_ptr = &mut vk_addr as *mut *mut u8;
@@ -106,7 +122,7 @@ impl Composer for Barretenberg {
         unsafe {
             vk_size = barretenberg_sys::composer::init_verification_key(
                 pippenger_ptr,
-                &g2_data,
+                g2_data,
                 proving_key,
                 vk_ptr,
             )
@@ -121,15 +137,15 @@ impl Composer for Barretenberg {
 
     fn create_proof_with_pk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
-        } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
+        } = crs;
+        let pippenger_ptr = self.get_pippenger(g1_data)?.pointer();
         let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
@@ -140,7 +156,7 @@ impl Composer for Barretenberg {
         unsafe {
             proof_size = barretenberg_sys::composer::create_proof_with_pk(
                 pippenger_ptr,
-                &g2_data,
+                g2_data,
                 proving_key,
                 &cs_buf,
                 &witness_buf,
@@ -163,6 +179,7 @@ impl Composer for Barretenberg {
 
     fn verify_with_vk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
@@ -170,7 +187,7 @@ impl Composer for Barretenberg {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> Result<bool, Error> {
-        let g2_data = G2::new().data;
+        let CRS { g2_data, .. } = crs;
 
         // Barretenberg expects public inputs to be prepended onto the proof
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
@@ -179,7 +196,7 @@ impl Composer for Barretenberg {
         let verified;
         unsafe {
             verified = barretenberg_sys::composer::verify_with_vk(
-                &g2_data,
+                g2_data,
                 verification_key,
                 &cs_buf,
                 &proof,
@@ -247,18 +264,13 @@ impl Composer for Barretenberg {
         Ok(self.read_memory_variable_length(pk_ptr, pk_size.try_into()?))
     }
 
-    fn compute_verification_key(
-        &self,
-        constraint_system: &ConstraintSystem,
-        proving_key: &[u8],
-    ) -> Result<Vec<u8>, Error> {
-        let circuit_size = self.get_circuit_size(constraint_system)?;
+    fn compute_verification_key(&self, crs: &CRS, proving_key: &[u8]) -> Result<Vec<u8>, Error> {
         let CRS {
             g1_data, g2_data, ..
-        } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
+        } = crs;
+        let pippenger_ptr = self.get_pippenger(g1_data)?.pointer();
 
-        let g2_ptr = self.allocate(&g2_data)?;
+        let g2_ptr = self.allocate(g2_data)?;
         let pk_ptr = self.allocate(proving_key)?;
 
         // The verification key is not actually written to this pointer.
@@ -279,21 +291,21 @@ impl Composer for Barretenberg {
 
     fn create_proof_with_pk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
     ) -> Result<Vec<u8>, Error> {
-        let circuit_size = self.get_circuit_size(constraint_system)?;
         let CRS {
             g1_data, g2_data, ..
-        } = CRS::new(circuit_size as usize);
-        let pippenger_ptr = self.get_pippenger(&g1_data)?.pointer();
+        } = crs;
+        let pippenger_ptr = self.get_pippenger(g1_data)?.pointer();
         let cs_buf: Vec<u8> = constraint_system.to_bytes();
         let witness_buf = witness.to_bytes();
 
         let cs_ptr = self.allocate(&cs_buf)?;
         let witness_ptr = self.allocate(&witness_buf)?;
-        let g2_ptr = self.allocate(&g2_data)?;
+        let g2_ptr = self.allocate(g2_data)?;
         let pk_ptr = self.allocate(proving_key)?;
 
         // The proof data is not actually written to this pointer.
@@ -328,6 +340,7 @@ impl Composer for Barretenberg {
 
     fn verify_with_vk(
         &self,
+        crs: &CRS,
         constraint_system: &ConstraintSystem,
         // XXX: Important: This assumes that the proof does not have the public inputs pre-pended to it
         // This is not the case, if you take the proof directly from Barretenberg
@@ -335,7 +348,7 @@ impl Composer for Barretenberg {
         public_inputs: Assignments,
         verification_key: &[u8],
     ) -> Result<bool, Error> {
-        let g2_data = G2::new().data;
+        let CRS { g2_data, .. } = crs;
 
         // Barretenberg expects public inputs to be prepended onto the proof
         let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
@@ -343,7 +356,7 @@ impl Composer for Barretenberg {
 
         let cs_ptr = self.allocate(&cs_buf)?;
         let proof_ptr = self.allocate(&proof)?;
-        let g2_ptr = self.allocate(&g2_data)?;
+        let g2_ptr = self.allocate(g2_data)?;
         let vk_ptr = self.allocate(verification_key)?;
 
         // This doesn't unwrap the result because we need to free even if there is a failure
@@ -394,6 +407,7 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> 
 #[cfg(test)]
 mod test {
     use acvm::FieldElement;
+    use tokio::test;
 
     use super::*;
     use crate::{
@@ -406,7 +420,7 @@ mod test {
     };
 
     #[test]
-    fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
+    async fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
         let constraint_system = ConstraintSystem::new();
 
         let case_1 = WitnessResult {
@@ -416,11 +430,11 @@ mod test {
         };
         let test_cases = vec![case_1];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_no_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -473,10 +487,11 @@ mod test {
         };
         let test_cases = vec![case_1, case_2, case_3, case_4, case_5];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
+
     #[test]
-    fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
+    async fn test_a_single_constraint_with_pub_inputs() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -545,11 +560,11 @@ mod test {
             /*case_1,*/ case_2, case_3, /*case_4,*/ case_5, case_6,
         ];
 
-        test_composer_with_pk_vk(constraint_system, test_cases)
+        test_composer_with_pk_vk(constraint_system, test_cases).await
     }
 
     #[test]
-    fn test_multiple_constraints() -> Result<(), Error> {
+    async fn test_multiple_constraints() -> Result<(), Error> {
         let constraint = Constraint {
             a: 1,
             b: 2,
@@ -587,11 +602,11 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_schnorr_constraints() -> Result<(), Error> {
+    async fn test_schnorr_constraints() -> Result<(), Error> {
         let mut signature_indices = [0i32; 64];
         for i in 13..(13 + 64) {
             signature_indices[i - 13] = i as i32;
@@ -664,11 +679,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_keccak256_constraint() -> Result<(), Error> {
+    async fn test_keccak256_constraint() -> Result<(), Error> {
         let input_value: u128 = 0xbd;
         let input_index = 1;
 
@@ -715,10 +730,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
+
     #[test]
-    fn test_ped_constraints() -> Result<(), Error> {
+    async fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
             result_x: 3,
@@ -767,11 +783,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_memory_constraints() -> Result<(), Error> {
+    async fn test_memory_constraints() -> Result<(), Error> {
         let two_field = FieldElement::one() + FieldElement::one();
         let one = Constraint {
             a: 0,
@@ -873,14 +889,14 @@ mod test {
             result: false,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2])
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
     }
 
     #[test]
-    fn test_compute_merkle_root_constraint() -> Result<(), Error> {
-        let mut msg_hasher: blake2::Blake2s = MessageHasher::new();
+    async fn test_compute_merkle_root_constraint() -> Result<(), Error> {
+        let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
 
-        let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3);
+        let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
 
         let empty_leaf = vec![0; 64];
 
@@ -922,11 +938,11 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
-    fn test_logic_constraints() -> Result<(), Error> {
+    async fn test_logic_constraints() -> Result<(), Error> {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -1012,7 +1028,7 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1])
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[derive(Clone, Debug)]
@@ -1022,19 +1038,21 @@ mod test {
         result: bool,
     }
 
-    fn test_composer_with_pk_vk(
+    async fn test_composer_with_pk_vk(
         constraint_system: ConstraintSystem,
         test_cases: Vec<WitnessResult>,
     ) -> Result<(), Error> {
         let bb = Barretenberg::new();
+        let crs = bb.get_crs(&constraint_system).await?;
 
         let proving_key = bb.compute_proving_key(&constraint_system)?;
-        let verification_key = bb.compute_verification_key(&constraint_system, &proving_key)?;
+        let verification_key = bb.compute_verification_key(&crs, &proving_key)?;
 
         for test_case in test_cases.into_iter() {
             let proof =
-                bb.create_proof_with_pk(&constraint_system, test_case.witness, &proving_key)?;
+                bb.create_proof_with_pk(&crs, &constraint_system, test_case.witness, &proving_key)?;
             let verified = bb.verify_with_vk(
+                &crs,
                 &constraint_system,
                 &proof,
                 test_case.public_inputs,
