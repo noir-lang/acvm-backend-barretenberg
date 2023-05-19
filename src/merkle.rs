@@ -166,12 +166,12 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
 
     #[allow(dead_code)]
     fn find_hash_from_value(&self, leaf_value: &FieldElement) -> Option<u32> {
-        for (&index, db_leaf_hash) in self.hashes_tree.iter() {
-            if db_leaf_hash == leaf_value {
-                return Some(index);
-            }
-        }
-        None
+        // TODO: This looks like the original implementation is wrong.
+        // Why are we comparing a value (i.e. preimage) with a hash?
+        self.hashes_tree
+            .iter()
+            .find(|(_, &leaf_hash)| &leaf_hash == leaf_value)
+            .map(|(&index, _)| index)
     }
 
     pub(crate) fn get_hash_path(&self, mut index: u32) -> HashPath {
