@@ -744,7 +744,9 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
-        let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
+        // ACVM doesn't generate `ComputeMerkleRootConstraint`s anymore.
+        // We maintain this to maintain the serialization format.
+        let compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
@@ -858,36 +860,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             };
 
                             blake2s_constraints.push(blake2s_constraint);
-                        }
-                        BlackBoxFuncCall::ComputeMerkleRoot {
-                            leaf,
-                            index,
-                            hash_path: hash_path_inputs,
-                            output,
-                        } => {
-                            // leaf
-                            let leaf = leaf.witness.witness_index() as i32;
-                            // index
-                            let index = index.witness.witness_index() as i32;
-
-                            let mut hash_path = Vec::new();
-                            for path_elem in hash_path_inputs.iter() {
-                                let path_elem_index = path_elem.witness.witness_index() as i32;
-
-                                hash_path.push(path_elem_index);
-                            }
-
-                            // computed root
-                            let result = output.witness_index() as i32;
-
-                            let constraint = ComputeMerkleRootConstraint {
-                                hash_path,
-                                leaf,
-                                index,
-                                result,
-                            };
-
-                            compute_merkle_root_constraints.push(constraint);
                         }
                         BlackBoxFuncCall::SchnorrVerify {
                             public_key_x,

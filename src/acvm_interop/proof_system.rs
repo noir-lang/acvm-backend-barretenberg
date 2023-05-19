@@ -34,7 +34,6 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::SHA256
                 | BlackBoxFunc::Blake2s
                 | BlackBoxFunc::Keccak256
-                | BlackBoxFunc::ComputeMerkleRoot
                 | BlackBoxFunc::SchnorrVerify
                 | BlackBoxFunc::Pedersen
                 | BlackBoxFunc::HashToField128Security

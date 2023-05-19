@@ -57,3 +57,6 @@ js = [
     "dep:getrandom",
     "wasmer/js-default"
 ]
+
+[patch.crates-io]
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "94d5d20e1eb985cb15eb27556bbe8654172c6a1a" }

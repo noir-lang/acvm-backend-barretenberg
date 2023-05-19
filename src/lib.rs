@@ -13,8 +13,6 @@ mod barretenberg_structures;
 mod composer;
 #[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
-#[cfg(test)]
-mod merkle;
 mod pedersen;
 mod pippenger;
 mod scalar_mul;
