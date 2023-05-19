@@ -22,6 +22,12 @@ impl CommonReferenceString for Barretenberg {
         common_reference_string: Vec<u8>,
         circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
+        // Treat an empty vector as a request for a fresh CRS.
+        if common_reference_string.is_empty() {
+            return self.generate_common_reference_string(circuit).await;
+        }
+
+        // Otherwise parse CRS and update.
         let mut crs = common_reference_string.try_into()?;
         let constraint_system = &circuit.try_into()?;
         let common_reference_string = self
