@@ -472,17 +472,17 @@ mod wasm {
     }
 
     // Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
-    fn random_get(env: &Env, buf: i32, buf_len: i32) -> i32 {
+    fn random_get(_env: &Env, _buf: i32, buf_len: i32) -> i32 {
         let mut u8_buffer = vec![0; buf_len as usize];
         let res = getrandom::getrandom(&mut u8_buffer);
         match res {
             Ok(()) => {
-                unsafe {
-                    env.memory
-                        .uint8view()
-                        .subarray(buf as u32, buf as u32 + buf_len as u32)
-                        .copy_from(&u8_buffer);
-                }
+                // unsafe {
+                //     env.memory
+                //         .uint8view()
+                //         .subarray(buf as u32, buf as u32 + buf_len as u32)
+                //         .copy_from(&u8_buffer);
+                // }
                 0_i32 // __WASI_ESUCCESS
             }
             Err(_) => 29_i32, // __WASI_EIO

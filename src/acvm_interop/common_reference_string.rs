@@ -2,7 +2,6 @@ use acvm::{acir::circuit::Circuit, async_trait, CommonReferenceString};
 
 use crate::{composer::Composer, BackendError, Barretenberg};
 
-// TODO(#185): Ensure CRS download works in JS
 #[async_trait(?Send)]
 impl CommonReferenceString for Barretenberg {
     type Error = BackendError;

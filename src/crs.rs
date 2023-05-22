@@ -135,7 +135,10 @@ pub(crate) async fn download_crs(num_points: usize) -> Result<CRS, Error> {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(not(target_arch = "wasm32"))]
     use tokio::test;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
 
     use crate::{crs::download_crs, Error};
 

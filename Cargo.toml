@@ -55,6 +55,9 @@ pkg-config = "0.3"
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { version = "1.0", features = [ "macros" ] }
 
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test = "0.3.36"
+
 [features]
 default = ["native"]
 native = [
