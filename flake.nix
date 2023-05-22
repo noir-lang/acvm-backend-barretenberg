@@ -206,7 +206,7 @@
 
         nativeBuildInputs = [
           wasm-bindgen-cli
-          pkgs.ungoogled-chromium
+          pkgs.firefox
         ];
 
         buildInputs = [ ] ++ extraBuildInputs;
@@ -276,7 +276,7 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-      } // (if pkgs.stdenv.isLinux && pkgs.stdenv.isx86_64 then {
+      } // (if system == "x86_64-linux" then {
         cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
           cargoArtifacts = js-cargo-artifacts;
 
@@ -284,8 +284,7 @@
         });
 
         cargo-test-js = craneLib.cargoTest (jsArgs // (networkTestArgs 8002) // {
-          CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
-          CHROMEDRIVER_ARGS="--verbose";
+          GECKODRIVER="${pkgs.geckodriver}/bin/geckodriver";
 
           cargoArtifacts = js-cargo-artifacts;
 
