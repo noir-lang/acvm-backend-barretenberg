@@ -6,7 +6,7 @@ use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-#[async_trait]
+#[async_trait(?Send)]
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 

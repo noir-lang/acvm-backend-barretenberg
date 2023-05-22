@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=94d5d20e1eb985cb15eb27556bbe8654172c6a1a#94d5d20e1eb985cb15eb27556bbe8654172c6a1a"
+source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir_field",
  "flate2",
@@ -17,7 +17,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=94d5d20e1eb985cb15eb27556bbe8654172c6a1a#94d5d20e1eb985cb15eb27556bbe8654172c6a1a"
+source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,7 +30,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=94d5d20e1eb985cb15eb27556bbe8654172c6a1a#94d5d20e1eb985cb15eb27556bbe8654172c6a1a"
+source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -66,7 +66,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=94d5d20e1eb985cb15eb27556bbe8654172c6a1a#94d5d20e1eb985cb15eb27556bbe8654172c6a1a"
+source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir",
 ]
