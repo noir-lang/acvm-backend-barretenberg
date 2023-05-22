@@ -1,6 +1,6 @@
 // TODO(#166): Rework this module to return results
 use acvm::FieldElement;
-use std::{convert::TryInto, path::Path};
+use std::{collections::BTreeMap, convert::TryInto};
 
 use crate::{pedersen::Pedersen, Barretenberg, Error};
 
@@ -26,10 +26,10 @@ pub(crate) trait MessageHasher {
     fn hash(&mut self, msg: &[u8]) -> FieldElement;
 }
 
-impl MessageHasher for blake2::Blake2s {
+impl MessageHasher for blake2::Blake2s256 {
     fn new() -> Self {
         use blake2::Digest;
-        <blake2::Blake2s as Digest>::new()
+        <blake2::Blake2s256 as Digest>::new()
     }
 
     fn hash(&mut self, msg: &[u8]) -> FieldElement {
@@ -61,130 +61,23 @@ fn flatten_path(path: Vec<(FieldElement, FieldElement)>) -> Vec<FieldElement> {
 pub(crate) struct MerkleTree<MH: MessageHasher, PH: PathHasher> {
     depth: u32,
     total_size: u32,
-    db: sled::Db,
+    db: BTreeMap<&'static [u8], Vec<u8>>,
+    preimages_tree: BTreeMap<[u8; 16], Vec<u8>>,
+    hashes_tree: BTreeMap<[u8; 16], Vec<u8>>,
     barretenberg: PH,
     msg_hasher: MH,
 }
 
-fn insert_root(db: &mut sled::Db, value: FieldElement) {
-    db.insert("ROOT".as_bytes(), value.to_be_bytes()).unwrap();
-}
-fn fetch_root(db: &sled::Db) -> FieldElement {
-    let value = db
-        .get("ROOT".as_bytes())
-        .unwrap()
-        .expect("merkle root should always be present");
-    FieldElement::from_be_bytes_reduce(&value)
-}
-fn insert_depth(db: &mut sled::Db, value: u32) {
-    db.insert("DEPTH".as_bytes(), &value.to_be_bytes()).unwrap();
-}
-fn fetch_depth(db: &sled::Db) -> u32 {
-    let value = db
-        .get("DEPTH".as_bytes())
-        .unwrap()
-        .expect("depth should always be present");
-    u32::from_be_bytes(value.to_vec().try_into().unwrap())
-}
-fn insert_empty_index(db: &mut sled::Db, index: u32) {
-    // First fetch the depth to see that this is less than
-    let depth = fetch_depth(db);
-    let total_size = 1 << depth;
-    if index > total_size {
-        panic!("trying to insert at index {index}, but total width is {total_size}")
-    }
-    db.insert("EMPTY".as_bytes(), &index.to_be_bytes()).unwrap();
-}
-fn fetch_empty_index(db: &sled::Db) -> u32 {
-    let value = db
-        .get("EMPTY".as_bytes())
-        .unwrap()
-        .expect("empty index should always be present");
-    u32::from_be_bytes(value.to_vec().try_into().unwrap())
-}
-fn insert_preimage(db: &mut sled::Db, index: u32, value: Vec<u8>) {
-    let tree = db.open_tree("preimages").unwrap();
-
-    let index = index as u128;
-    tree.insert(index.to_be_bytes(), value).unwrap();
-}
-
-#[allow(dead_code)]
-fn fetch_preimage(db: &sled::Db, index: usize) -> Vec<u8> {
-    let tree = db.open_tree("preimages").unwrap();
-
-    let index = index as u128;
-    tree.get(index.to_be_bytes())
-        .unwrap()
-        .map(|i_vec| i_vec.to_vec())
-        .unwrap()
-}
-fn fetch_hash(db: &sled::Db, index: usize) -> FieldElement {
-    let tree = db.open_tree("hashes").unwrap();
-    let index = index as u128;
-
-    tree.get(index.to_be_bytes())
-        .unwrap()
-        .map(|i_vec| FieldElement::from_be_bytes_reduce(&i_vec))
-        .unwrap()
-}
-
-fn insert_hash(db: &mut sled::Db, index: u32, hash: FieldElement) {
-    let tree = db.open_tree("hashes").unwrap();
-    let index = index as u128;
-
-    tree.insert(index.to_be_bytes(), hash.to_be_bytes())
-        .unwrap();
-}
-
-#[allow(dead_code)]
-fn find_hash_from_value(db: &sled::Db, leaf_value: &FieldElement) -> Option<u128> {
-    let tree = db.open_tree("hashes").unwrap();
-
-    for index_db_lef_hash in tree.iter() {
-        let (key, db_leaf_hash) = index_db_lef_hash.unwrap();
-        let index = u128::from_be_bytes(key.to_vec().try_into().unwrap());
-
-        if db_leaf_hash.to_vec() == leaf_value.to_be_bytes() {
-            return Some(index);
-        }
-    }
-    None
-}
-
 impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
-    #[allow(dead_code)]
-    pub(crate) fn from_path<P: AsRef<Path>>(
-        path: P,
-        barretenberg: PH,
-        msg_hasher: MH,
-    ) -> MerkleTree<MH, PH> {
-        assert!(path.as_ref().exists(), "path does not exist");
-        let config = sled::Config::new().path(path);
-
-        let db = config.open().unwrap();
-
-        let depth = fetch_depth(&db);
-
-        let total_size = 1u32 << depth;
-
-        MerkleTree {
-            depth,
-            total_size,
-            barretenberg,
-            db,
-            msg_hasher,
-        }
-    }
-
-    pub(crate) fn new<P: AsRef<Path>>(depth: u32, path: P) -> MerkleTree<MH, PH> {
+    pub(crate) fn new(depth: u32) -> Self {
         let barretenberg = PH::new();
         let mut msg_hasher = MH::new();
 
         assert!((1..=20).contains(&depth)); // Why can depth != 0 and depth not more than 20?
 
-        let config = sled::Config::new().path(path);
-        let mut db = config.open().unwrap();
+        let db = BTreeMap::new();
+        let preimages_tree = BTreeMap::new();
+        let hashes_tree = BTreeMap::new();
 
         let total_size = 1u32 << depth;
 
@@ -208,27 +101,116 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             offset += layer_size;
             layer_size /= 2;
         }
-        let root = current;
-        insert_root(&mut db, root);
 
-        for (index, hash) in hashes.into_iter().enumerate() {
-            insert_hash(&mut db, index as u32, hash)
-        }
-
-        for (index, image) in pre_images.into_iter().enumerate() {
-            insert_preimage(&mut db, index as u32, image)
-        }
-
-        insert_depth(&mut db, depth);
-        insert_empty_index(&mut db, 0);
-
-        MerkleTree {
+        let mut merkle_tree = MerkleTree {
             depth,
             total_size,
             barretenberg,
             db,
+            preimages_tree,
+            hashes_tree,
             msg_hasher,
+        };
+
+        let root = current;
+        merkle_tree.insert_root(root);
+
+        for (index, hash) in hashes.into_iter().enumerate() {
+            merkle_tree.insert_hash(index as u32, hash)
         }
+
+        for (index, image) in pre_images.into_iter().enumerate() {
+            merkle_tree.insert_preimage(index as u32, image)
+        }
+
+        merkle_tree.insert_depth(depth);
+        merkle_tree.insert_empty_index(0);
+
+        merkle_tree
+    }
+
+    fn insert_root(&mut self, value: FieldElement) {
+        self.db.insert("ROOT".as_bytes(), value.to_be_bytes());
+    }
+
+    fn fetch_root(&self) -> FieldElement {
+        let value = self
+            .db
+            .get("ROOT".as_bytes())
+            .expect("merkle root should always be present");
+        FieldElement::from_be_bytes_reduce(value)
+    }
+
+    fn insert_depth(&mut self, value: u32) {
+        self.db
+            .insert("DEPTH".as_bytes(), value.to_be_bytes().into());
+    }
+
+    fn fetch_depth(&self) -> u32 {
+        let value = self
+            .db
+            .get("DEPTH".as_bytes())
+            .expect("depth should always be present");
+        u32::from_be_bytes(value.to_vec().try_into().unwrap())
+    }
+
+    fn insert_empty_index(&mut self, index: u32) {
+        // First fetch the depth to see that this is less than
+        let depth = self.fetch_depth();
+        let total_size = 1 << depth;
+        if index > total_size {
+            panic!("trying to insert at index {index}, but total width is {total_size}")
+        }
+        self.db
+            .insert("EMPTY".as_bytes(), index.to_be_bytes().into());
+    }
+
+    fn fetch_empty_index(&self) -> u32 {
+        let value = self
+            .db
+            .get("EMPTY".as_bytes())
+            .expect("empty index should always be present");
+        u32::from_be_bytes(value.to_vec().try_into().unwrap())
+    }
+
+    fn insert_preimage(&mut self, index: u32, value: Vec<u8>) {
+        let index = index as u128;
+        self.preimages_tree.insert(index.to_be_bytes(), value);
+    }
+
+    #[allow(dead_code)]
+    fn fetch_preimage(&self, index: usize) -> Vec<u8> {
+        let index = index as u128;
+        self.preimages_tree
+            .get(&index.to_be_bytes())
+            .unwrap()
+            .to_vec()
+    }
+
+    fn fetch_hash(&self, index: usize) -> FieldElement {
+        let index = index as u128;
+
+        let i_vec = self.hashes_tree.get(&index.to_be_bytes()).unwrap();
+        FieldElement::from_be_bytes_reduce(i_vec)
+    }
+
+    fn insert_hash(&mut self, index: u32, hash: FieldElement) {
+        let index = index as u128;
+
+        self.hashes_tree
+            .insert(index.to_be_bytes(), hash.to_be_bytes());
+    }
+
+    fn find_hash_from_value(&self, leaf_value: &FieldElement) -> Option<u128> {
+        for index_db_lef_hash in self.hashes_tree.iter() {
+            let (key, db_leaf_hash) = index_db_lef_hash;
+            let index = u128::from_be_bytes(key.to_vec().try_into().unwrap());
+
+            if db_leaf_hash.to_vec() == leaf_value.to_be_bytes() {
+                return Some(index);
+            }
+        }
+        None
     }
 
     pub(crate) fn get_hash_path(&self, mut index: usize) -> HashPath {
@@ -239,8 +221,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         for _ in 0..self.depth {
             index &= (!0) - 1;
             path.push((
-                fetch_hash(&self.db, offset + index),
-                fetch_hash(&self.db, offset + index + 1),
+                self.fetch_hash(offset + index),
+                self.fetch_hash(offset + index + 1),
             ));
             offset += layer_size as usize;
             layer_size /= 2;
@@ -255,18 +237,17 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         new_message: &[u8],
     ) -> Result<FieldElement, Error> {
         let current = self.msg_hasher.hash(new_message);
-
-        insert_preimage(&mut self.db, index as u32, new_message.to_vec());
+        self.insert_preimage(index as u32, new_message.to_vec());
         self.update_leaf(index, current)
     }
 
     fn check_if_index_valid_and_increment(&mut self, mut index: usize) {
         // Fetch the empty index
-        let empty_index = fetch_empty_index(&self.db) as usize;
+        let empty_index = self.fetch_empty_index() as usize;
         if empty_index == index {
             // increment the empty index
             index += 1;
-            insert_empty_index(&mut self.db, index as u32);
+            self.insert_empty_index(index as u32);
         } else {
             panic!("this is an regular append-only merkle tree. Tried to insert at {index}, but next empty is at {empty_index}");
         }
@@ -274,14 +255,14 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
 
     #[allow(dead_code)]
     pub(crate) fn find_index_from_leaf(&self, leaf_value: &FieldElement) -> Option<usize> {
-        let index = find_hash_from_value(&self.db, leaf_value);
+        let index = self.find_hash_from_value(leaf_value);
         index.map(|val| val as usize)
     }
 
     #[allow(dead_code)]
     // TODO: this gets updated to be -1 on the latest barretenberg branch
     pub(crate) fn find_index_for_empty_leaf(&self) -> usize {
-        let index = fetch_empty_index(&self.db);
+        let index = self.fetch_empty_index();
         index as usize
     }
 
@@ -298,12 +279,12 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
         let mut offset = 0usize;
         let mut layer_size = self.total_size;
         for _ in 0..self.depth {
-            insert_hash(&mut self.db, (offset + index) as u32, current);
+            self.insert_hash((offset + index) as u32, current);
 
             index &= (!0) - 1;
             current = self.barretenberg.hash(
-                &fetch_hash(&self.db, offset + index),
-                &fetch_hash(&self.db, offset + index + 1),
+                &self.fetch_hash(offset + index),
+                &self.fetch_hash(offset + index + 1),
             )?;
 
             offset += layer_size as usize;
@@ -311,18 +292,18 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
             index /= 2;
         }
 
-        insert_root(&mut self.db, current);
+        self.insert_root(current);
         Ok(current)
     }
 
     #[allow(dead_code)]
     /// Gets a message at `index`. This is not the leaf
     pub(crate) fn get_message_at_index(&self, index: usize) -> Vec<u8> {
-        fetch_preimage(&self.db, index)
+        self.fetch_preimage(index)
     }
 
     pub(crate) fn root(&self) -> FieldElement {
-        fetch_root(&self.db)
+        self.fetch_root()
     }
 
     #[allow(dead_code)]
@@ -333,10 +314,8 @@ impl<MH: MessageHasher, PH: PathHasher> MerkleTree<MH, PH> {
 
 #[test]
 fn basic_interop_initial_root() {
-    use tempfile::tempdir;
-    let temp_dir = tempdir().unwrap();
     // Test that the initial root is computed correctly
-    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
     // Copied from barretenberg by copying the stdout from MemoryTree
     let expected_hex = "04ccfbbb859b8605546e03dcaf41393476642859ff7f99446c054b841f0e05c8";
     assert_eq!(tree.root().to_hex(), expected_hex)
@@ -344,10 +323,8 @@ fn basic_interop_initial_root() {
 
 #[test]
 fn basic_interop_hashpath() {
-    use tempfile::tempdir;
-    let temp_dir = tempdir().unwrap();
     // Test that the hashpath is correct
-    let tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
 
     let path = tree.get_hash_path(0);
 
@@ -375,9 +352,7 @@ fn basic_interop_hashpath() {
 #[test]
 fn basic_interop_update() -> Result<(), Error> {
     // Test that computing the HashPath is correct
-    use tempfile::tempdir;
-    let temp_dir = tempdir().unwrap();
-    let mut tree: MerkleTree<blake2::Blake2s, Barretenberg> = MerkleTree::new(3, &temp_dir);
+    let mut tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
 
     tree.update_message(0, &[0; 64])?;
     tree.update_message(1, &[1; 64])?;
