@@ -73,6 +73,20 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
+      # chromedriver = pkgs.fetchzip {
+      #   pname = "chromedriver-binary";
+      #   url = "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Mac_Arm%2F1147449%2Fchromedriver_mac64.zip?generation=1684791422358404&alt=media";
+      #   sha256 = "sha256-CZMII7oE0hVNy+h261kb/jB3foFhY6r1vvxFEw6WuN4=";
+      #   extension = "zip";
+      # };
+
+      # chromium = pkgs.fetchzip {
+      #   pname = "chromium";
+      #   url = "https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Mac_Arm%2F1147449%2Fchrome-mac.zip?generation=1684791417172583&alt=media";
+      #   sha256 = "sha256-gOTe9Tig93JgDyWaCCWhWD8CynXOIQpnsZywF7LgB7g=";
+      #   extension = "zip";
+      # };
+
       wasm-bindgen-cli = craneLib.buildPackage rec {
         pname = "wasm-bindgen-cli";
         version = "0.2.86";
@@ -114,7 +128,6 @@
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         RUST_TEST_THREADS = "1";
 
-        CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
         WASM_BINDGEN_TEST_TIMEOUT = "3000";
       };
 
@@ -191,7 +204,7 @@
         # We disable the default "native" feature and enable the "wasm" feature
         cargoExtraArgs = "--no-default-features --target wasm32-unknown-unknown";
 
-        nativeBuildInputs = [] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
+        nativeBuildInputs = [
           wasm-bindgen-cli
           pkgs.ungoogled-chromium
         ];
@@ -235,21 +248,6 @@
 
         cargoArtifacts = native-cargo-artifacts;
       });
-
-      js-tests = if pkgs.stdenv.isLinux then {
-        cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
-          cargoArtifacts = js-cargo-artifacts;
-
-          cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        });
-
-        cargo-test-js = craneLib.cargoTest (jsArgs // (networkTestArgs 8002) // {
-          cargoArtifacts = js-cargo-artifacts;
-
-          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-          doCheck = true;
-        });
-      } else {};
     in
     rec {
       checks = {
@@ -278,7 +276,23 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-      } // js-tests;
+      } // (if pkgs.stdenv.isLinux then {
+        cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
+          cargoArtifacts = js-cargo-artifacts;
+
+          cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        });
+
+        cargo-test-js = craneLib.cargoTest (jsArgs // (networkTestArgs 8002) // {
+          CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
+          CHROMEDRIVER_ARGS="--verbose";
+
+          cargoArtifacts = js-cargo-artifacts;
+
+          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
+          doCheck = true;
+        });
+      } else {});
 
       packages = {
         inherit acvm-backend-barretenberg-native;
