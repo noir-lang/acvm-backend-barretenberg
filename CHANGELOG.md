@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.2.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.2...v0.2.0) (2023-05-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* Update to acvm 0.12.0 ([#165](https://github.com/noir-lang/acvm-backend-barretenberg/issues/165))
+* Add serialization logic for RAM and ROM opcodes ([#153](https://github.com/noir-lang/acvm-backend-barretenberg/issues/153))
+
+### Features
+
+* Add serde to `ConstraintSystem` types ([#196](https://github.com/noir-lang/acvm-backend-barretenberg/issues/196)) ([4c04a79](https://github.com/noir-lang/acvm-backend-barretenberg/commit/4c04a79e6d2b0115f3b4526c60f9f7dae8b464ae))
+* Add serialization logic for RAM and ROM opcodes ([#153](https://github.com/noir-lang/acvm-backend-barretenberg/issues/153)) ([3d3847d](https://github.com/noir-lang/acvm-backend-barretenberg/commit/3d3847de70e74a8f65c64e165ad15ae3d31f5350))
+* Update to acvm 0.12.0 ([#165](https://github.com/noir-lang/acvm-backend-barretenberg/issues/165)) ([d613c79](https://github.com/noir-lang/acvm-backend-barretenberg/commit/d613c79584a599f4adbd11d2ce3b61403c185b73))
+
 ## [0.1.2](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.1...v0.1.2) (2023-05-11)
 
 
