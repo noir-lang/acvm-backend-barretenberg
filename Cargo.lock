@@ -47,7 +47,7 @@ dependencies = [
 
 [[package]]
 name = "acvm-backend-barretenberg"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "acvm",
  "barretenberg-sys",
@@ -58,6 +58,7 @@ dependencies = [
  "reqwest",
  "rust-embed",
  "serde",
+ "serde-big-array",
  "thiserror",
  "tokio",
  "wasmer",
@@ -1960,6 +1961,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb7d1f0d3021d347a83e556fc4683dea2ea09d87bccdf88ff5c12545d89d5efb"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-big-array"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11fc7cc2c76d73e0f27ee52abbd64eec84d46f370c88371120433196934e4b7f"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

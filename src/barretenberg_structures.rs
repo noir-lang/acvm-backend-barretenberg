@@ -3,10 +3,12 @@ use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
 use acvm::FieldElement;
+use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 use crate::Error;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub(crate) struct Assignments(Vec<FieldElement>);
 
 // This is a separate impl so the constructor can get the wasm_bindgen macro in the future
@@ -51,7 +53,7 @@ impl From<Vec<FieldElement>> for Assignments {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Constraint {
     pub(crate) a: i32,
     pub(crate) b: i32,
@@ -112,7 +114,7 @@ impl Constraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct RangeConstraint {
     pub(crate) a: i32,
     pub(crate) num_bits: i32,
@@ -128,9 +130,11 @@ impl RangeConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct EcdsaConstraint {
     pub(crate) hashed_message: Vec<i32>,
+    // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
+    #[serde(with = "BigArray")]
     pub(crate) signature: [i32; 64],
     pub(crate) public_key_x: [i32; 32],
     pub(crate) public_key_y: [i32; 32],
@@ -170,9 +174,11 @@ impl EcdsaConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct SchnorrConstraint {
     pub(crate) message: Vec<i32>,
+    // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
+    #[serde(with = "BigArray")]
     pub(crate) signature: [i32; 64],
     pub(crate) public_key_x: i32,
     pub(crate) public_key_y: i32,
@@ -202,7 +208,7 @@ impl SchnorrConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct ComputeMerkleRootConstraint {
     pub(crate) hash_path: Vec<i32>,
     pub(crate) leaf: i32,
@@ -229,7 +235,7 @@ impl ComputeMerkleRootConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Sha256Constraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -255,7 +261,7 @@ impl Sha256Constraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Blake2sConstraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -281,7 +287,7 @@ impl Blake2sConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct HashToFieldConstraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: i32,
@@ -304,7 +310,7 @@ impl HashToFieldConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Keccak256Constraint {
     pub(crate) inputs: Vec<(i32, i32)>,
     pub(crate) result: [i32; 32],
@@ -331,7 +337,7 @@ impl Keccak256Constraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
     pub(crate) result_x: i32,
@@ -354,7 +360,7 @@ impl PedersenConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct FixedBaseScalarMulConstraint {
     pub(crate) scalar: i32,
     pub(crate) pubkey_x: i32,
@@ -373,7 +379,7 @@ impl FixedBaseScalarMulConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct LogicConstraint {
     pub(crate) a: i32,
     pub(crate) b: i32,
@@ -415,7 +421,7 @@ impl LogicConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug, Default)]
+#[derive(Clone, Hash, Debug, Default, Serialize, Deserialize)]
 pub(crate) struct ConstraintSystem {
     var_num: u32,
     public_inputs: Vec<u32>,
@@ -659,7 +665,7 @@ impl ConstraintSystem {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct MemOpBarretenberg {
     pub(crate) is_store: i8,
     pub(crate) index: Constraint,
@@ -677,7 +683,7 @@ impl MemOpBarretenberg {
     }
 }
 
-#[derive(Clone, Hash, Debug)]
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct BlockConstraint {
     pub(crate) init: Vec<Constraint>,
     pub(crate) trace: Vec<MemOpBarretenberg>,
