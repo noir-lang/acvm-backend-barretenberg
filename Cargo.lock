@@ -52,7 +52,6 @@ dependencies = [
  "acvm",
  "barretenberg-sys",
  "bincode",
- "blake2",
  "bytesize",
  "getrandom",
  "pkg-config",
