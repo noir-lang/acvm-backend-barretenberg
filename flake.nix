@@ -191,9 +191,8 @@
         # We disable the default "native" feature and enable the "wasm" feature
         cargoExtraArgs = "--no-default-features --target wasm32-unknown-unknown";
 
-        nativeBuildInputs = [
+        nativeBuildInputs = [] ++ pkgs.lib.optionals pkgs.stdenv.isLinux [
           wasm-bindgen-cli
-          # pkgs.firefox-bin
           pkgs.ungoogled-chromium
         ];
 
@@ -236,6 +235,21 @@
 
         cargoArtifacts = native-cargo-artifacts;
       });
+
+      js-tests = if pkgs.stdenv.isLinux then {
+        cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
+          cargoArtifacts = js-cargo-artifacts;
+
+          cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        });
+
+        cargo-test-js = craneLib.cargoTest (jsArgs // (networkTestArgs 8002) // {
+          cargoArtifacts = js-cargo-artifacts;
+
+          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
+          doCheck = true;
+        });
+      } else {};
     in
     rec {
       checks = {
@@ -264,20 +278,7 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-
-        cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
-          cargoArtifacts = js-cargo-artifacts;
-
-          cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        });
-
-        cargo-test-js = craneLib.cargoTest (jsArgs // (networkTestArgs 8002) // {
-          cargoArtifacts = js-cargo-artifacts;
-
-          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-          doCheck = true;
-        });
-      };
+      } // js-tests;
 
       packages = {
         inherit acvm-backend-barretenberg-native;
