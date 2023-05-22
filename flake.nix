@@ -276,7 +276,7 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-      } // (if pkgs.stdenv.isLinux then {
+      } // (if pkgs.stdenv.isLinux && pkgs.stdenv.isx86_64 then {
         cargo-clippy-js = craneLib.cargoClippy (jsArgs // {
           cargoArtifacts = js-cargo-artifacts;
 
