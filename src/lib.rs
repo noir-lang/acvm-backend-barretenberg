@@ -174,9 +174,7 @@ fn smoke() -> Result<(), Error> {
 
 #[cfg(feature = "native")]
 mod native {
-    use crate::FIELD_BYTES;
-
-    use super::{Barretenberg, FeatureError};
+    use super::{Barretenberg, FeatureError, FIELD_BYTES};
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
