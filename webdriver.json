@@ -3,6 +3,9 @@
         "prefs": {
             "dom.workers.modules.enabled": true
         },
-        "args": []
+        "args": [
+            "--marionette-port",
+            "2828"
+        ]
     }
 }
