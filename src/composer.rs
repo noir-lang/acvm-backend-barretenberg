@@ -407,7 +407,13 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Assignments) -> Vec<u8> 
 #[cfg(test)]
 mod test {
     use acvm::FieldElement;
+    #[cfg(not(target_arch = "wasm32"))]
     use tokio::test;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_worker);
 
     use super::*;
     use crate::barretenberg_structures::{

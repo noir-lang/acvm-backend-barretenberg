@@ -440,12 +440,12 @@ mod wasm {
                     Ok(_) => {
                         0_i32 // __WASI_ESUCCESS
                     }
-                    Err(err) => {
+                    Err(_) => {
                         29_i32 // __WASI_EIO
                     }
                 }
             }
-            Err(err) => {
+            Err(_) => {
                 29_i32 // __WASI_EIO
             }
         }

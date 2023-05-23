@@ -78,7 +78,13 @@ impl SmartContract for Barretenberg {
 #[cfg(test)]
 mod tests {
     use acvm::SmartContract;
+    #[cfg(not(target_arch = "wasm32"))]
     use tokio::test;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test as test;
+
+    #[cfg(target_arch = "wasm32")]
+    wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_worker);
 
     use crate::BackendError;
 

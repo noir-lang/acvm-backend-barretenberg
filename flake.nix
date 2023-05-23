@@ -64,9 +64,37 @@
         # We include rust-src to ensure rust-analyzer works.
         # See https://discourse.nixos.org/t/rust-src-not-found-and-other-misadventures-of-developing-rust-on-nixos/11570/4
         extensions = [ "rust-src" ];
+        targets = [ "wasm32-unknown-unknown" ]
+          ++ pkgs.lib.optional (pkgs.hostPlatform.isx86_64 && pkgs.hostPlatform.isLinux) "x86_64-unknown-linux-gnu"
+          ++ pkgs.lib.optional (pkgs.hostPlatform.isAarch64 && pkgs.hostPlatform.isLinux) "aarch64-unknown-linux-gnu"
+          ++ pkgs.lib.optional (pkgs.hostPlatform.isx86_64 && pkgs.hostPlatform.isDarwin) "x86_64-apple-darwin"
+          ++ pkgs.lib.optional (pkgs.hostPlatform.isAarch64 && pkgs.hostPlatform.isDarwin) "aarch64-apple-darwin";
       };
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+      wasm-bindgen-cli = craneLib.buildPackage rec {
+        pname = "wasm-bindgen-cli";
+        version = "0.2.86";
+
+        src = pkgs.fetchCrate {
+          inherit pname version;
+          sha256 = "sha256-56EOiLbdgAcoTrkyvB3t9TjtLaRvGxFUXx4haLwE2QY=";
+        };
+
+        nativeBuildInputs = [
+          pkgs.pkg-config
+        ];
+
+        buildInputs = [
+          pkgs.openssl
+        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
+          pkgs.curl
+          pkgs.darwin.apple_sdk.frameworks.Security
+        ];
+
+        doCheck = false;
+      };
 
       sharedEnvironment = {
         # Barretenberg fails if tests are run on multiple threads, so we set the test thread
@@ -239,7 +267,11 @@
       devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // {
         inputsFrom = builtins.attrValues checks;
 
+        CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
+        WASM_BINDGEN_TEST_TIMEOUT = "3000";
+
         nativeBuildInputs = with pkgs; [
+          wasm-bindgen-cli
           which
           starship
           git
