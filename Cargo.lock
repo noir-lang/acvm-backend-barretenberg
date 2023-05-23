@@ -5,7 +5,6 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir_field",
  "flate2",
@@ -17,7 +16,6 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,7 +28,6 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -67,7 +64,6 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.12.0"
-source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"
 dependencies = [
  "acir",
 ]
@@ -937,8 +933,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c05aeb6a22b8f62540c194aac980f2115af067bfe15a0734d7277a768d396b31"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "wasi",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2988,3 +2986,8 @@ dependencies = [
  "syn 1.0.107",
  "synstructure",
 ]
+
+[[patch.unused]]
+name = "acvm"
+version = "0.12.0"
+source = "git+https://github.com/noir-lang/acvm?rev=9f9fc216a6d09ca97352ffd365bfd347e94ad8eb#9f9fc216a6d09ca97352ffd365bfd347e94ad8eb"

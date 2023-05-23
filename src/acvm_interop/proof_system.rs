@@ -38,7 +38,8 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::Pedersen
                 | BlackBoxFunc::HashToField128Security
                 | BlackBoxFunc::EcdsaSecp256k1
-                | BlackBoxFunc::FixedBaseScalarMul => true,
+                | BlackBoxFunc::FixedBaseScalarMul
+                | BlackBoxFunc::VerifyProof => true,
 
                 BlackBoxFunc::AES => false,
             },
