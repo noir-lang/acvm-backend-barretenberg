@@ -7,6 +7,7 @@ use acvm::{FieldElement, PartialWitnessGenerator};
 use crate::pedersen::Pedersen;
 use crate::scalar_mul::ScalarMul;
 use crate::schnorr::SchnorrSig;
+use crate::recursion::Recursion;
 use crate::Barretenberg;
 
 impl PartialWitnessGenerator for Barretenberg {
@@ -146,6 +147,72 @@ impl PartialWitnessGenerator for Barretenberg {
 
         initial_witness.insert(outputs[0], pub_x);
         initial_witness.insert(outputs[1], pub_y);
+        Ok(OpcodeResolution::Solved)
+    }
+
+    fn verify_proof(
+        &self,
+        initial_witness: &mut WitnessMap,
+        key: &[FunctionInput],
+        proof: &[FunctionInput],
+        public_inputs: &[FunctionInput],
+        input_aggregation_object: Option<&[FunctionInput]>,
+        output_aggregation_object: &[Witness],
+    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
+        // Sanity check that we have the correct aggregation object size
+        assert_eq!(output_aggregation_object.len(), 16);
+
+        let mut key_iter = key.iter();
+        let mut key_array = [FieldElement::zero(); 114];
+        for (i, vk_i) in key_array.iter_mut().enumerate() {
+            // TODO: change these to ok_or_else
+            let _vk_i = key_iter.next().unwrap_or_else(|| {
+                panic!("missing rest of vkey. Tried to get field {i} but failed")
+            });
+            *vk_i = *witness_to_value(initial_witness, _vk_i.witness)?;
+        }
+        let key = key_array.to_vec();
+
+        let num_public_inputs = public_inputs.len();
+
+        let proof_iter = proof.iter();
+        let mut proof = Vec::new();
+        for proof_i in proof_iter {
+            let proof_field = *witness_to_value(initial_witness, proof_i.witness)?;
+            proof.push(proof_field);
+        }
+
+        let public_inputs_iter = public_inputs.iter();
+        let mut public_inputs = Vec::new();
+        for public_input_i in public_inputs_iter {
+            let public_input = *witness_to_value(initial_witness, public_input_i.witness)?;
+            public_inputs.push(public_input);
+        }
+
+        let mut input_aggregation_object_values = [FieldElement::zero(); 16];
+        if let Some(input_aggregation_object) = input_aggregation_object {
+            let mut input_agg_obj_iter = input_aggregation_object.iter();
+            for (i, var_i) in input_aggregation_object_values.iter_mut().enumerate() {
+                let _var_i = input_agg_obj_iter.next().unwrap_or_else(|| {
+                    panic!("missing rest of proof. Tried to get field {i} but failed")
+                });
+                *var_i = *witness_to_value(initial_witness, _var_i.witness)?;
+            }
+        } 
+
+        // NOTE: nested aggregation object should be a part of the verification key
+        // and be unnecessary to accept as inputs/outputs
+
+        let simulated_aggregation_state = self.verify_proof_(
+            key,
+            proof,
+            num_public_inputs as u32,
+            input_aggregation_object_values,
+        );
+
+        for i in 0..output_aggregation_object.len() {
+            initial_witness.insert(output_aggregation_object[i], simulated_aggregation_state[i]);
+        }
         Ok(OpcodeResolution::Solved)
     }
 }

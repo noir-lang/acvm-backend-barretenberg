@@ -954,6 +954,12 @@ mod test {
 
     #[test]
     async fn test_logic_constraints() -> Result<(), Error> {
+        let (constraint_system, case_1) = create_logic_constraint_circuit();
+
+        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
+    }
+
+    fn create_logic_constraint_circuit() -> (ConstraintSystem, WitnessResult) {
         /*
          * constraints produced by Noir program:
          * fn main(x : u32, y : pub u32) {
@@ -1039,7 +1045,7 @@ mod test {
             result: true,
         };
 
-        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
+        (constraint_system, case_1)
     }
 
     #[derive(Clone, Debug)]
