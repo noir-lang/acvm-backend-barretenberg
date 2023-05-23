@@ -194,7 +194,6 @@ mod native {
 
 #[cfg(not(feature = "native"))]
 mod wasm {
-    use std::cell::Cell;
     use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
 
     use super::{Barretenberg, Error, FeatureError};
@@ -310,11 +309,10 @@ mod wasm {
 
             #[cfg(feature = "js")]
             {
-                let view: js_sys::Uint8Array = memory.uint8view();
+                let view = memory.uint8view();
                 for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
                     view.set_index(cell_id as u32, arr[byte_id])
                 }
-                return;
             }
 
             #[cfg(not(feature = "js"))]
@@ -340,12 +338,15 @@ mod wasm {
             let end = start + length;
 
             #[cfg(feature = "js")]
-            return memory.uint8view().to_vec()[start..end].to_vec();
+            return memory
+                .uint8view()
+                .subarray(start as u32, end as u32)
+                .to_vec();
 
             #[cfg(not(feature = "js"))]
             return memory.view()[start..end]
                 .iter()
-                .map(|cell: &Cell<u8>| cell.get())
+                .map(|cell| cell.get())
                 .collect();
         }
 
@@ -461,14 +462,29 @@ mod wasm {
         let mut ptr_end = 0;
         let byte_view = env.memory.uint8view();
 
-        for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-            if cell != &Cell::new(0) {
+        #[cfg(feature = "js")]
+        for (i, cell) in byte_view.to_vec()[ptr as usize..].iter().enumerate() {
+            if cell != &0_u8 {
                 ptr_end = i;
             } else {
                 break;
             }
         }
 
+        #[cfg(not(feature = "js"))]
+        for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
+            if cell.get() != 0 {
+                ptr_end = i;
+            } else {
+                break;
+            }
+        }
+
+        #[cfg(feature = "js")]
+        let str_vec: Vec<_> =
+            byte_view.to_vec()[ptr as usize..=(ptr + ptr_end as i32) as usize].to_vec();
+
+        #[cfg(not(feature = "js"))]
         let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
             .iter()
             .cloned()
