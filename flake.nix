@@ -99,6 +99,11 @@
         BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
+      headlessEnvironment = if system != "aarch64-linux" then {
+        CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
+        WASM_BINDGEN_TEST_TIMEOUT = "3000";
+      } else {};
+
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
       # source filter to include .sol files in addition to usual rust/cargo source files
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;
@@ -248,11 +253,8 @@
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
       # and extra tooling via `nativeBuildInputs`
-      devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // {
+      devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // headlessEnvironment // {
         inputsFrom = builtins.attrValues checks;
-
-        CHROMEDRIVER="${pkgs.chromedriver}/bin/chromedriver";
-        WASM_BINDGEN_TEST_TIMEOUT = "3000";
 
         nativeBuildInputs = with pkgs; [
           wasm-bindgen-cli
