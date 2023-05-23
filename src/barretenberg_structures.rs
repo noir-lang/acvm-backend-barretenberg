@@ -1138,7 +1138,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             proof: proof_inputs,
                             public_inputs: public_inputs_inputs,
                             key_hash,
-                            input_aggregation_object: input_agg_obj_inputs,
+                            input_aggregation_object,
                             output_aggregation_object,
                             ..
                         } => {
@@ -1172,7 +1172,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             let key_hash = key_hash.witness.witness_index() as i32;
 
 
-                            // TODO: update this
+                            let input_agg_obj_inputs = if let Some(input_aggregation_object) = input_aggregation_object {
+                                input_aggregation_object.clone()
+                            } else {
+                                vec![FunctionInput::dummy(); output_aggregation_object.len()]
+                            };
+
                             // input_aggregation_object
                             let mut input_agg_obj_inputs = input_agg_obj_inputs.iter();
                             let mut input_aggregation_object = [0i32; 16];
