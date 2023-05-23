@@ -3,6 +3,7 @@ use acvm::async_trait;
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::download_crs;
 use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
+use std::slice;
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
@@ -41,6 +42,7 @@ pub(crate) trait Composer {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Error>;
 
     fn verify_with_vk(
@@ -52,7 +54,11 @@ pub(crate) trait Composer {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> Result<bool, Error>;
+
+    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Result<Vec<u8>, Error>;
+    fn verification_key_as_fields(&self, crs: &CRS, verification_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Error>;
 }
 
 #[cfg(feature = "native")]
@@ -141,6 +147,7 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Error> {
         let CRS {
             g1_data, g2_data, ..
@@ -161,6 +168,7 @@ impl Composer for Barretenberg {
                 &cs_buf,
                 &witness_buf,
                 p_proof,
+                is_recursive,
             );
         }
 
@@ -186,6 +194,7 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
+        is_recursive: bool,
     ) -> Result<bool, Error> {
         let CRS { g2_data, .. } = crs;
 
@@ -200,9 +209,64 @@ impl Composer for Barretenberg {
                 verification_key,
                 &cs_buf,
                 &proof,
+                is_recursive,
             );
         }
         Ok(verified)
+    }
+
+    fn proof_as_fields(&self, proof: &[u8], public_inputs: Assignments) -> Result<Vec<u8>, Error> {
+        let num_public_inputs = public_inputs.len();
+        let mut proof_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_proof_fields = &mut proof_fields_addr as *mut *mut u8;
+        let proof = prepend_public_inputs(proof.to_vec(), public_inputs);
+
+        let proof_fields_size;
+        unsafe {
+            proof_fields_size = barretenberg_sys::composer::serialize_proof_into_field_elements(
+                &proof,
+                p_proof_fields,
+                proof.len(),
+                num_public_inputs,
+            )
+        }
+
+        let result;
+        unsafe {
+            result = Vec::from_raw_parts(proof_fields_addr, proof_fields_size, proof_fields_size);
+        }
+
+        Ok(result)
+    }
+
+    fn verification_key_as_fields(&self, crs: &CRS, verification_key: &[u8]) -> Result<(Vec<u8>, Vec<u8>), Error> {
+        let CRS { g2_data, .. } = crs;
+
+        let mut vk_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_fields = &mut vk_fields_addr as *mut *mut u8;
+
+        let mut vk_hash_fields_addr: *mut u8 = std::ptr::null_mut();
+        let p_vk_hash_fields = &mut vk_hash_fields_addr as *mut *mut u8;
+
+        let vk_fields_size;
+        unsafe {
+            vk_fields_size =
+                barretenberg_sys::composer::serialize_verification_key_into_field_elements(
+                    g2_data,
+                    verification_key,
+                    p_vk_fields,
+                    p_vk_hash_fields,
+                )
+        }
+
+        let vk_result;
+        let vk_hash_result;
+        unsafe {
+            vk_result = Vec::from_raw_parts(vk_fields_addr, vk_fields_size, vk_fields_size);
+            vk_hash_result = slice::from_raw_parts(vk_hash_fields_addr, 32);
+        }
+
+        Ok((vk_result.to_vec(), vk_hash_result.to_vec()))
     }
 }
 
@@ -997,13 +1061,14 @@ mod test {
 
         for test_case in test_cases.into_iter() {
             let proof =
-                bb.create_proof_with_pk(&crs, &constraint_system, test_case.witness, &proving_key)?;
+                bb.create_proof_with_pk(&crs, &constraint_system, test_case.witness, &proving_key, false)?;
             let verified = bb.verify_with_vk(
                 &crs,
                 &constraint_system,
                 &proof,
                 test_case.public_inputs,
                 &verification_key,
+                false,
             )?;
             assert_eq!(verified, test_case.result);
         }

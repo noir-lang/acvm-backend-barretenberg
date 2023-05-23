@@ -1,4 +1,4 @@
-use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock};
+use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock, FunctionInput};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
@@ -16,6 +16,10 @@ impl Assignments {
     #[allow(dead_code)]
     pub(crate) fn new() -> Assignments {
         Assignments::default()
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
     }
 }
 
@@ -438,7 +442,7 @@ pub(crate) struct ConstraintSystem {
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
-    recursion_constriants: Vec<RecursionConstraint>,
+    recursion_constraints: Vec<RecursionConstraint>,
     constraints: Vec<Constraint>,
 }
 
@@ -1134,13 +1138,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             keccak_constraints.push(keccak_constraint);
                         }
                         BlackBoxFuncCall::RecursiveAggregation {
-                            key: key_inputs,
+                            verification_key: key_inputs,
                             proof: proof_inputs,
                             public_inputs: public_inputs_inputs,
                             key_hash,
                             input_aggregation_object,
                             output_aggregation_object,
-                            ..
                         } => {
                             let mut key_inputs = key_inputs.iter();
                             let mut key_array = [0i32; 114];
@@ -1194,7 +1197,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             }
 
                             // output_aggregation_object
-                            let mut outputs_iter = outputs.iter();
+                            let mut outputs_iter = output_aggregation_object.iter();
                             let mut output_aggregation_object = [0i32; 16];
                             for (i, var) in output_aggregation_object.iter_mut().enumerate() {
                                 let var_field = outputs_iter.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
@@ -1250,7 +1253,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
-            recursion_constriants,
+            recursion_constraints,
         })
     }
 }
