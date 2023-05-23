@@ -73,27 +73,11 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-      wasm-bindgen-cli = craneLib.buildPackage rec {
-        pname = "wasm-bindgen-cli";
-        version = "0.2.86";
-
-        src = pkgs.fetchCrate {
-          inherit pname version;
-          sha256 = "sha256-56EOiLbdgAcoTrkyvB3t9TjtLaRvGxFUXx4haLwE2QY=";
+      wasm-bindgen-cli = pkgs.callPackage ./wasm-bindgen-cli.nix {
+        rustPlatform = pkgs.makeRustPlatform {
+          rustc = rustToolchain;
+          cargo = rustToolchain;
         };
-
-        nativeBuildInputs = [
-          pkgs.pkg-config
-        ];
-
-        buildInputs = [
-          pkgs.openssl
-        ] ++ pkgs.lib.optionals pkgs.stdenv.isDarwin [
-          pkgs.curl
-          pkgs.darwin.apple_sdk.frameworks.Security
-        ];
-
-        doCheck = false;
       };
 
       sharedEnvironment = {
