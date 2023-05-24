@@ -1069,8 +1069,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) => {
-                    // Directives & Oracles are only needed by the pwg
+                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
+                    // Directives, Oracles and Brillig are only needed by the pwg
                 }
                 Opcode::Block(_) => {
                     // Block is managed by ACVM
