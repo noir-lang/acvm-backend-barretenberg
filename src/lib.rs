@@ -142,9 +142,10 @@ mod native {
 mod wasm {
     use std::cell::RefCell;
     use wasmer::{
-        imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Module,
+        Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Module,
         Store, Value, WasmPtr,
     };
+    use wasmer_wasix::WasiEnv;
 
     use super::{Barretenberg, Error, FeatureError};
 
@@ -168,6 +169,7 @@ mod wasm {
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
+            env_logger::init();
             let (instance, memory, store) = instance_load();
             Barretenberg {
                 memory,
@@ -287,12 +289,14 @@ mod wasm {
 
         // TODO: Consider making this Result-returning
         pub(super) fn read_memory<const SIZE: usize>(&self, start: usize) -> [u8; SIZE] {
+            // println!("read memory call");
             self.read_memory_variable_length(start, SIZE)
                 .try_into()
                 .expect("Read memory should be of the specified length")
         }
 
         pub(super) fn read_memory_variable_length(&self, offset: usize, length: usize) -> Vec<u8> {
+            // println!("read_memory_variable_length call...");
             let memory = &self.memory;
             let store = &self.store.borrow();
             let memory_view = memory.view(&store);
@@ -326,6 +330,7 @@ mod wasm {
             name: &str,
             params: Vec<&WASMValue>,
         ) -> Result<WASMValue, Error> {
+            // println!("\ncall_multiple (\n{}\n{:?})\n", name, params);
             // We take in a reference to values, since they do not implement Copy.
             // We then clone them inside of this function, so that the API does not have a bunch of Clones everywhere
 
@@ -352,6 +357,7 @@ mod wasm {
 
         /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
         pub(super) fn allocate(&self, bytes: &[u8]) -> Result<WASMValue, Error> {
+            // println!("allocate called...");
             let ptr: i32 = self.call("bbmalloc", &bytes.len().into())?.try_into()?;
 
             let i32_bytes = ptr.to_be_bytes();
@@ -373,14 +379,15 @@ mod wasm {
     fn load_module() -> (Module, Store) {
         let store = Store::default();
 
-        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
+        let embedded_barretenberg_wasm = Wasm::get("barretenberg.wasm").unwrap();
+        let module = Module::new(&store, embedded_barretenberg_wasm.data).unwrap();
         (module, store)
     }
 
     fn instance_load() -> (Instance, Memory, Store) {
         let (module, mut store) = load_module();
 
-        let mem_type = MemoryType::new(130, Some(65536), true);
+        let mem_type = MemoryType::new(130, Some(65536), false);
         let memory = Memory::new(&mut store, mem_type).unwrap();
 
         let log_str_env = &FunctionEnv::new(
@@ -390,62 +397,109 @@ mod wasm {
             },
         );
 
-        let random_get_env = &FunctionEnv::new(
+        // let random_get_env = &FunctionEnv::new(
+        //     &mut store,
+        //     Env {
+        //         memory: memory.clone(),
+        //     },
+        // );
+
+        // let custom_imports = imports! {
+        //     "env" => {
+        //         "logstr" => Function::new_typed_with_env(
+        //             &mut store,
+        //             log_str_env,
+        //             // Env {
+        //             //     memory: memory.clone(),
+        //             // },
+        //             logstr,
+        //         ),
+        //         "set_data" => Function::new_typed(&mut store, set_data),
+        //         "get_data" => Function::new_typed(&mut store, get_data),
+        //         "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
+        //         "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
+        //         "memory" => memory.clone(),
+        //         "env_hardware_concurrency" => Function::new_typed(&mut store, env_hardware_concurrency),
+        //     },
+        //     "wasi_snapshot_preview1" => {
+        //         "fd_read" => Function::new_typed(&mut store, fd_read),
+        //         "fd_close" => Function::new_typed(&mut store, fd_close),
+        //         "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
+        //         "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
+        //         "random_get" => Function::new_typed_with_env(
+        //             &mut store,
+        //             random_get_env,
+        //             // Env {
+        //             //     memory: memory.clone(),
+        //             // },
+        //             random_get
+        //         ),
+        //         "fd_seek" => Function::new_typed(&mut store, fd_seek),
+        //         "fd_write" => Function::new_typed(&mut store, fd_write),
+        //         "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
+        //         "environ_get" => Function::new_typed(&mut store, environ_get),
+        //         "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
+        //     },
+        //     "wasi" => {
+        //         "thread-spawn" => Function::new_typed(&mut store, thread_spawn),
+        //     },
+        // };
+
+        let mut wasi_env = WasiEnv::builder("barretenberg").finalize(&mut store).unwrap();
+
+        let mut import_object = wasi_env.import_object_for_all_wasi_versions(&mut store, &module).unwrap();
+
+        import_object.define("env", "memory", memory.clone());
+        // import_object.define("wasi", "memory", memory.clone());
+        // import_object.define("wasi_snapshot_preview1", "memory", memory.clone());
+        import_object.define("env", "logstr", Function::new_typed_with_env(
             &mut store,
-            Env {
-                memory: memory.clone(),
-            },
-        );
+            log_str_env,
+            logstr,
+        ));
 
-        let custom_imports = imports! {
-            "env" => {
-                "logstr" => Function::new_typed_with_env(
-                    &mut store,
-                    log_str_env,
-                    // Env {
-                    //     memory: memory.clone(),
-                    // },
-                    logstr,
-                ),
-                "set_data" => Function::new_typed(&mut store, set_data),
-                "get_data" => Function::new_typed(&mut store, get_data),
-                "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
-                "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
-                "memory" => memory.clone(),
-                "env_hardware_concurrency" => Function::new_typed(&mut store, env_hardware_concurrency),
-            },
-            "wasi_snapshot_preview1" => {
-                "fd_read" => Function::new_typed(&mut store, fd_read),
-                "fd_close" => Function::new_typed(&mut store, fd_close),
-                "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
-                "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
-                "random_get" => Function::new_typed_with_env(
-                    &mut store,
-                    random_get_env,
-                    // Env {
-                    //     memory: memory.clone(),
-                    // },
-                    random_get
-                ),
-                "fd_seek" => Function::new_typed(&mut store, fd_seek),
-                "fd_write" => Function::new_typed(&mut store, fd_write),
-                "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
-                "environ_get" => Function::new_typed(&mut store, environ_get),
-                "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
-            },
-            "wasi" => {
-                "thread-spawn" => Function::new_typed(&mut store, thread_spawn),
-            },
-        };
+        import_object.define("env", "set_data", Function::new_typed(&mut store, set_data));
+        import_object.define("env", "get_data", Function::new_typed(&mut store, get_data));
+        import_object.define("env", "env_load_verifier_crs", Function::new_typed(&mut store, env_load_verifier_crs));
+        import_object.define("env", "env_load_prover_crs", Function::new_typed(&mut store, env_load_prover_crs));
+        import_object.define("env", "env_hardware_concurrency", Function::new_typed(&mut store, env_hardware_concurrency));
 
-        (
-            Instance::new(&mut store, &module, &custom_imports).unwrap(),
+        
+        // TODO: investigate  why wasmer detects `wasi_snapshot_preview1` namespace when wasm binary expects `wasi` namespace  
+        // let _thread_spawn_extern = import_object.get_export("wasi_snapshot_preview1", "thread-spawn").unwrap();
+        // import_object.define("wasi", "thread-spawn", _thread_spawn_extern);
+
+
+        // println!("\n\n <<DEBUG: Provided ImportObject's: ");
+        // for ns in import_object.into_iter() {
+        //     println!("{:?}", ns);
+        // }
+        // println!("DEBUG End>>\n");
+
+        let instance =
+            Instance::new(&mut store, &module, &import_object).unwrap();
+        
+        wasi_env.initialize_with_memory(&mut store, instance.clone(), Some(memory.clone())).unwrap();
+        // {
+        //     Ok(_) => (),
+        //     Err(err) => panic!("Could not initialize WASI Environmnet: {}", err),
+        // };
+
+        // let start = instance.exports.get_function("_initialize").unwrap();
+        // match start.call(&mut store, &[]) {
+        //     Ok(_) => (),
+        //     Err(err) => println!("Could not start WASM instance: {}", err),
+        // };
+
+        (   
+            instance, 
             memory,
             store,
         )
     }
 
     fn logstr(mut _env: FunctionEnvMut<Env>, ptr: i32) {
+        // print!("logstr call...");
         // let mut ptr_end = 0;
         let (env, store) = _env.data_and_store_mut();
         let memory_view = env.memory.view(&store);
@@ -480,81 +534,81 @@ mod wasm {
     }
 
     // Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
-    fn random_get(mut _env: FunctionEnvMut<Env>, buf_ptr: i32, buf_len: i32) -> i32 {
-        let mut u8_buffer = vec![0; buf_len as usize];
-        let res = getrandom::getrandom(&mut u8_buffer);
-        match res {
-            Ok(()) => {
-                let (env, store) = _env.data_and_store_mut();
-                let memory_view = env.memory.view(&store);
-                match memory_view.write(buf_ptr as u64, u8_buffer.as_mut_slice()) {
-                    Ok(_) => {
-                        println!("RandomNumber successfully written to Wasm Memory");
-                        0_i32 // __WASI_ESUCCESS
-                    }
-                    Err(err) => {
-                        println!("RandomNumber write to Wasm Memory failed: {}", err);
-                        29_i32 // __WASI_EIO
-                    }
-                };
-                // unsafe {
-                //     env.memory
-                //         .uint8view()
-                //         .subarray(buf as u32, buf as u32 + buf_len as u32)
-                //         .copy_from(&u8_buffer);
-                // }
-                0_i32 // __WASI_ESUCCESS
-            }
-            Err(err) => {
-                println!("Failed to get RandomNumber: {}", err);
-                29_i32 // __WASI_EIO
-            }
-        }
-    }
+    // fn random_get(mut _env: FunctionEnvMut<Env>, buf_ptr: i32, buf_len: i32) -> i32 {
+    //     let mut u8_buffer = vec![0; buf_len as usize];
+    //     let res = getrandom::getrandom(&mut u8_buffer);
+    //     match res {
+    //         Ok(()) => {
+    //             let (env, store) = _env.data_and_store_mut();
+    //             let memory_view = env.memory.view(&store);
+    //             match memory_view.write(buf_ptr as u64, u8_buffer.as_mut_slice()) {
+    //                 Ok(_) => {
+    //                     println!("RandomNumber successfully written to Wasm Memory");
+    //                     0_i32 // __WASI_ESUCCESS
+    //                 }
+    //                 Err(err) => {
+    //                     println!("RandomNumber write to Wasm Memory failed: {}", err);
+    //                     29_i32 // __WASI_EIO
+    //                 }
+    //             };
+    //             // unsafe {
+    //             //     env.memory
+    //             //         .uint8view()
+    //             //         .subarray(buf as u32, buf as u32 + buf_len as u32)
+    //             //         .copy_from(&u8_buffer);
+    //             // }
+    //             0_i32 // __WASI_ESUCCESS
+    //         }
+    //         Err(err) => {
+    //             println!("Failed to get RandomNumber: {}", err);
+    //             29_i32 // __WASI_EIO
+    //         }
+    //     }
+    // }
 
     fn env_hardware_concurrency() -> i32 {
         return 4;
     }
 
-    fn clock_time_get(_:i32, _:i64, _:i32) -> i32 {
-        unimplemented!("proc_exit: clock_time_get is not implemented")
-    }
+    // fn clock_time_get(_:i32, _:i64, _:i32) -> i32 {
+    //     unimplemented!("proc_exit: clock_time_get is not implemented")
+    // }
 
-    fn thread_spawn(_:i32) -> i32 {
-        unimplemented!("proc_exit: thread_spawn is not implemented")
-    }
+    // fn thread_spawn(_:i32) -> i32 {
+    //     unimplemented!("proc_exit: thread_spawn is not implemented")
+    // }
 
-    fn proc_exit(_: i32) {
-        unimplemented!("proc_exit is not implemented")
-    }
+    // fn proc_exit(_: i32) {
+    //     unimplemented!("proc_exit is not implemented")
+    // }
 
-    fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_write is not implemented")
-    }
+    // fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
+    //     unimplemented!("fd_write is not implemented")
+    // }
 
-    fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_seek is not implemented")
-    }
+    // fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
+    //     unimplemented!("fd_seek is not implemented")
+    // }
 
-    fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_read is not implemented")
-    }
+    // fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
+    //     unimplemented!("fd_read is not implemented")
+    // }
 
-    fn fd_fdstat_get(_: i32, _: i32) -> i32 {
-        unimplemented!("fd_fdstat_get is not implemented")
-    }
+    // fn fd_fdstat_get(_: i32, _: i32) -> i32 {
+    //     unimplemented!("fd_fdstat_get is not implemented")
+    // }
 
-    fn fd_close(_: i32) -> i32 {
-        unimplemented!("fd_close is not implemented")
-    }
+    // fn fd_close(_: i32) -> i32 {
+    //     unimplemented!("fd_close is not implemented")
+    // }
 
-    fn environ_sizes_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_sizes_get is not implemented")
-    }
+    // fn environ_sizes_get(_: i32, _: i32) -> i32 {
+    //     unimplemented!("environ_sizes_get is not implemented")
+    // }
 
-    fn environ_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_get is not implemented")
-    }
+    // fn environ_get(_: i32, _: i32) -> i32 {
+    //     unimplemented!("environ_get is not implemented")
+    // }
 
     fn set_data(_: i32, _: i32, _: i32) {
         unimplemented!("set_data is not implemented")
