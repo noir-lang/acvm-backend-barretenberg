@@ -9,6 +9,7 @@
         "bbmalloc",
         "bbfree",
         "bindgen",
+        "Brillig",
         "cout",
         "fdstat",
         "filestat",
