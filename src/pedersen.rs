@@ -145,17 +145,17 @@ fn basic_interop() -> Result<(), Error> {
         Test {
             input_left: FieldElement::zero(),
             input_right: FieldElement::one(),
-            expected_hex: "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
+            expected_hex: "0x0c5e1ddecd49de44ed5e5798d3f6fb7c71fe3d37f5bee8664cf88a445b5ba0af",
         },
         Test {
             input_left: FieldElement::one(),
             input_right: FieldElement::one(),
-            expected_hex: "0x1044a769e185fcdf077c8289a6bf87c5c77ff9561cab69d39fadd90a07ee4af4",
+            expected_hex: "0x0e1793a0c122887bcb53c84776f4704c26bc093b25eaa9c7847a672c65e314ae",
         },
         Test {
             input_left: FieldElement::one(),
             input_right: FieldElement::zero(),
-            expected_hex: "0x17d213c8fe83e89a2f3190933d437a3e231124e0383e6dc6a7b6e6358833e427",
+            expected_hex: "0x0c93b3f27730b2e331e634af15bc9d5a769688921f30b36ca926b35a96b3306c",
         },
     ];
 
@@ -176,11 +176,11 @@ fn pedersen_hash_to_point() -> Result<(), Error> {
     let barretenberg = Barretenberg::new();
     let (x, y) = barretenberg.encrypt(vec![FieldElement::zero(), FieldElement::one()])?;
     let expected_x = FieldElement::from_hex(
-        "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
+        "0x0c5e1ddecd49de44ed5e5798d3f6fb7c71fe3d37f5bee8664cf88a445b5ba0af",
     )
     .unwrap();
     let expected_y = FieldElement::from_hex(
-        "0x0ecf9d98be4597a88c46a7e0fa8836b57a7dcb41ee30f8d8787b11cc259c83fa",
+        "0x230294a041e26fe80b827c2ef5cb8784642bbaa83842da2714d62b1f3c4f9752",
     )
     .unwrap();
 
