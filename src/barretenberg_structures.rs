@@ -986,6 +986,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                         BlackBoxFuncCall::Pedersen {
                             inputs: gadget_call_inputs,
+                            domain_separator: _,
                             outputs,
                         } => {
                             let mut inputs = Vec::new();
@@ -1221,7 +1222,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) => {
+                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
                     // Directives & Oracles are only needed by the pwg
                 }
                 Opcode::Block(_) => {

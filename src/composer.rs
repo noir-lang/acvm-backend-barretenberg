@@ -168,7 +168,6 @@ impl Composer for Barretenberg {
                 &cs_buf,
                 &witness_buf,
                 p_proof,
-                is_recursive,
             );
         }
 
@@ -209,7 +208,6 @@ impl Composer for Barretenberg {
                 verification_key,
                 &cs_buf,
                 &proof,
-                is_recursive,
             );
         }
         Ok(verified)

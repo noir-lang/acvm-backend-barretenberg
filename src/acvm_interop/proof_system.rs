@@ -43,6 +43,7 @@ impl ProofSystemCompiler for Barretenberg {
 
                 BlackBoxFunc::AES => false,
             },
+            Opcode::Brillig(_) => false,
         }
     }
 
