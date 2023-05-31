@@ -738,6 +738,7 @@ mod test {
     async fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
+            hash_index: 0,
             result_x: 3,
             result_y: 4,
         };
@@ -751,7 +752,7 @@ mod test {
             qr: FieldElement::zero(),
             qo: FieldElement::zero(),
             qc: -FieldElement::from_hex(
-                "0x11831f49876c313f2a9ec6d8d521c7ce0b6311c852117e340bfe27fd1ac096ef",
+                "0x0c5e1ddecd49de44ed5e5798d3f6fb7c71fe3d37f5bee8664cf88a445b5ba0af",
             )
             .unwrap(),
         };
@@ -764,7 +765,7 @@ mod test {
             qr: FieldElement::zero(),
             qo: FieldElement::zero(),
             qc: -FieldElement::from_hex(
-                "0x0ecf9d98be4597a88c46a7e0fa8836b57a7dcb41ee30f8d8787b11cc259c83fa",
+                "0x230294a041e26fe80b827c2ef5cb8784642bbaa83842da2714d62b1f3c4f9752",
             )
             .unwrap(),
         };

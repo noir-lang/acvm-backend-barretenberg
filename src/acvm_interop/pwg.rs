@@ -10,17 +10,6 @@ use crate::schnorr::SchnorrSig;
 use crate::Barretenberg;
 
 impl PartialWitnessGenerator for Barretenberg {
-    fn aes(
-        &self,
-        _initial_witness: &mut WitnessMap,
-        _inputs: &[FunctionInput],
-        _outputs: &[Witness],
-    ) -> Result<OpcodeResolution, OpcodeResolutionError> {
-        Err(OpcodeResolutionError::UnsupportedBlackBoxFunc(
-            BlackBoxFunc::AES,
-        ))
-    }
-
     fn schnorr_verify(
         &self,
         initial_witness: &mut WitnessMap,
@@ -113,6 +102,7 @@ impl PartialWitnessGenerator for Barretenberg {
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
+        domain_separator: u32,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let scalars: Result<Vec<_>, _> = inputs
@@ -121,7 +111,7 @@ impl PartialWitnessGenerator for Barretenberg {
             .collect();
         let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
 
-        let (res_x, res_y) = self.encrypt(scalars).map_err(|err| {
+        let (res_x, res_y) = self.encrypt(scalars, 0).map_err(|err| {
             OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
         })?;
         initial_witness.insert(outputs[0], res_x);
