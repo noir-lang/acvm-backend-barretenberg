@@ -101,8 +101,8 @@ impl ProofSystemCompiler for Barretenberg {
 
     fn proof_as_fields(
         &self,
-        proof: &[u8],
-        public_inputs: WitnessMap,
+        _proof: &[u8],
+        _public_inputs: WitnessMap,
     ) -> Result<Vec<FieldElement>, Self::Error> {
         panic!("vk_as_fields not supported in this backend");
         // let flattened_public_inputs: Vec<FieldElement> =
@@ -121,8 +121,8 @@ impl ProofSystemCompiler for Barretenberg {
 
     fn vk_as_fields(
         &self,
-        common_reference_string: &[u8],
-        verification_key: &[u8],
+        _common_reference_string: &[u8],
+        _verification_key: &[u8],
     ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error> {
         panic!("vk_as_fields not supported in this backend");
         // let crs = common_reference_string.try_into()?;

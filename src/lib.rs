@@ -93,9 +93,6 @@ enum Error {
     #[error("Malformed Black Box Function: {0} - {1}")]
     MalformedBlackBoxFunc(BlackBoxFunc, String),
 
-    #[error("Unsupported Black Box Function: {0}")]
-    UnsupportedBlackBoxFunc(BlackBoxFunc),
-
     #[error(transparent)]
     FromFeature(#[from] FeatureError),
 
