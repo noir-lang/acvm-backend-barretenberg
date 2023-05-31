@@ -1,4 +1,4 @@
-use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock, FunctionInput};
+use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
@@ -445,7 +445,7 @@ pub(crate) struct ConstraintSystem {
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
-    recursion_constraints: Vec<RecursionConstraint>,
+    // recursion_constraints: Vec<RecursionConstraint>,
     constraints: Vec<Constraint>,
 }
 
@@ -542,13 +542,13 @@ impl ConstraintSystem {
         self
     }
 
-    pub(crate) fn recursion_constraints(
-        mut self,
-        recursion_constraints: Vec<RecursionConstraint>,
-    ) -> Self {
-        self.recursion_constraints = recursion_constraints;
-        self
-    }
+    // pub(crate) fn recursion_constraints(
+    //     mut self,
+    //     recursion_constraints: Vec<RecursionConstraint>,
+    // ) -> Self {
+    //     self.recursion_constraints = recursion_constraints;
+    //     self
+    // }
 
     pub(crate) fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
         self.constraints = constraints;
@@ -655,11 +655,11 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
-        let recursion_constraints_len = self.recursion_constraints.len() as u32;
-        buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
-        for constraint in self.recursion_constraints.iter() {
-            buffer.extend(&constraint.to_bytes());
-        }
+        // let recursion_constraints_len = self.recursion_constraints.len() as u32;
+        // buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
+        // for constraint in self.recursion_constraints.iter() {
+        //     buffer.extend(&constraint.to_bytes());
+        // }
 
         // Serialize each Arithmetic constraint
         let constraints_len = self.constraints.len() as u32;
@@ -751,58 +751,58 @@ impl BlockConstraint {
     }
 }
 
-#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct RecursionConstraint {
-    pub(crate) key: Vec<i32>,   // UP size is 115
-    pub(crate) proof: Vec<i32>, // UP size is 94
-    pub(crate) public_inputs: Vec<i32>,
-    pub(crate) key_hash: i32,
-    pub(crate) input_aggregation_object: [i32; 16],
-    pub(crate) output_aggregation_object: [i32; 16],
-    pub(crate) nested_aggregation_object: [i32; 16],
-}
+// #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
+// pub(crate) struct RecursionConstraint {
+//     pub(crate) key: Vec<i32>,   // UP size is 115
+//     pub(crate) proof: Vec<i32>, // UP size is 94
+//     pub(crate) public_inputs: Vec<i32>,
+//     pub(crate) key_hash: i32,
+//     pub(crate) input_aggregation_object: [i32; 16],
+//     pub(crate) output_aggregation_object: [i32; 16],
+//     pub(crate) nested_aggregation_object: [i32; 16],
+// }
 
-impl RecursionConstraint {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
+// impl RecursionConstraint {
+//     fn to_bytes(&self) -> Vec<u8> {
+//         let mut buffer = Vec::new();
 
-        let vk_len = (self.key.len()) as u32;
-        buffer.extend_from_slice(&vk_len.to_be_bytes());
-        for constraint in self.key.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         let vk_len = (self.key.len()) as u32;
+//         buffer.extend_from_slice(&vk_len.to_be_bytes());
+//         for constraint in self.key.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        let proof_len = (self.proof.len()) as u32;
-        buffer.extend_from_slice(&proof_len.to_be_bytes());
-        for constraint in self.proof.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         let proof_len = (self.proof.len()) as u32;
+//         buffer.extend_from_slice(&proof_len.to_be_bytes());
+//         for constraint in self.proof.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        let public_inputs_len = (self.public_inputs.len()) as u32;
-        buffer.extend_from_slice(&public_inputs_len.to_be_bytes());
-        for constraint in self.public_inputs.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         let public_inputs_len = (self.public_inputs.len()) as u32;
+//         buffer.extend_from_slice(&public_inputs_len.to_be_bytes());
+//         for constraint in self.public_inputs.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        buffer.extend_from_slice(&self.key_hash.to_be_bytes());
+//         buffer.extend_from_slice(&self.key_hash.to_be_bytes());
 
-        // The aggregation objects are both array's in barretenberg
-        // Thus, we do not need to write the length
-        for constraint in self.input_aggregation_object.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         // The aggregation objects are both array's in barretenberg
+//         // Thus, we do not need to write the length
+//         for constraint in self.input_aggregation_object.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        for constraint in self.output_aggregation_object.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         for constraint in self.output_aggregation_object.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        for constraint in self.nested_aggregation_object.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
+//         for constraint in self.nested_aggregation_object.iter() {
+//             buffer.extend_from_slice(&constraint.to_be_bytes());
+//         }
 
-        buffer
-    }
-}
+//         buffer
+//     }
+// }
 
 impl TryFrom<&Circuit> for ConstraintSystem {
     type Error = Error;
@@ -822,7 +822,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
-        let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
+        // let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
 
         for gate in circuit.opcodes.iter() {
             match gate {
@@ -1132,85 +1132,86 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             keccak_constraints.push(keccak_constraint);
                         }
-                        BlackBoxFuncCall::RecursiveAggregation {
-                            verification_key: key_inputs,
-                            proof: proof_inputs,
-                            public_inputs: public_inputs_inputs,
-                            key_hash,
-                            input_aggregation_object,
-                            output_aggregation_object,
-                        } => {
-                            let mut key_inputs = key_inputs.iter();
-                            let mut key_array = [0i32; 114];
-                            for (i, vk_witness) in key_array.iter_mut().enumerate() {
-                                let vk_field = key_inputs.next().unwrap_or_else(|| {
-                                    panic!(
-                                        "missing rest of vkey. Tried to get field {i} but failed"
-                                    )
-                                });
-                                let vk_field_index = vk_field.witness.witness_index() as i32;
-                                *vk_witness = vk_field_index;
-                            }
-                            let key = key_array.to_vec();
+                        // BlackBoxFuncCall::RecursiveAggregation {
+                        //     verification_key: key_inputs,
+                        //     proof: proof_inputs,
+                        //     public_inputs: public_inputs_inputs,
+                        //     key_hash,
+                        //     input_aggregation_object,
+                        //     output_aggregation_object,
+                        // } => {
+                        //     let mut key_inputs = key_inputs.iter();
+                        //     let mut key_array = [0i32; 114];
+                        //     for (i, vk_witness) in key_array.iter_mut().enumerate() {
+                        //         let vk_field = key_inputs.next().unwrap_or_else(|| {
+                        //             panic!(
+                        //                 "missing rest of vkey. Tried to get field {i} but failed"
+                        //             )
+                        //         });
+                        //         let vk_field_index = vk_field.witness.witness_index() as i32;
+                        //         *vk_witness = vk_field_index;
+                        //     }
+                        //     let key = key_array.to_vec();
 
-                            let mut proof = Vec::new();
-                            for proof_field in proof_inputs.iter() {
-                                let proof_field_index = proof_field.witness.witness_index() as i32;
-                                proof.push(proof_field_index);
-                            }
+                        //     let mut proof = Vec::new();
+                        //     for proof_field in proof_inputs.iter() {
+                        //         let proof_field_index = proof_field.witness.witness_index() as i32;
+                        //         proof.push(proof_field_index);
+                        //     }
 
-                            let mut public_inputs = Vec::new();
-                            for public_input in public_inputs_inputs.iter() {
-                                let public_input_field_index =
-                                    public_input.witness.witness_index() as i32;
-                                public_inputs.push(public_input_field_index);
-                            }
+                        //     let mut public_inputs = Vec::new();
+                        //     for public_input in public_inputs_inputs.iter() {
+                        //         let public_input_field_index =
+                        //             public_input.witness.witness_index() as i32;
+                        //         public_inputs.push(public_input_field_index);
+                        //     }
 
-                            // key_hash
-                            let key_hash = key_hash.witness.witness_index() as i32;
+                        //     // key_hash
+                        //     let key_hash = key_hash.witness.witness_index() as i32;
 
+                        //     let input_agg_obj_inputs =
+                        //         if let Some(input_aggregation_object) = input_aggregation_object {
+                        //             input_aggregation_object.clone()
+                        //         } else {
+                        //             vec![FunctionInput::dummy(); output_aggregation_object.len()]
+                        //         };
 
-                            let input_agg_obj_inputs = if let Some(input_aggregation_object) = input_aggregation_object {
-                                input_aggregation_object.clone()
-                            } else {
-                                vec![FunctionInput::dummy(); output_aggregation_object.len()]
-                            };
+                        //     // input_aggregation_object
+                        //     let mut input_agg_obj_inputs = input_agg_obj_inputs.iter();
+                        //     let mut input_aggregation_object = [0i32; 16];
+                        //     for (i, var) in input_aggregation_object.iter_mut().enumerate() {
+                        //         let var_field = input_agg_obj_inputs.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
+                        //         let var_field_index = var_field.witness.witness_index() as i32;
+                        //         *var = var_field_index;
+                        //     }
 
-                            // input_aggregation_object
-                            let mut input_agg_obj_inputs = input_agg_obj_inputs.iter();
-                            let mut input_aggregation_object = [0i32; 16];
-                            for (i, var) in input_aggregation_object.iter_mut().enumerate() {
-                                let var_field = input_agg_obj_inputs.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
-                                let var_field_index = var_field.witness.witness_index() as i32;
-                                *var = var_field_index;
-                            }
+                        //     // TODO: remove unwrap();
+                        //     let mut nested_aggregation_object: [i32; 16] = [0; 16];
+                        //     if key[5] == 1 {
+                        //         nested_aggregation_object = key[6..22].try_into().unwrap();
+                        //     }
 
-                            // TODO: remove unwrap();
-                            let mut nested_aggregation_object: [i32; 16] = [0; 16];
-                            if key[5] == 1 {
-                                nested_aggregation_object = key[6..22].try_into().unwrap();
-                            }
+                        //     // output_aggregation_object
+                        //     let mut outputs_iter = output_aggregation_object.iter();
+                        //     let mut output_aggregation_object = [0i32; 16];
+                        //     for (i, var) in output_aggregation_object.iter_mut().enumerate() {
+                        //         let var_field = outputs_iter.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
+                        //         let var_field_index = var_field.witness_index() as i32;
+                        //         *var = var_field_index;
+                        //     }
 
-                            // output_aggregation_object
-                            let mut outputs_iter = output_aggregation_object.iter();
-                            let mut output_aggregation_object = [0i32; 16];
-                            for (i, var) in output_aggregation_object.iter_mut().enumerate() {
-                                let var_field = outputs_iter.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
-                                let var_field_index = var_field.witness_index() as i32;
-                                *var = var_field_index;
-                            }
-
-                            let recursion_constraint = RecursionConstraint {
-                                key,
-                                proof,
-                                public_inputs,
-                                key_hash,
-                                input_aggregation_object,
-                                output_aggregation_object,
-                                nested_aggregation_object,
-                            };
-                            recursion_constraints.push(recursion_constraint);
-                        }
+                        //     let recursion_constraint = RecursionConstraint {
+                        //         key,
+                        //         proof,
+                        //         public_inputs,
+                        //         key_hash,
+                        //         input_aggregation_object,
+                        //         output_aggregation_object,
+                        //         nested_aggregation_object,
+                        //     };
+                        //     recursion_constraints.push(recursion_constraint);
+                        // }
+                        BlackBoxFuncCall::RecursiveAggregation { .. } => todo!(),
                         BlackBoxFuncCall::Keccak256VariableLength { .. } => todo!(),
                     };
                 }
@@ -1246,7 +1247,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
-            recursion_constraints,
+            // recursion_constraints,
         })
     }
 }

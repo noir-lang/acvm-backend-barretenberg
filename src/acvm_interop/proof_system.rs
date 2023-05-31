@@ -65,12 +65,12 @@ impl ProofSystemCompiler for Barretenberg {
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
-        is_recursive: bool,
+        _is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let crs = common_reference_string.try_into()?;
         let assignments = flatten_witness_map(circuit, witness_values);
 
-        Ok(self.create_proof_with_pk(&crs, &circuit.try_into()?, assignments, proving_key, is_recursive)?)
+        Ok(self.create_proof_with_pk(&crs, &circuit.try_into()?, assignments, proving_key)?)
     }
 
     fn verify_with_vk(
@@ -80,7 +80,7 @@ impl ProofSystemCompiler for Barretenberg {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
-        is_recursive: bool,
+        _is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let crs = common_reference_string.try_into()?;
         // Unlike when proving, we omit any unassigned witnesses.
@@ -95,7 +95,6 @@ impl ProofSystemCompiler for Barretenberg {
             proof,
             flattened_public_inputs.into(),
             verification_key,
-            is_recursive,
         )?)
     }
 
@@ -140,7 +139,6 @@ impl ProofSystemCompiler for Barretenberg {
 
         // Ok((vk_fields, vk_hash_hex))
     }
-    
 }
 
 /// Flatten a witness map into a vector of witness assignments.

@@ -102,7 +102,7 @@ impl PartialWitnessGenerator for Barretenberg {
         &self,
         initial_witness: &mut WitnessMap,
         inputs: &[FunctionInput],
-        domain_separator: u32,
+        _domain_separator: u32,
         outputs: &[Witness],
     ) -> Result<OpcodeResolution, OpcodeResolutionError> {
         let scalars: Result<Vec<_>, _> = inputs

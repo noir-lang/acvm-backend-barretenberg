@@ -138,7 +138,10 @@ fn smoke() -> Result<(), Error> {
     use crate::pedersen::Pedersen;
 
     let b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()], 0)?;
+    let (x, y) = b.encrypt(
+        vec![acvm::FieldElement::zero(), acvm::FieldElement::one()],
+        0,
+    )?;
     dbg!(x.to_hex(), y.to_hex());
     Ok(())
 }

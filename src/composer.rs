@@ -42,7 +42,6 @@ pub(crate) trait Composer {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-        is_recursive: bool,
     ) -> Result<Vec<u8>, Error>;
 
     fn verify_with_vk(
@@ -54,7 +53,6 @@ pub(crate) trait Composer {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-        is_recursive: bool,
     ) -> Result<bool, Error>;
 }
 
@@ -144,7 +142,6 @@ impl Composer for Barretenberg {
         constraint_system: &ConstraintSystem,
         witness: Assignments,
         proving_key: &[u8],
-        is_recursive: bool,
     ) -> Result<Vec<u8>, Error> {
         let CRS {
             g1_data, g2_data, ..
@@ -190,7 +187,6 @@ impl Composer for Barretenberg {
         proof: &[u8],
         public_inputs: Assignments,
         verification_key: &[u8],
-        is_recursive: bool,
     ) -> Result<bool, Error> {
         let CRS { g2_data, .. } = crs;
 
@@ -415,10 +411,10 @@ mod test {
     use tokio::test;
 
     use super::*;
-    use crate::{barretenberg_structures::{
+    use crate::barretenberg_structures::{
         BlockConstraint, Constraint, Keccak256Constraint, LogicConstraint, MemOpBarretenberg,
-        PedersenConstraint, RangeConstraint, SchnorrConstraint, RecursionConstraint,
-    }, recursion::Recursion};
+        PedersenConstraint, RangeConstraint, SchnorrConstraint,
+    };
 
     #[test]
     async fn test_no_constraints_no_pub_inputs() -> Result<(), Error> {
@@ -1009,14 +1005,13 @@ mod test {
 
         for test_case in test_cases.into_iter() {
             let proof =
-                bb.create_proof_with_pk(&crs, &constraint_system, test_case.witness, &proving_key, false)?;
+                bb.create_proof_with_pk(&crs, &constraint_system, test_case.witness, &proving_key)?;
             let verified = bb.verify_with_vk(
                 &crs,
                 &constraint_system,
                 &proof,
                 test_case.public_inputs,
                 &verification_key,
-                false,
             )?;
             assert_eq!(verified, test_case.result);
         }
