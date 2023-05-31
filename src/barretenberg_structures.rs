@@ -344,6 +344,7 @@ impl Keccak256VarConstraint {
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
+    pub(crate) hash_index: u32,
     pub(crate) result_x: i32,
     pub(crate) result_y: i32,
 }
@@ -357,6 +358,8 @@ impl PedersenConstraint {
         for constraint in self.inputs.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
+
+        buffer.extend_from_slice(&self.hash_index.to_be_bytes());
 
         buffer.extend_from_slice(&self.result_x.to_be_bytes());
         buffer.extend_from_slice(&self.result_y.to_be_bytes());
@@ -921,6 +924,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
+                                hash_index: 0,
                                 result_x,
                                 result_y,
                             };
