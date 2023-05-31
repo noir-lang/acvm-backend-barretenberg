@@ -208,32 +208,6 @@ impl SchnorrConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct ComputeMerkleRootConstraint {
-    pub(crate) hash_path: Vec<i32>,
-    pub(crate) leaf: i32,
-    pub(crate) index: i32,
-    pub(crate) result: i32,
-}
-
-impl ComputeMerkleRootConstraint {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-
-        let hash_path_len = self.hash_path.len() as u32;
-
-        buffer.extend_from_slice(&hash_path_len.to_be_bytes());
-        for constraint in self.hash_path.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
-
-        buffer.extend_from_slice(&self.leaf.to_be_bytes());
-        buffer.extend_from_slice(&self.result.to_be_bytes());
-        buffer.extend_from_slice(&self.index.to_be_bytes());
-
-        buffer
-    }
-}
 
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Sha256Constraint {
@@ -459,7 +433,6 @@ pub(crate) struct ConstraintSystem {
     logic_constraints: Vec<LogicConstraint>,
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
-    compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
@@ -506,14 +479,6 @@ impl ConstraintSystem {
 
     pub(crate) fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
         self.sha256_constraints = sha256_constraints;
-        self
-    }
-
-    pub(crate) fn compute_merkle_root_constraints(
-        mut self,
-        compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
-    ) -> Self {
-        self.compute_merkle_root_constraints = compute_merkle_root_constraints;
         self
     }
 
@@ -619,13 +584,6 @@ impl ConstraintSystem {
         let sha256_constraints_len = self.sha256_constraints.len() as u32;
         buffer.extend_from_slice(&sha256_constraints_len.to_be_bytes());
         for constraint in self.sha256_constraints.iter() {
-            buffer.extend(&constraint.to_bytes());
-        }
-
-        // Serialize each Compute Merkle Root constraint
-        let compute_merkle_root_constraints_len = self.compute_merkle_root_constraints.len() as u32;
-        buffer.extend_from_slice(&compute_merkle_root_constraints_len.to_be_bytes());
-        for constraint in self.compute_merkle_root_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -789,9 +747,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
-        // ACVM doesn't generate `ComputeMerkleRootConstraint`s anymore.
-        // We maintain this to maintain the serialization format.
-        let compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
@@ -1130,7 +1085,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             logic_constraints,
             range_constraints,
             sha256_constraints,
-            compute_merkle_root_constraints,
             pedersen_constraints,
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
