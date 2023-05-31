@@ -998,7 +998,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
-                                hash_index: domain_separator,
+                                hash_index: *domain_separator,
                                 result_x,
                                 result_y,
                             };
@@ -1215,6 +1215,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             };
                             recursion_constraints.push(recursion_constraint);
                         }
+                        BlackBoxFuncCall::Keccak256VariableLength { .. } => todo!(),
                     };
                 }
                 Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {

@@ -3,7 +3,7 @@ use acvm::async_trait;
 use crate::barretenberg_structures::{Assignments, ConstraintSystem};
 use crate::crs::download_crs;
 use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
-use std::slice;
+// use std::slice;
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
