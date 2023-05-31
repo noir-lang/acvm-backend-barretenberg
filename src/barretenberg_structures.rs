@@ -17,10 +17,6 @@ impl Assignments {
     pub(crate) fn new() -> Assignments {
         Assignments::default()
     }
-
-    pub(crate) fn len(&self) -> usize {
-        self.0.len()
-    }
 }
 
 impl Assignments {
