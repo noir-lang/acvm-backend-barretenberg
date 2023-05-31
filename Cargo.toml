@@ -23,7 +23,7 @@ thiserror = "1.0.21"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # Native
-barretenberg-sys = { version = "0.1.2", optional = true }
+barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys", branch = "arv/bb_hash_index", optional = true }
 
 # Wasm
 getrandom = { version = "0.2", optional = true }
