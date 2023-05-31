@@ -10,12 +10,10 @@ license = "MIT OR Apache-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
-# acvm = { version = "0.12.0", features = ["bn254"] }
-acvm = { features = ["bn254"], git = "https://github.com/noir-lang/acvm.git", branch = "mv/verify-proof-2" }
-
+acvm = { version = "0.12.0", features = ["bn254"] }
 bincode = "1.3.3"
 bytesize = "1.2"
 reqwest = { version = "0.11.16", default-features = false, features = ["rustls-tls"] }
@@ -25,8 +23,7 @@ thiserror = "1.0.21"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # Native
-barretenberg-sys = { git = "https://github.com/noir-lang/barretenberg-sys.git", rev = "49907db86cfe1268b88116297d6dcd249851c3ce", optional = true }
-# barretenberg-sys = { version = "0.1.2", optional = true }
+barretenberg-sys = { version = "0.1.2", optional = true }
 
 # Wasm
 getrandom = { version = "0.2", optional = true }
@@ -70,4 +67,4 @@ wasm = [
 ]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "9f9fc216a6d09ca97352ffd365bfd347e94ad8eb" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "64a6db4b19d936c0868e1487078543a4919bfa4f" }

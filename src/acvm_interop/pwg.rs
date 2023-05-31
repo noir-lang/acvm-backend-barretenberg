@@ -7,7 +7,6 @@ use acvm::{FieldElement, PartialWitnessGenerator};
 use crate::pedersen::Pedersen;
 use crate::scalar_mul::ScalarMul;
 use crate::schnorr::SchnorrSig;
-use crate::recursion::Recursion;
 use crate::Barretenberg;
 
 impl PartialWitnessGenerator for Barretenberg {

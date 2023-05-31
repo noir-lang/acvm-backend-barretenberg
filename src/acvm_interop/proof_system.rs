@@ -27,6 +27,7 @@ impl ProofSystemCompiler for Barretenberg {
             Opcode::ROM(_) => true,
             Opcode::RAM(_) => true,
             Opcode::Oracle(_) => true,
+            Opcode::Brillig(_) => true,
             Opcode::BlackBoxFuncCall(func) => match func.get_black_box_func() {
                 BlackBoxFunc::AND
                 | BlackBoxFunc::XOR
@@ -105,18 +106,19 @@ impl ProofSystemCompiler for Barretenberg {
         proof: &[u8],
         public_inputs: WitnessMap,
     ) -> Result<Vec<FieldElement>, Self::Error> {
-        let flattened_public_inputs: Vec<FieldElement> =
-            public_inputs.into_iter().map(|(_, el)| el).collect();
+        panic!("vk_as_fields not supported in this backend");
+        // let flattened_public_inputs: Vec<FieldElement> =
+        //     public_inputs.into_iter().map(|(_, el)| el).collect();
 
-        let proof_fields_as_bytes =
-            Composer::proof_as_fields(self, proof, flattened_public_inputs.into())?;
-        let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+        // let proof_fields_as_bytes =
+        //     Composer::proof_as_fields(self, proof, flattened_public_inputs.into())?;
+        // let proof_fields_bytes_slices = proof_fields_as_bytes.chunks(32).collect::<Vec<_>>();
 
-        let mut proof_fields: Vec<FieldElement> = Vec::new();
-        for proof_field_bytes in proof_fields_bytes_slices {
-            proof_fields.push(FieldElement::from_be_bytes_reduce(proof_field_bytes));
-        }
-        Ok(proof_fields)
+        // let mut proof_fields: Vec<FieldElement> = Vec::new();
+        // for proof_field_bytes in proof_fields_bytes_slices {
+        //     proof_fields.push(FieldElement::from_be_bytes_reduce(proof_field_bytes));
+        // }
+        // Ok(proof_fields)
     }
 
     fn vk_as_fields(
@@ -124,20 +126,21 @@ impl ProofSystemCompiler for Barretenberg {
         common_reference_string: &[u8],
         verification_key: &[u8],
     ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error> {
-        let crs = common_reference_string.try_into()?;
+        panic!("vk_as_fields not supported in this backend");
+        // let crs = common_reference_string.try_into()?;
 
-        let (vk_fields_as_bytes, vk_hash_as_bytes) =
-            Composer::verification_key_as_fields(self, &crs, verification_key)?;
+        // let (vk_fields_as_bytes, vk_hash_as_bytes) =
+        //     Composer::verification_key_as_fields(self, &crs, verification_key)?;
 
-        let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
-        let mut vk_fields: Vec<FieldElement> = Vec::new();
-        for vk_field_bytes in vk_fields_as_bytes_slices {
-            vk_fields.push(FieldElement::from_be_bytes_reduce(vk_field_bytes));
-        }
+        // let vk_fields_as_bytes_slices = vk_fields_as_bytes.chunks(32).collect::<Vec<_>>();
+        // let mut vk_fields: Vec<FieldElement> = Vec::new();
+        // for vk_field_bytes in vk_fields_as_bytes_slices {
+        //     vk_fields.push(FieldElement::from_be_bytes_reduce(vk_field_bytes));
+        // }
 
-        let vk_hash_hex = FieldElement::from_be_bytes_reduce(&vk_hash_as_bytes);
+        // let vk_hash_hex = FieldElement::from_be_bytes_reduce(&vk_hash_as_bytes);
 
-        Ok((vk_fields, vk_hash_hex))
+        // Ok((vk_fields, vk_hash_hex))
     }
     
 }

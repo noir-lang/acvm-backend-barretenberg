@@ -21,7 +21,6 @@ mod pedersen;
 mod pippenger;
 mod scalar_mul;
 mod schnorr;
-mod recursion;
 
 use acvm::acir::BlackBoxFunc;
 use thiserror::Error;
