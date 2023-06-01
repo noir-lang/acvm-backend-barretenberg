@@ -445,7 +445,6 @@ pub(crate) struct ConstraintSystem {
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
-    // recursion_constraints: Vec<RecursionConstraint>,
     constraints: Vec<Constraint>,
 }
 
@@ -541,14 +540,6 @@ impl ConstraintSystem {
         self.fixed_base_scalar_mul_constraints = fixed_base_scalar_mul_constraints;
         self
     }
-
-    // pub(crate) fn recursion_constraints(
-    //     mut self,
-    //     recursion_constraints: Vec<RecursionConstraint>,
-    // ) -> Self {
-    //     self.recursion_constraints = recursion_constraints;
-    //     self
-    // }
 
     pub(crate) fn constraints(mut self, constraints: Vec<Constraint>) -> Self {
         self.constraints = constraints;
@@ -751,59 +742,6 @@ impl BlockConstraint {
     }
 }
 
-// #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-// pub(crate) struct RecursionConstraint {
-//     pub(crate) key: Vec<i32>,   // UP size is 115
-//     pub(crate) proof: Vec<i32>, // UP size is 94
-//     pub(crate) public_inputs: Vec<i32>,
-//     pub(crate) key_hash: i32,
-//     pub(crate) input_aggregation_object: [i32; 16],
-//     pub(crate) output_aggregation_object: [i32; 16],
-//     pub(crate) nested_aggregation_object: [i32; 16],
-// }
-
-// impl RecursionConstraint {
-//     fn to_bytes(&self) -> Vec<u8> {
-//         let mut buffer = Vec::new();
-
-//         let vk_len = (self.key.len()) as u32;
-//         buffer.extend_from_slice(&vk_len.to_be_bytes());
-//         for constraint in self.key.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         let proof_len = (self.proof.len()) as u32;
-//         buffer.extend_from_slice(&proof_len.to_be_bytes());
-//         for constraint in self.proof.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         let public_inputs_len = (self.public_inputs.len()) as u32;
-//         buffer.extend_from_slice(&public_inputs_len.to_be_bytes());
-//         for constraint in self.public_inputs.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         buffer.extend_from_slice(&self.key_hash.to_be_bytes());
-
-//         // The aggregation objects are both array's in barretenberg
-//         // Thus, we do not need to write the length
-//         for constraint in self.input_aggregation_object.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         for constraint in self.output_aggregation_object.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         for constraint in self.nested_aggregation_object.iter() {
-//             buffer.extend_from_slice(&constraint.to_be_bytes());
-//         }
-
-//         buffer
-//     }
-// }
-
 impl TryFrom<&Circuit> for ConstraintSystem {
     type Error = Error;
     /// Converts an `IR` into the `StandardFormat` constraint system
@@ -822,7 +760,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
-        // let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
 
         for gate in circuit.opcodes.iter() {
             match gate {
