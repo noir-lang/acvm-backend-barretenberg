@@ -9,7 +9,11 @@ pub(crate) trait Pedersen {
         right: &FieldElement,
     ) -> Result<FieldElement, Error>;
     fn compress_many(&self, inputs: Vec<FieldElement>) -> Result<FieldElement, Error>;
-    fn encrypt(&self, inputs: Vec<FieldElement>, hash_index: u32) -> Result<(FieldElement, FieldElement), Error>;
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error>;
 }
 
 #[cfg(feature = "native")]
@@ -49,14 +53,19 @@ impl Pedersen for Barretenberg {
         Ok(FieldElement::from_be_bytes_reduce(&result_bytes))
     }
 
-    fn encrypt(&self, inputs: Vec<FieldElement>, hash_index: u32) -> Result<(FieldElement, FieldElement), Error> {
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error> {
         use super::native::field_to_array;
 
         let mut inputs_buf = Vec::new();
         for f in inputs {
             inputs_buf.push(field_to_array(&f)?);
         }
-        let (point_x_bytes, point_y_bytes) = barretenberg_sys::pedersen::encrypt(&inputs_buf, hash_index);
+        let (point_x_bytes, point_y_bytes) =
+            barretenberg_sys::pedersen::encrypt(&inputs_buf, hash_index);
 
         let point_x = FieldElement::from_be_bytes_reduce(&point_x_bytes);
         let point_y = FieldElement::from_be_bytes_reduce(&point_y_bytes);
@@ -108,7 +117,11 @@ impl Pedersen for Barretenberg {
         Ok(FieldElement::from_be_bytes_reduce(&result_bytes))
     }
 
-    fn encrypt(&self, inputs: Vec<FieldElement>) -> Result<(FieldElement, FieldElement), Error> {
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error> {
         use super::FIELD_BYTES;
         use crate::barretenberg_structures::Assignments;
 
