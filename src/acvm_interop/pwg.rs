@@ -121,7 +121,7 @@ impl PartialWitnessGenerator for Barretenberg {
             .collect();
         let scalars: Vec<_> = scalars?.into_iter().cloned().collect();
 
-        let (res_x, res_y) = self.encrypt(scalars).map_err(|err| {
+        let (res_x, res_y) = self.encrypt(scalars, 0).map_err(|err| {
             OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
         })?;
         initial_witness.insert(outputs[0], res_x);

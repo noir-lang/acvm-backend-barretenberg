@@ -208,32 +208,6 @@ impl SchnorrConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct ComputeMerkleRootConstraint {
-    pub(crate) hash_path: Vec<i32>,
-    pub(crate) leaf: i32,
-    pub(crate) index: i32,
-    pub(crate) result: i32,
-}
-
-impl ComputeMerkleRootConstraint {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-
-        let hash_path_len = self.hash_path.len() as u32;
-
-        buffer.extend_from_slice(&hash_path_len.to_be_bytes());
-        for constraint in self.hash_path.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
-
-        buffer.extend_from_slice(&self.leaf.to_be_bytes());
-        buffer.extend_from_slice(&self.result.to_be_bytes());
-        buffer.extend_from_slice(&self.index.to_be_bytes());
-
-        buffer
-    }
-}
 
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Sha256Constraint {
@@ -338,8 +312,39 @@ impl Keccak256Constraint {
 }
 
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
+pub(crate) struct Keccak256VarConstraint {
+    pub(crate) inputs: Vec<(i32, i32)>,
+    pub(crate) result: [i32; 32],
+    pub(crate) var_message_size: i32,
+}
+
+impl Keccak256VarConstraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let inputs_len = self.inputs.len() as u32;
+        buffer.extend_from_slice(&inputs_len.to_be_bytes());
+        for constraint in self.inputs.iter() {
+            buffer.extend_from_slice(&constraint.0.to_be_bytes());
+            buffer.extend_from_slice(&constraint.1.to_be_bytes());
+        }
+
+        let result_len = self.result.len() as u32;
+        buffer.extend_from_slice(&result_len.to_be_bytes());
+        for constraint in self.result.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        buffer.extend_from_slice(&self.var_message_size.to_be_bytes());
+
+        buffer
+    }
+}
+
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
+    pub(crate) hash_index: u32,
     pub(crate) result_x: i32,
     pub(crate) result_y: i32,
 }
@@ -353,6 +358,8 @@ impl PedersenConstraint {
         for constraint in self.inputs.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
+
+        buffer.extend_from_slice(&self.hash_index.to_be_bytes());
 
         buffer.extend_from_slice(&self.result_x.to_be_bytes());
         buffer.extend_from_slice(&self.result_y.to_be_bytes());
@@ -429,12 +436,12 @@ pub(crate) struct ConstraintSystem {
     logic_constraints: Vec<LogicConstraint>,
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
-    compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
     block_constraints: Vec<BlockConstraint>,
     keccak_constraints: Vec<Keccak256Constraint>,
+    keccak_var_constraints: Vec<Keccak256VarConstraint>,
     pedersen_constraints: Vec<PedersenConstraint>,
     hash_to_field_constraints: Vec<HashToFieldConstraint>,
     fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint>,
@@ -475,14 +482,6 @@ impl ConstraintSystem {
 
     pub(crate) fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
         self.sha256_constraints = sha256_constraints;
-        self
-    }
-
-    pub(crate) fn compute_merkle_root_constraints(
-        mut self,
-        compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
-    ) -> Self {
-        self.compute_merkle_root_constraints = compute_merkle_root_constraints;
         self
     }
 
@@ -591,13 +590,6 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
-        // Serialize each Compute Merkle Root constraint
-        let compute_merkle_root_constraints_len = self.compute_merkle_root_constraints.len() as u32;
-        buffer.extend_from_slice(&compute_merkle_root_constraints_len.to_be_bytes());
-        for constraint in self.compute_merkle_root_constraints.iter() {
-            buffer.extend(&constraint.to_bytes());
-        }
-
         // Serialize each Schnorr constraint
         let schnorr_len = self.schnorr_constraints.len() as u32;
         buffer.extend_from_slice(&schnorr_len.to_be_bytes());
@@ -623,6 +615,13 @@ impl ConstraintSystem {
         let keccak_len = self.keccak_constraints.len() as u32;
         buffer.extend_from_slice(&keccak_len.to_be_bytes());
         for constraint in self.keccak_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
+        // Serialize each Keccak Var constraint
+        let keccak_var_len = self.keccak_var_constraints.len() as u32;
+        buffer.extend_from_slice(&keccak_var_len.to_be_bytes());
+        for constraint in self.keccak_var_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -749,10 +748,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
         let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
+        let keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
-        // ACVM doesn't generate `ComputeMerkleRootConstraint`s anymore.
-        // We maintain this to maintain the serialization format.
-        let compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
@@ -927,6 +924,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
+                                hash_index: 0,
                                 result_x,
                                 result_y,
                             };
@@ -1091,13 +1089,13 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             logic_constraints,
             range_constraints,
             sha256_constraints,
-            compute_merkle_root_constraints,
             pedersen_constraints,
             schnorr_constraints,
             ecdsa_secp256k1_constraints,
             blake2s_constraints,
             block_constraints,
             keccak_constraints,
+            keccak_var_constraints,
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
