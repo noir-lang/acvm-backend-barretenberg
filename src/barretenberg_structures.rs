@@ -208,32 +208,6 @@ impl SchnorrConstraint {
         buffer
     }
 }
-#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct ComputeMerkleRootConstraint {
-    pub(crate) hash_path: Vec<i32>,
-    pub(crate) leaf: i32,
-    pub(crate) index: i32,
-    pub(crate) result: i32,
-}
-
-impl ComputeMerkleRootConstraint {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-
-        let hash_path_len = self.hash_path.len() as u32;
-
-        buffer.extend_from_slice(&hash_path_len.to_be_bytes());
-        for constraint in self.hash_path.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
-
-        buffer.extend_from_slice(&self.leaf.to_be_bytes());
-        buffer.extend_from_slice(&self.result.to_be_bytes());
-        buffer.extend_from_slice(&self.index.to_be_bytes());
-
-        buffer
-    }
-}
 
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct Sha256Constraint {
@@ -370,6 +344,7 @@ impl Keccak256VarConstraint {
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct PedersenConstraint {
     pub(crate) inputs: Vec<i32>,
+    pub(crate) hash_index: u32,
     pub(crate) result_x: i32,
     pub(crate) result_y: i32,
 }
@@ -383,6 +358,8 @@ impl PedersenConstraint {
         for constraint in self.inputs.iter() {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
+
+        buffer.extend_from_slice(&self.hash_index.to_be_bytes());
 
         buffer.extend_from_slice(&self.result_x.to_be_bytes());
         buffer.extend_from_slice(&self.result_y.to_be_bytes());
@@ -459,7 +436,6 @@ pub(crate) struct ConstraintSystem {
     logic_constraints: Vec<LogicConstraint>,
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
-    compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
     ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
@@ -506,14 +482,6 @@ impl ConstraintSystem {
 
     pub(crate) fn sha256_constraints(mut self, sha256_constraints: Vec<Sha256Constraint>) -> Self {
         self.sha256_constraints = sha256_constraints;
-        self
-    }
-
-    pub(crate) fn compute_merkle_root_constraints(
-        mut self,
-        compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint>,
-    ) -> Self {
-        self.compute_merkle_root_constraints = compute_merkle_root_constraints;
         self
     }
 
@@ -619,13 +587,6 @@ impl ConstraintSystem {
         let sha256_constraints_len = self.sha256_constraints.len() as u32;
         buffer.extend_from_slice(&sha256_constraints_len.to_be_bytes());
         for constraint in self.sha256_constraints.iter() {
-            buffer.extend(&constraint.to_bytes());
-        }
-
-        // Serialize each Compute Merkle Root constraint
-        let compute_merkle_root_constraints_len = self.compute_merkle_root_constraints.len() as u32;
-        buffer.extend_from_slice(&compute_merkle_root_constraints_len.to_be_bytes());
-        for constraint in self.compute_merkle_root_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
 
@@ -787,9 +748,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
         let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
-        let keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
+        let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
-        let mut compute_merkle_root_constraints: Vec<ComputeMerkleRootConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
@@ -904,36 +864,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             blake2s_constraints.push(blake2s_constraint);
                         }
-                        BlackBoxFuncCall::ComputeMerkleRoot {
-                            leaf,
-                            index,
-                            hash_path: hash_path_inputs,
-                            output,
-                        } => {
-                            // leaf
-                            let leaf = leaf.witness.witness_index() as i32;
-                            // index
-                            let index = index.witness.witness_index() as i32;
-
-                            let mut hash_path = Vec::new();
-                            for path_elem in hash_path_inputs.iter() {
-                                let path_elem_index = path_elem.witness.witness_index() as i32;
-
-                                hash_path.push(path_elem_index);
-                            }
-
-                            // computed root
-                            let result = output.witness_index() as i32;
-
-                            let constraint = ComputeMerkleRootConstraint {
-                                hash_path,
-                                leaf,
-                                index,
-                                result,
-                            };
-
-                            compute_merkle_root_constraints.push(constraint);
-                        }
                         BlackBoxFuncCall::SchnorrVerify {
                             public_key_x,
                             public_key_y,
@@ -980,6 +910,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                         BlackBoxFuncCall::Pedersen {
                             inputs: gadget_call_inputs,
+                            domain_separator,
                             outputs,
                         } => {
                             let mut inputs = Vec::new();
@@ -994,6 +925,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
+                                hash_index: *domain_separator,
                                 result_x,
                                 result_y,
                             };
@@ -1131,13 +1063,48 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             keccak_constraints.push(keccak_constraint);
                         }
-                        BlackBoxFuncCall::AES { .. } => {
-                            return Err(Error::UnsupportedBlackBoxFunc(BlackBoxFunc::AES))
+                        BlackBoxFuncCall::Keccak256VariableLength {
+                            inputs,
+                            var_message_size,
+                            outputs,
+                        } => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
+
+                            let var_message_size = var_message_size.witness.witness_index() as i32;
+
+                            assert_eq!(outputs.len(), 32);
+
+                            let mut outputs_iter = outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte =
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            BlackBoxFunc::Keccak256,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
+
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_var_constraint = Keccak256VarConstraint {
+                                inputs: keccak_inputs,
+                                var_message_size,
+                                result,
+                            };
+
+                            keccak_var_constraints.push(keccak_var_constraint);
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) => {
-                    // Directives & Oracles are only needed by the pwg
+                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
+                    // Directives, Oracles and Brillig are only needed by the pwg
                 }
                 Opcode::Block(_) => {
                     // Block is managed by ACVM
@@ -1158,7 +1125,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             logic_constraints,
             range_constraints,
             sha256_constraints,
-            compute_merkle_root_constraints,
             pedersen_constraints,
             schnorr_constraints,
             ecdsa_secp256k1_constraints,

@@ -4,17 +4,19 @@
 // `acvm-backend-barretenberg` can either interact with the Barretenberg backend through a static library
 // or through an embedded wasm binary. It does not make sense to include both of these backends at the same time.
 // We then throw a compilation error if both flags are set.
-// TODO: handle JS target.
 #[cfg(all(feature = "native", feature = "wasm"))]
 compile_error!("feature \"native\" and feature \"wasm\" cannot be enabled at the same time");
+
+#[cfg(all(feature = "native", target_arch = "wasm32"))]
+compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
+
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
 mod acvm_interop;
 mod barretenberg_structures;
 mod composer;
-#[cfg(any(feature = "native", feature = "wasm"))]
 mod crs;
-#[cfg(test)]
-mod merkle;
 mod pedersen;
 mod pippenger;
 mod scalar_mul;
@@ -91,9 +93,6 @@ enum Error {
     #[error("Malformed Black Box Function: {0} - {1}")]
     MalformedBlackBoxFunc(BlackBoxFunc, String),
 
-    #[error("Unsupported Black Box Function: {0}")]
-    UnsupportedBlackBoxFunc(BlackBoxFunc),
-
     #[error(transparent)]
     FromFeature(#[from] FeatureError),
 
@@ -122,9 +121,9 @@ const FIELD_BYTES: usize = 32;
 
 #[derive(Debug)]
 pub struct Barretenberg {
-    #[cfg(feature = "wasm")]
+    #[cfg(not(feature = "native"))]
     memory: wasmer::Memory,
-    #[cfg(feature = "wasm")]
+    #[cfg(not(feature = "native"))]
     instance: wasmer::Instance,
 }
 
@@ -139,7 +138,10 @@ fn smoke() -> Result<(), Error> {
     use crate::pedersen::Pedersen;
 
     let b = Barretenberg::new();
-    let (x, y) = b.encrypt(vec![acvm::FieldElement::zero(), acvm::FieldElement::one()])?;
+    let (x, y) = b.encrypt(
+        vec![acvm::FieldElement::zero(), acvm::FieldElement::one()],
+        0,
+    )?;
     dbg!(x.to_hex(), y.to_hex());
     Ok(())
 }
@@ -211,6 +213,12 @@ mod wasm {
         }
     }
 
+    impl From<u32> for WASMValue {
+        fn from(value: u32) -> Self {
+            WASMValue(Some(Value::I32(value as i32)))
+        }
+    }
+
     impl From<i32> for WASMValue {
         fn from(value: i32) -> Self {
             WASMValue(Some(Value::I32(value)))
@@ -278,7 +286,7 @@ mod wasm {
         pub(super) fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
             let memory = &self.memory;
 
-            #[cfg(feature = "js")]
+            #[cfg(target_arch = "wasm32")]
             {
                 let view = memory.uint8view();
                 for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
@@ -286,7 +294,7 @@ mod wasm {
                 }
             }
 
-            #[cfg(not(feature = "js"))]
+            #[cfg(not(target_arch = "wasm32"))]
             {
                 for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
                     .iter()
@@ -308,13 +316,13 @@ mod wasm {
             let memory = &self.memory;
             let end = start + length;
 
-            #[cfg(feature = "js")]
+            #[cfg(target_arch = "wasm32")]
             return memory
                 .uint8view()
                 .subarray(start as u32, end as u32)
                 .to_vec();
 
-            #[cfg(not(feature = "js"))]
+            #[cfg(not(target_arch = "wasm32"))]
             return memory.view()[start..end]
                 .iter()
                 .map(|cell| cell.get())
@@ -433,7 +441,7 @@ mod wasm {
         let mut ptr_end = 0;
         let byte_view = env.memory.uint8view();
 
-        #[cfg(feature = "js")]
+        #[cfg(target_arch = "wasm32")]
         for (i, cell) in byte_view.to_vec()[ptr as usize..].iter().enumerate() {
             if cell != &0_u8 {
                 ptr_end = i;
@@ -442,7 +450,7 @@ mod wasm {
             }
         }
 
-        #[cfg(not(feature = "js"))]
+        #[cfg(not(target_arch = "wasm32"))]
         for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
             if cell.get() != 0 {
                 ptr_end = i;
@@ -451,11 +459,11 @@ mod wasm {
             }
         }
 
-        #[cfg(feature = "js")]
+        #[cfg(target_arch = "wasm32")]
         let str_vec: Vec<_> =
             byte_view.to_vec()[ptr as usize..=(ptr + ptr_end as i32) as usize].to_vec();
 
-        #[cfg(not(feature = "js"))]
+        #[cfg(not(target_arch = "wasm32"))]
         let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
             .iter()
             .cloned()

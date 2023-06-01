@@ -27,6 +27,7 @@ impl ProofSystemCompiler for Barretenberg {
             Opcode::ROM(_) => true,
             Opcode::RAM(_) => true,
             Opcode::Oracle(_) => true,
+            Opcode::Brillig(_) => true,
             Opcode::BlackBoxFuncCall(func) => match func.get_black_box_func() {
                 BlackBoxFunc::AND
                 | BlackBoxFunc::XOR
@@ -34,14 +35,11 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::SHA256
                 | BlackBoxFunc::Blake2s
                 | BlackBoxFunc::Keccak256
-                | BlackBoxFunc::ComputeMerkleRoot
                 | BlackBoxFunc::SchnorrVerify
                 | BlackBoxFunc::Pedersen
                 | BlackBoxFunc::HashToField128Security
                 | BlackBoxFunc::EcdsaSecp256k1
                 | BlackBoxFunc::FixedBaseScalarMul => true,
-
-                BlackBoxFunc::AES => false,
             },
         }
     }

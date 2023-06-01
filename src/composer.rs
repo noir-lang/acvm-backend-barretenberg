@@ -6,7 +6,7 @@ use crate::{crs::CRS, Barretenberg, Error, FIELD_BYTES};
 
 const NUM_RESERVED_GATES: u32 = 4; // this must be >= num_roots_cut_out_of_vanishing_polynomial (found under prover settings in barretenberg)
 
-#[async_trait]
+#[async_trait(?Send)]
 pub(crate) trait Composer {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error>;
 
@@ -410,13 +410,9 @@ mod test {
     use tokio::test;
 
     use super::*;
-    use crate::{
-        barretenberg_structures::{
-            BlockConstraint, ComputeMerkleRootConstraint, Constraint, Keccak256Constraint,
-            LogicConstraint, MemOpBarretenberg, PedersenConstraint, RangeConstraint,
-            SchnorrConstraint,
-        },
-        merkle::{MerkleTree, MessageHasher},
+    use crate::barretenberg_structures::{
+        BlockConstraint, Constraint, Keccak256Constraint, LogicConstraint, MemOpBarretenberg,
+        PedersenConstraint, RangeConstraint, SchnorrConstraint,
     };
 
     #[test]
@@ -737,6 +733,7 @@ mod test {
     async fn test_ped_constraints() -> Result<(), Error> {
         let constraint = PedersenConstraint {
             inputs: vec![1, 2],
+            hash_index: 0,
             result_x: 3,
             result_y: 4,
         };
@@ -890,55 +887,6 @@ mod test {
         };
 
         test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
-    }
-
-    #[test]
-    async fn test_compute_merkle_root_constraint() -> Result<(), Error> {
-        let mut msg_hasher: blake2::Blake2s256 = MessageHasher::new();
-
-        let tree: MerkleTree<blake2::Blake2s256, Barretenberg> = MerkleTree::new(3);
-
-        let empty_leaf = vec![0; 64];
-
-        let index = FieldElement::zero();
-        let index_as_usize: usize = 0;
-        let mut index_bits = index.bits();
-        index_bits.reverse();
-
-        let leaf = msg_hasher.hash(&empty_leaf);
-
-        let root = tree.root();
-
-        let hash_path = tree.get_hash_path(index_as_usize);
-        let mut hash_path_ref = Vec::new();
-        for (i, path_pair) in hash_path.into_iter().enumerate() {
-            let path_bit = index_bits[i];
-            let hash = if !path_bit { path_pair.1 } else { path_pair.0 };
-            hash_path_ref.push(hash);
-        }
-        let hash_path_ref: Vec<FieldElement> = hash_path_ref.into_iter().collect();
-
-        let constraint = ComputeMerkleRootConstraint {
-            hash_path: (3..3 + hash_path_ref.len() as i32).collect(),
-            leaf: 0,
-            index: 1,
-            result: 2,
-        };
-
-        let constraint_system = ConstraintSystem::new()
-            .var_num(500)
-            .compute_merkle_root_constraints(vec![constraint]);
-
-        let mut witness_values = vec![leaf, index, root];
-        witness_values.extend(hash_path_ref);
-
-        let case_1 = WitnessResult {
-            witness: witness_values.into(),
-            public_inputs: vec![].into(),
-            result: true,
-        };
-
-        test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
     #[test]
