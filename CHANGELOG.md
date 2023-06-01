@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.2.0...v0.3.0) (2023-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* Update to ACVM 0.13.0 ([#205](https://github.com/noir-lang/acvm-backend-barretenberg/issues/205))
+* added keccakvar constraints ([#213](https://github.com/noir-lang/acvm-backend-barretenberg/issues/213))
+* update pedersen hashes for new implementation ([#212](https://github.com/noir-lang/acvm-backend-barretenberg/issues/212))
+
+### Features
+
+* added keccakvar constraints ([91ea65f](https://github.com/noir-lang/acvm-backend-barretenberg/commit/91ea65f6af7039095c7a3af7bc1e4ce302a68a8d))
+* added keccakvar constraints ([#213](https://github.com/noir-lang/acvm-backend-barretenberg/issues/213)) ([91ea65f](https://github.com/noir-lang/acvm-backend-barretenberg/commit/91ea65f6af7039095c7a3af7bc1e4ce302a68a8d))
+* Update to ACVM 0.13.0 ([#205](https://github.com/noir-lang/acvm-backend-barretenberg/issues/205)) ([298446e](https://github.com/noir-lang/acvm-backend-barretenberg/commit/298446ef8b69f528b6e2fd2abb2298d7b0a8118e))
+
+
+### Bug Fixes
+
+* Add or cleanup implementations for JS target ([#199](https://github.com/noir-lang/acvm-backend-barretenberg/issues/199)) ([f6134b7](https://github.com/noir-lang/acvm-backend-barretenberg/commit/f6134b7b502cb74882300b0046ab91ab000daf3c))
+* update pedersen hashes for new impl ([9a233ce](https://github.com/noir-lang/acvm-backend-barretenberg/commit/9a233ce8db9984b29b9cce0603f758d5281c89c9))
+* update pedersen hashes for new implementation ([#212](https://github.com/noir-lang/acvm-backend-barretenberg/issues/212)) ([9a233ce](https://github.com/noir-lang/acvm-backend-barretenberg/commit/9a233ce8db9984b29b9cce0603f758d5281c89c9))
+
 ## [0.2.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.1.2...v0.2.0) (2023-05-22)
 
 
