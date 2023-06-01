@@ -20,7 +20,6 @@
       "original": {
         "owner": "AztecProtocol",
         "repo": "barretenberg",
-        "rev": "46dba6250e5b1eea792a6b4f6a299c1ecb88d694",
         "type": "github"
       }
     },
