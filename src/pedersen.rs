@@ -117,7 +117,11 @@ impl Pedersen for Barretenberg {
         Ok(FieldElement::from_be_bytes_reduce(&result_bytes))
     }
 
-    fn encrypt(&self, inputs: Vec<FieldElement>, hash_index: u32) -> Result<(FieldElement, FieldElement), Error> {
+    fn encrypt(
+        &self,
+        inputs: Vec<FieldElement>,
+        hash_index: u32,
+    ) -> Result<(FieldElement, FieldElement), Error> {
         use super::FIELD_BYTES;
         use crate::barretenberg_structures::Assignments;
 

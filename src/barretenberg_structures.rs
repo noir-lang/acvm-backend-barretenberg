@@ -816,7 +816,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
         let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
-        let keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
+        let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
@@ -1132,87 +1132,45 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             keccak_constraints.push(keccak_constraint);
                         }
-                        // BlackBoxFuncCall::RecursiveAggregation {
-                        //     verification_key: key_inputs,
-                        //     proof: proof_inputs,
-                        //     public_inputs: public_inputs_inputs,
-                        //     key_hash,
-                        //     input_aggregation_object,
-                        //     output_aggregation_object,
-                        // } => {
-                        //     let mut key_inputs = key_inputs.iter();
-                        //     let mut key_array = [0i32; 114];
-                        //     for (i, vk_witness) in key_array.iter_mut().enumerate() {
-                        //         let vk_field = key_inputs.next().unwrap_or_else(|| {
-                        //             panic!(
-                        //                 "missing rest of vkey. Tried to get field {i} but failed"
-                        //             )
-                        //         });
-                        //         let vk_field_index = vk_field.witness.witness_index() as i32;
-                        //         *vk_witness = vk_field_index;
-                        //     }
-                        //     let key = key_array.to_vec();
+                        BlackBoxFuncCall::Keccak256VariableLength {
+                            inputs,
+                            var_message_size,
+                            outputs,
+                        } => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
 
-                        //     let mut proof = Vec::new();
-                        //     for proof_field in proof_inputs.iter() {
-                        //         let proof_field_index = proof_field.witness.witness_index() as i32;
-                        //         proof.push(proof_field_index);
-                        //     }
+                            let var_message_size = var_message_size.witness.witness_index() as i32;
 
-                        //     let mut public_inputs = Vec::new();
-                        //     for public_input in public_inputs_inputs.iter() {
-                        //         let public_input_field_index =
-                        //             public_input.witness.witness_index() as i32;
-                        //         public_inputs.push(public_input_field_index);
-                        //     }
+                            assert_eq!(outputs.len(), 32);
 
-                        //     // key_hash
-                        //     let key_hash = key_hash.witness.witness_index() as i32;
+                            let mut outputs_iter = outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte =
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            BlackBoxFunc::Keccak256,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
 
-                        //     let input_agg_obj_inputs =
-                        //         if let Some(input_aggregation_object) = input_aggregation_object {
-                        //             input_aggregation_object.clone()
-                        //         } else {
-                        //             vec![FunctionInput::dummy(); output_aggregation_object.len()]
-                        //         };
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_var_constraint = Keccak256VarConstraint {
+                                inputs: keccak_inputs,
+                                var_message_size,
+                                result,
+                            };
 
-                        //     // input_aggregation_object
-                        //     let mut input_agg_obj_inputs = input_agg_obj_inputs.iter();
-                        //     let mut input_aggregation_object = [0i32; 16];
-                        //     for (i, var) in input_aggregation_object.iter_mut().enumerate() {
-                        //         let var_field = input_agg_obj_inputs.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
-                        //         let var_field_index = var_field.witness.witness_index() as i32;
-                        //         *var = var_field_index;
-                        //     }
-
-                        //     // TODO: remove unwrap();
-                        //     let mut nested_aggregation_object: [i32; 16] = [0; 16];
-                        //     if key[5] == 1 {
-                        //         nested_aggregation_object = key[6..22].try_into().unwrap();
-                        //     }
-
-                        //     // output_aggregation_object
-                        //     let mut outputs_iter = output_aggregation_object.iter();
-                        //     let mut output_aggregation_object = [0i32; 16];
-                        //     for (i, var) in output_aggregation_object.iter_mut().enumerate() {
-                        //         let var_field = outputs_iter.next().unwrap_or_else(|| panic!("missing rest of output aggregation object. Tried to get byte {i} but failed"));
-                        //         let var_field_index = var_field.witness_index() as i32;
-                        //         *var = var_field_index;
-                        //     }
-
-                        //     let recursion_constraint = RecursionConstraint {
-                        //         key,
-                        //         proof,
-                        //         public_inputs,
-                        //         key_hash,
-                        //         input_aggregation_object,
-                        //         output_aggregation_object,
-                        //         nested_aggregation_object,
-                        //     };
-                        //     recursion_constraints.push(recursion_constraint);
-                        // }
-                        BlackBoxFuncCall::RecursiveAggregation { .. } => todo!(),
-                        BlackBoxFuncCall::Keccak256VariableLength { .. } => todo!(),
+                            keccak_var_constraints.push(keccak_var_constraint);
+                        }
+                        BlackBoxFuncCall::RecursiveAggregation { .. } => unreachable!("ICE: recursive aggregation not supported"),
                     };
                 }
                 Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
@@ -1247,7 +1205,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
             hash_to_field_constraints,
             constraints,
             fixed_base_scalar_mul_constraints,
-            // recursion_constraints,
         })
     }
 }
