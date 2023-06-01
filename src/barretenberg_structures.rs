@@ -748,7 +748,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
         let mut block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
-        let keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
+        let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
@@ -910,6 +910,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                         BlackBoxFuncCall::Pedersen {
                             inputs: gadget_call_inputs,
+                            domain_separator,
                             outputs,
                         } => {
                             let mut inputs = Vec::new();
@@ -924,7 +925,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = PedersenConstraint {
                                 inputs,
-                                hash_index: 0,
+                                hash_index: *domain_separator,
                                 result_x,
                                 result_y,
                             };
@@ -1062,8 +1063,43 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             keccak_constraints.push(keccak_constraint);
                         }
-                        BlackBoxFuncCall::AES { .. } => {
-                            return Err(Error::UnsupportedBlackBoxFunc(BlackBoxFunc::AES))
+                        BlackBoxFuncCall::Keccak256VariableLength {
+                            inputs,
+                            var_message_size,
+                            outputs,
+                        } => {
+                            let mut keccak_inputs: Vec<(i32, i32)> = Vec::new();
+                            for input in inputs.iter() {
+                                let witness_index = input.witness.witness_index() as i32;
+                                let num_bits = input.num_bits as i32;
+                                keccak_inputs.push((witness_index, num_bits));
+                            }
+
+                            let var_message_size = var_message_size.witness.witness_index() as i32;
+
+                            assert_eq!(outputs.len(), 32);
+
+                            let mut outputs_iter = outputs.iter();
+                            let mut result = [0i32; 32];
+                            for (i, res) in result.iter_mut().enumerate() {
+                                let out_byte =
+                                    outputs_iter.next().ok_or_else(|| {
+                                        Error::MalformedBlackBoxFunc(
+                                            BlackBoxFunc::Keccak256,
+                                            format!("Missing rest of output. Tried to get byte {i} but failed"),
+                                        )
+                                    })?;
+
+                                let out_byte_index = out_byte.witness_index() as i32;
+                                *res = out_byte_index
+                            }
+                            let keccak_var_constraint = Keccak256VarConstraint {
+                                inputs: keccak_inputs,
+                                var_message_size,
+                                result,
+                            };
+
+                            keccak_var_constraints.push(keccak_var_constraint);
                         }
                     };
                 }
