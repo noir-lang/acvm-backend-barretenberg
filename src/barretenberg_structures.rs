@@ -6,7 +6,7 @@ use acvm::FieldElement;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-use crate::Error;
+use crate::{Error, BackendError};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub(crate) struct Assignments(Vec<FieldElement>);
@@ -655,6 +655,12 @@ impl ConstraintSystem {
             buffer.extend(&constraint.to_bytes());
         }
 
+        let recursion_constraints_len = self.recursion_constraints.len() as u32;
+        buffer.extend_from_slice(&recursion_constraints_len.to_be_bytes());
+        for constraint in self.recursion_constraints.iter() {
+            buffer.extend(&constraint.to_bytes());
+        }
+
         // Serialize each Arithmetic constraint
         let constraints_len = self.constraints.len() as u32;
         buffer.extend_from_slice(&constraints_len.to_be_bytes());
@@ -800,7 +806,7 @@ impl RecursionConstraint {
 
 
 impl TryFrom<&Circuit> for ConstraintSystem {
-    type Error = Error;
+    type Error = BackendError;
     /// Converts an `IR` into the `StandardFormat` constraint system
     fn try_from(circuit: &Circuit) -> Result<Self, Self::Error> {
         // Create constraint system
@@ -817,7 +823,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
-        let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
+        let recursion_constraints: Vec<RecursionConstraint> = Vec::new();
 
         for gate in circuit.opcodes.iter() {
             match gate {
