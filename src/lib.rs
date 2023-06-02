@@ -88,7 +88,7 @@ enum CRSError {
 
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Error)]
-enum Error {
+pub enum Error {
     #[error("The value {0} overflows in the pow2ceil function")]
     Pow2CeilOverflow(u32),
 
