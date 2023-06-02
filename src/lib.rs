@@ -14,7 +14,7 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
 mod acvm_interop;
-mod barretenberg_structures;
+pub mod barretenberg_structures;
 mod composer;
 mod crs;
 mod pedersen;
