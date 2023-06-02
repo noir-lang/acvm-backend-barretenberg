@@ -67,4 +67,4 @@ wasm = [
 ]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "b8198aad513f2ee8c4b4fa1bf11543f09d53d6e6" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "fa4b0045cb00cc5cd52257f709ad16ed320692a1" }
