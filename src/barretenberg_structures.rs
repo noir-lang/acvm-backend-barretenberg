@@ -1247,7 +1247,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 output_aggregation_object,
                                 nested_aggregation_object,
                             };
-                            dbg!(recursion_constraint.clone());
+                            
                             recursion_constraints.push(recursion_constraint);
                         }
                     };
