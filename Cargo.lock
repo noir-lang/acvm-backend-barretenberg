@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.13.3"
-source = "git+https://github.com/noir-lang/acvm?rev=71e50173957794e9f2547c12e217b913e648244b#71e50173957794e9f2547c12e217b913e648244b"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a686d2e9e57b6ab9a6e4fb9b8ae16f589dd6002597f9c18990213f2627e4656e"
 dependencies = [
  "acir_field",
  "brillig_vm",
@@ -17,8 +18,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.13.3"
-source = "git+https://github.com/noir-lang/acvm?rev=71e50173957794e9f2547c12e217b913e648244b#71e50173957794e9f2547c12e217b913e648244b"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f7cef2443400feb687cc3c9ac710c81e45dda495a7d4b33acf51ccb39d64fb27"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,8 +32,9 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.13.3"
-source = "git+https://github.com/noir-lang/acvm?rev=71e50173957794e9f2547c12e217b913e648244b#71e50173957794e9f2547c12e217b913e648244b"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31a21697700d8b47eab9cd1fb24a5465aab6b50c30dece17f08ebad077ec3c08"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -67,8 +70,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.13.3"
-source = "git+https://github.com/noir-lang/acvm?rev=71e50173957794e9f2547c12e217b913e648244b#71e50173957794e9f2547c12e217b913e648244b"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "218b068da8e83af7dba9dbc0881013b034f7a24257b5dd86c4390d95cde067ea"
 dependencies = [
  "acir",
 ]
@@ -378,8 +382,9 @@ dependencies = [
 
 [[package]]
 name = "brillig_vm"
-version = "0.13.3"
-source = "git+https://github.com/noir-lang/acvm?rev=71e50173957794e9f2547c12e217b913e648244b#71e50173957794e9f2547c12e217b913e648244b"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "22c4384c6e10aa275904f66b5243d604990ef6fcc693fd9a03596c6c7a51c759"
 dependencies = [
  "acir_field",
  "num-bigint",
