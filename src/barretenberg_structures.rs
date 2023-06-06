@@ -1226,7 +1226,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             // TODO: remove unwrap();
                             let mut nested_aggregation_object: [i32; 16] = [0; 16];
                             if key[5] == 1 {
-                                nested_aggregation_object = key[6..22].try_into().unwrap();
+                                nested_aggregation_object = key[6..22].try_into().unwrap_or_else(|| panic!("missing nested aggregation object. verification key most likely malformed"));
                             }
 
                             // output_aggregation_object
