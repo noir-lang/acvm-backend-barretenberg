@@ -1223,10 +1223,10 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 *var = var_field_index;
                             }
 
-                            // TODO: remove unwrap();
+                            // nested_aggregation_object
                             let mut nested_aggregation_object: [i32; 16] = [0; 16];
                             if key[5] == 1 {
-                                nested_aggregation_object = key[6..22].try_into().unwrap_or_else(|| panic!("missing nested aggregation object. verification key most likely malformed"));
+                                nested_aggregation_object = key[6..22].try_into().expect("missing nested aggregation object. verification key most likely malformed");
                             }
 
                             // output_aggregation_object
