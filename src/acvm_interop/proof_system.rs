@@ -85,10 +85,12 @@ impl ProofSystemCompiler for Barretenberg {
         let flattened_public_inputs: Vec<FieldElement> =
             public_inputs.into_iter().map(|(_, el)| el).collect();
 
+        let cs = circuit.try_into()?;
+        dbg!(cs.clone());
         Ok(Composer::verify_with_vk(
             self,
             &crs,
-            &circuit.try_into()?,
+            &cs,
             proof,
             flattened_public_inputs.into(),
             verification_key,
