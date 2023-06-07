@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.3.0...v0.4.0) (2023-06-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* Recursion ([#207](https://github.com/noir-lang/acvm-backend-barretenberg/issues/207))
+
+### Features
+
+* Recursion ([#207](https://github.com/noir-lang/acvm-backend-barretenberg/issues/207)) ([6fc479b](https://github.com/noir-lang/acvm-backend-barretenberg/commit/6fc479b9ae99d59bbfeb1b895d63cdbea469dcaa))
+
 ## [0.3.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.2.0...v0.3.0) (2023-06-01)
 
 
