@@ -40,6 +40,8 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::HashToField128Security
                 | BlackBoxFunc::EcdsaSecp256k1
                 | BlackBoxFunc::FixedBaseScalarMul => true,
+                
+                BlackBoxFunc::RecursiveAggregation => false,
             },
         }
     }
@@ -64,6 +66,7 @@ impl ProofSystemCompiler for Barretenberg {
         circuit: &Circuit,
         witness_values: WitnessMap,
         proving_key: &[u8],
+        _is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let crs = common_reference_string.try_into()?;
         let assignments = flatten_witness_map(circuit, witness_values);
@@ -78,6 +81,7 @@ impl ProofSystemCompiler for Barretenberg {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         verification_key: &[u8],
+        _is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let crs = common_reference_string.try_into()?;
         // Unlike when proving, we omit any unassigned witnesses.
@@ -93,6 +97,22 @@ impl ProofSystemCompiler for Barretenberg {
             flattened_public_inputs.into(),
             verification_key,
         )?)
+    }
+
+    fn proof_as_fields(
+        &self,
+        _proof: &[u8],
+        _public_inputs: WitnessMap,
+    ) -> Result<Vec<FieldElement>, Self::Error> {
+        panic!("vk_as_fields not supported in this backend");
+    }
+
+    fn vk_as_fields(
+        &self,
+        _common_reference_string: &[u8],
+        _verification_key: &[u8],
+    ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error> {
+        panic!("vk_as_fields not supported in this backend");
     }
 }
 

@@ -22,6 +22,8 @@ mod pippenger;
 mod scalar_mul;
 mod schnorr;
 
+pub use barretenberg_structures::ConstraintSystem;
+
 use acvm::acir::BlackBoxFunc;
 use thiserror::Error;
 
