@@ -1,7 +1,7 @@
 use acvm::acir::circuit::opcodes::FunctionInput;
 use acvm::acir::native_types::{Witness, WitnessMap};
 use acvm::acir::BlackBoxFunc;
-use acvm::pwg::{witness_to_value, OpcodeResolution, OpcodeResolutionError};
+use acvm::pwg::{insert_value, witness_to_value, OpcodeResolution, OpcodeResolutionError};
 use acvm::{FieldElement, PartialWitnessGenerator};
 
 use crate::pedersen::Pedersen;
@@ -94,7 +94,7 @@ impl PartialWitnessGenerator for Barretenberg {
             dbg!("signature has failed to verify");
         }
 
-        initial_witness.insert(*output, FieldElement::from(valid_signature));
+        insert_value(output, FieldElement::from(valid_signature), initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 
@@ -114,8 +114,8 @@ impl PartialWitnessGenerator for Barretenberg {
         let (res_x, res_y) = self.encrypt(scalars, domain_separator).map_err(|err| {
             OpcodeResolutionError::BlackBoxFunctionFailed(BlackBoxFunc::Pedersen, err.to_string())
         })?;
-        initial_witness.insert(outputs[0], res_x);
-        initial_witness.insert(outputs[1], res_y);
+        insert_value(&outputs[0], res_x, initial_witness)?;
+        insert_value(&outputs[1], res_y, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 
@@ -134,8 +134,8 @@ impl PartialWitnessGenerator for Barretenberg {
             )
         })?;
 
-        initial_witness.insert(outputs[0], pub_x);
-        initial_witness.insert(outputs[1], pub_y);
+        insert_value(&outputs[0], pub_x, initial_witness)?;
+        insert_value(&outputs[1], pub_y, initial_witness)?;
         Ok(OpcodeResolution::Solved)
     }
 }
