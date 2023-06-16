@@ -65,3 +65,6 @@ wasm = [
     "dep:rust-embed",
     "dep:getrandom"
 ]
+
+[patch.crates-io]
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "6ed14c7a080dacd953bc4f36d3a03975b7c347f9" }
