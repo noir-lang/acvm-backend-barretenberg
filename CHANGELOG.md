@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.5.0...v0.5.1) (2023-06-20)
+
+
+### Bug Fixes
+
+* Remove wasm32 target ([#219](https://github.com/noir-lang/acvm-backend-barretenberg/issues/219)) ([e4cbb6d](https://github.com/noir-lang/acvm-backend-barretenberg/commit/e4cbb6d476e8746de33c38506e2fcb970f1c866a))
+
 ## [0.5.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.4.0...v0.5.0) (2023-06-15)
 
 
