@@ -21,7 +21,6 @@ serde = { version = "1.0.136", features = ["derive"] }
 serde-big-array = "0.5.1"
 thiserror = "1.0.21"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # Native
 barretenberg-sys = { version = "0.2.0", optional = true }
 
@@ -40,19 +39,10 @@ wasmer = { version = "2.3", optional = true, default-features = false, features 
     "default-universal"
 ] }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.2", features = [ "js" ] }
-rust-embed = { version = "6.6.0", features = [
-    "debug-embed",
-    "interpolate-folder-path",
-    "include-exclude",
-] }
-wasmer = { version = "2.3", default-features = false, features = [ "js-default" ] }
-
 [build-dependencies]
 pkg-config = "0.3"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+[dev-dependencies]
 tokio = { version = "1.0", features = [ "macros" ] }
 
 [features]
