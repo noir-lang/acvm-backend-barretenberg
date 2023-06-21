@@ -1,4 +1,4 @@
-use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, MemoryBlock, FunctionInput};
+use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, FunctionInput, MemoryBlock};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
@@ -6,7 +6,7 @@ use acvm::FieldElement;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
-use crate::{Error, BackendError};
+use crate::{BackendError, Error};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub(crate) struct Assignments(Vec<FieldElement>);
@@ -804,7 +804,6 @@ impl RecursionConstraint {
     }
 }
 
-
 impl TryFrom<&Circuit> for ConstraintSystem {
     type Error = BackendError;
     /// Converts an `IR` into the `StandardFormat` constraint system
@@ -937,15 +936,17 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         BlackBoxFuncCall::SchnorrVerify {
                             public_key_x,
                             public_key_y,
-                            signature,
+                            signature_s,
+                            signature_e,
                             message: message_inputs,
                             output,
                         } => {
-                            // pub_key_x
                             let public_key_x = public_key_x.witness.witness_index() as i32;
-                            // pub_key_y
                             let public_key_y = public_key_y.witness.witness_index() as i32;
-                            // signature
+
+                            // TODO: Fix this incompatability with Barretenberg
+                            // Either need to roll back change to have `SchnorrVerify` take pair of field elements
+                            // or get bberg to accept this.
                             let mut signature_iter = signature.iter();
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
@@ -989,9 +990,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 inputs.push(scalar_index);
                             }
 
-                            assert_eq!(outputs.len(), 2);
-                            let result_x = outputs[0].witness_index() as i32;
-                            let result_y = outputs[1].witness_index() as i32;
+                            let result_x = outputs.0.witness_index() as i32;
+                            let result_y = outputs.1.witness_index() as i32;
 
                             let constraint = PedersenConstraint {
                                 inputs,
@@ -1090,9 +1090,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
                             let scalar = input.witness.witness_index() as i32;
 
-                            assert_eq!(outputs.len(), 2);
-                            let pubkey_x = outputs[0].witness_index() as i32;
-                            let pubkey_y = outputs[1].witness_index() as i32;
+                            let pubkey_x = outputs.0.witness_index() as i32;
+                            let pubkey_y = outputs.1.witness_index() as i32;
 
                             let fixed_base_scalar_mul = FixedBaseScalarMulConstraint {
                                 scalar,
@@ -1208,11 +1207,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             // key_hash
                             let key_hash = key_hash.witness.witness_index() as i32;
 
-                            let input_agg_obj_inputs = if let Some(input_aggregation_object) = input_aggregation_object {
-                                input_aggregation_object.clone()
-                            } else {
-                                vec![FunctionInput::dummy(); output_aggregation_object.len()]
-                            };
+                            let input_agg_obj_inputs =
+                                if let Some(input_aggregation_object) = input_aggregation_object {
+                                    input_aggregation_object.clone()
+                                } else {
+                                    vec![FunctionInput::dummy(); output_aggregation_object.len()]
+                                };
 
                             // input_aggregation_object
                             let mut input_agg_obj_inputs = input_agg_obj_inputs.iter();
@@ -1247,12 +1247,12 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 output_aggregation_object,
                                 nested_aggregation_object,
                             };
-                            
+
                             recursion_constraints.push(recursion_constraint);
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
+                Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // Directives, Oracles and Brillig are only needed by the pwg
                 }
                 Opcode::Block(_) => {

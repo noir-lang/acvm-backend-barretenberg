@@ -4,8 +4,8 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.15.0"
-source = "git+https://github.com/noir-lang/acvm?rev=6ed14c7a080dacd953bc4f36d3a03975b7c347f9#6ed14c7a080dacd953bc4f36d3a03975b7c347f9"
+version = "0.15.1"
+source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
 dependencies = [
  "acir_field",
  "brillig_vm",
@@ -17,8 +17,8 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.15.0"
-source = "git+https://github.com/noir-lang/acvm?rev=6ed14c7a080dacd953bc4f36d3a03975b7c347f9#6ed14c7a080dacd953bc4f36d3a03975b7c347f9"
+version = "0.15.1"
+source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,8 +30,8 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.15.0"
-source = "git+https://github.com/noir-lang/acvm?rev=6ed14c7a080dacd953bc4f36d3a03975b7c347f9#6ed14c7a080dacd953bc4f36d3a03975b7c347f9"
+version = "0.15.1"
+source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -67,8 +67,8 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.15.0"
-source = "git+https://github.com/noir-lang/acvm?rev=6ed14c7a080dacd953bc4f36d3a03975b7c347f9#6ed14c7a080dacd953bc4f36d3a03975b7c347f9"
+version = "0.15.1"
+source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
 dependencies = [
  "acir",
 ]
@@ -378,11 +378,10 @@ dependencies = [
 
 [[package]]
 name = "brillig_vm"
-version = "0.15.0"
-source = "git+https://github.com/noir-lang/acvm?rev=6ed14c7a080dacd953bc4f36d3a03975b7c347f9#6ed14c7a080dacd953bc4f36d3a03975b7c347f9"
+version = "0.15.1"
+source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
 dependencies = [
  "acir_field",
- "num-bigint",
  "serde",
 ]
 
