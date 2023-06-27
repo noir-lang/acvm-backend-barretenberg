@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
+source = "git+https://github.com/noir-lang/acvm?rev=62d40f7c03cd1102f615b8d565f82496962db637#62d40f7c03cd1102f615b8d565f82496962db637"
 dependencies = [
  "acir_field",
  "brillig_vm",
@@ -18,7 +18,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
+source = "git+https://github.com/noir-lang/acvm?rev=62d40f7c03cd1102f615b8d565f82496962db637#62d40f7c03cd1102f615b8d565f82496962db637"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -31,7 +31,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
+source = "git+https://github.com/noir-lang/acvm?rev=62d40f7c03cd1102f615b8d565f82496962db637#62d40f7c03cd1102f615b8d565f82496962db637"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -68,7 +68,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
+source = "git+https://github.com/noir-lang/acvm?rev=62d40f7c03cd1102f615b8d565f82496962db637#62d40f7c03cd1102f615b8d565f82496962db637"
 dependencies = [
  "acir",
 ]
@@ -379,10 +379,14 @@ dependencies = [
 [[package]]
 name = "brillig_vm"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=579c317f07f2ea367c442ba2836d4587c9a177b0#579c317f07f2ea367c442ba2836d4587c9a177b0"
+source = "git+https://github.com/noir-lang/acvm?rev=62d40f7c03cd1102f615b8d565f82496962db637#62d40f7c03cd1102f615b8d565f82496962db637"
 dependencies = [
  "acir_field",
+ "blake2",
+ "k256",
  "serde",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
