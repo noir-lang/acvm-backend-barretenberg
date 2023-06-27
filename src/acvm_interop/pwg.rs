@@ -18,16 +18,12 @@ impl BlackBoxFunctionSolver for Barretenberg {
     ) -> Result<bool, OpcodeResolutionError> {
         // In barretenberg, if the signature fails, then the whole thing fails.
 
-        let pub_key_x: Vec<u8> = public_key_x.to_be_bytes();
-        let pub_key_y: Vec<u8> = public_key_y.to_be_bytes();
-
-        let pub_key_bytes: Vec<u8> = pub_key_x.iter().copied().chain(pub_key_y).collect();
-        let pub_key: [u8; 64] = pub_key_bytes.try_into().map_err(|v: Vec<u8>| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                BlackBoxFunc::SchnorrVerify,
-                format!("expected pubkey size {} but received {}", 64, v.len()),
-            )
-        })?;
+        let pub_key: Vec<u8> = public_key_x
+            .to_be_bytes()
+            .into_iter()
+            .chain(public_key_y.to_be_bytes())
+            .collect();
+        let pub_key: [u8; 64] = pub_key.try_into().unwrap();
 
         let signature_s: [u8; 32] = signature_s.to_be_bytes().try_into().unwrap();
         let signature_e: [u8; 32] = signature_e.to_be_bytes().try_into().unwrap();
