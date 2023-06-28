@@ -626,7 +626,7 @@ mod test {
         };
 
         let constraint_system = ConstraintSystem::new()
-            .var_num(15)
+            .var_num(16)
             .schnorr_constraints(vec![constraint])
             .constraints(vec![arith_constraint]);
 
