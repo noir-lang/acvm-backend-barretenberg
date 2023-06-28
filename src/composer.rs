@@ -603,18 +603,13 @@ mod test {
 
     #[test]
     async fn test_schnorr_constraints() -> Result<(), Error> {
-        let mut signature_indices = [0i32; 64];
-        for i in 13..(13 + 64) {
-            signature_indices[i - 13] = i as i32;
-        }
-        let result_index = signature_indices.last().unwrap() + 1;
-
         let constraint = SchnorrConstraint {
             message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             public_key_x: 11,
             public_key_y: 12,
-            signature: signature_indices,
-            result: result_index,
+            signature_s: 13,
+            signature_e: 14,
+            result: 15,
         };
 
         let arith_constraint = Constraint {
@@ -629,7 +624,7 @@ mod test {
         };
 
         let constraint_system = ConstraintSystem::new()
-            .var_num(80)
+            .var_num(15)
             .schnorr_constraints(vec![constraint])
             .constraints(vec![arith_constraint]);
 
@@ -642,13 +637,15 @@ mod test {
         )
         .unwrap();
 
-        let sig: [i128; 64] = [
-            5, 202, 31, 146, 81, 242, 246, 69, 43, 107, 249, 153, 198, 44, 14, 111, 191, 121, 137,
-            166, 160, 103, 18, 181, 243, 233, 226, 95, 67, 16, 37, 128, 85, 76, 19, 253, 30, 77,
-            192, 53, 138, 205, 69, 33, 236, 163, 83, 194, 84, 137, 184, 221, 176, 121, 179, 27, 63,
-            70, 54, 16, 176, 250, 39, 239,
-        ];
-        let sig_as_scalars: Vec<FieldElement> = sig.into_iter().map(FieldElement::from).collect();
+        let sig_s = FieldElement::from_hex(
+            "0x05ca1f9251f2f6452b6bf999c62c0e6fbf7989a6a06712b5f3e9e25f43102580",
+        )
+        .unwrap();
+
+        let sig_e = FieldElement::from_hex(
+            "0x554c13fd1e4dc0358acd4521eca353c25489b8ddb079b31b3f463610b0fa27ef",
+        )
+        .unwrap();
 
         let message: Vec<FieldElement> = vec![
             0_i128.into(),
@@ -666,7 +663,8 @@ mod test {
         witness_values.extend(message);
         witness_values.push(pub_x);
         witness_values.push(pub_y);
-        witness_values.extend(sig_as_scalars);
+        witness_values.push(sig_s);
+        witness_values.push(sig_e);
         witness_values.push(FieldElement::zero());
 
         let case_1 = WitnessResult {
