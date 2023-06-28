@@ -29,7 +29,7 @@ impl BlackBoxFunctionSolver for Barretenberg {
         let signature_e: [u8; 32] = signature_e.to_be_bytes().try_into().unwrap();
 
         let valid_signature = self
-            .verify_signature(pub_key, signature_s, signature_e, &message)
+            .verify_signature(pub_key, signature_s, signature_e, message)
             .map_err(|err| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
                     BlackBoxFunc::SchnorrVerify,
