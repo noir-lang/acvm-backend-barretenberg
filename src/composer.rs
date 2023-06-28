@@ -603,13 +603,15 @@ mod test {
 
     #[test]
     async fn test_schnorr_constraints() -> Result<(), Error> {
+        let result_index = 15;
+
         let constraint = SchnorrConstraint {
             message: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             public_key_x: 11,
             public_key_y: 12,
             signature_s: 13,
             signature_e: 14,
-            result: 15,
+            result: result_index,
         };
 
         let arith_constraint = Constraint {
