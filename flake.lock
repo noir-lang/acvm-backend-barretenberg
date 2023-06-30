@@ -10,12 +10,10 @@
         ]
       },
       "locked": {
-        "lastModified": 1685812470,
-        "narHash": "sha256-sJYVipq1EthnjSxVIZnZF15wy9LDMHNPfIJKRHyZrws=",
-        "owner": "AztecProtocol",
-        "repo": "barretenberg",
-        "rev": "193ce1a45ef5eab6a8522178cf918e45320f3de8",
-        "type": "github"
+        "lastModified": 1688058990,
+        "narHash": "sha256-vMrMz086hVIA1DiSr7tkl8tayTuvaKMbdt+zB3rfug8=",
+        "type": "git",
+        "url": "file:///mnt/user-data/sean/docs/barretenberg"
       },
       "original": {
         "owner": "AztecProtocol",

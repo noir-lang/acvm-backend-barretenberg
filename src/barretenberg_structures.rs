@@ -131,7 +131,7 @@ impl RangeConstraint {
     }
 }
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct EcdsaConstraint {
+pub(crate) struct EcdsaK1Constraint {
     pub(crate) hashed_message: Vec<i32>,
     // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
     #[serde(with = "BigArray")]
@@ -141,7 +141,52 @@ pub(crate) struct EcdsaConstraint {
     pub(crate) result: i32,
 }
 
-impl EcdsaConstraint {
+impl EcdsaK1Constraint {
+    fn to_bytes(&self) -> Vec<u8> {
+        let mut buffer = Vec::new();
+
+        let message_len = (self.hashed_message.len()) as u32;
+        buffer.extend_from_slice(&message_len.to_be_bytes());
+        for constraint in self.hashed_message.iter() {
+            buffer.extend_from_slice(&constraint.to_be_bytes());
+        }
+
+        let sig_len = (self.signature.len()) as u32;
+        buffer.extend_from_slice(&sig_len.to_be_bytes());
+        for sig_byte in self.signature.iter() {
+            buffer.extend_from_slice(&sig_byte.to_be_bytes());
+        }
+
+        let pub_key_x_len = (self.public_key_x.len()) as u32;
+        buffer.extend_from_slice(&pub_key_x_len.to_be_bytes());
+        for x_byte in self.public_key_x.iter() {
+            buffer.extend_from_slice(&x_byte.to_be_bytes());
+        }
+
+        let pub_key_y_len = (self.public_key_y.len()) as u32;
+        buffer.extend_from_slice(&pub_key_y_len.to_be_bytes());
+        for y_byte in self.public_key_y.iter() {
+            buffer.extend_from_slice(&y_byte.to_be_bytes());
+        }
+
+        buffer.extend_from_slice(&self.result.to_be_bytes());
+
+        buffer
+    }
+}
+
+#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
+pub(crate) struct EcdsaR1Constraint {
+    pub(crate) hashed_message: Vec<i32>,
+    // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
+    #[serde(with = "BigArray")]
+    pub(crate) signature: [i32; 64],
+    pub(crate) public_key_x: [i32; 32],
+    pub(crate) public_key_y: [i32; 32],
+    pub(crate) result: i32,
+}
+
+impl EcdsaR1Constraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
@@ -438,8 +483,8 @@ pub struct ConstraintSystem {
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
-    ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
-    ecdsa_secp256r1_constraints: Vec<EcdsaConstraint>,
+    ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint>,
+    ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
     block_constraints: Vec<BlockConstraint>,
     keccak_constraints: Vec<Keccak256Constraint>,
@@ -498,7 +543,7 @@ impl ConstraintSystem {
 
     pub(crate) fn ecdsa_secp256k1_constraints(
         mut self,
-        ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
+        ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint>,
     ) -> Self {
         self.ecdsa_secp256k1_constraints = ecdsa_secp256k1_constraints;
         self
@@ -506,7 +551,7 @@ impl ConstraintSystem {
 
     pub(crate) fn ecdsa_secp256r1_constraints(
         mut self,
-        ecdsa_secp256r1_constraints: Vec<EcdsaConstraint>,
+        ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint>,
     ) -> Self {
         self.ecdsa_secp256r1_constraints = ecdsa_secp256r1_constraints;
         self
@@ -617,8 +662,8 @@ impl ConstraintSystem {
         }
 
         // Serialize each ECDSA constraint
-        let ecdsa_len = self.ecdsa_secp256k1_constraints.len() as u32;
-        buffer.extend_from_slice(&ecdsa_len.to_be_bytes());
+        let ecdsa_k1_len = self.ecdsa_secp256k1_constraints.len() as u32;
+        buffer.extend_from_slice(&ecdsa_k1_len.to_be_bytes());
         for constraint in self.ecdsa_secp256k1_constraints.iter() {
             buffer.extend(&constraint.to_bytes());
         }
@@ -835,8 +880,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
-        let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
-        let mut ecdsa_secp256r1_constraints: Vec<EcdsaConstraint> = Vec::new();
+        let mut ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint> = Vec::new();
+        let mut ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
         let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
@@ -1035,74 +1080,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             hash_to_field_constraints.push(hash_to_field_constraint);
                         }
-                        BlackBoxFuncCall::EcdsaSecp256r1 {
-                            public_key_x: public_key_x_inputs,
-                            public_key_y: public_key_y_inputs,
-                            signature: signature_inputs,
-                            hashed_message: hashed_message_inputs,
-                            output,
-                        } => {
-                            // public key x
-                            let mut public_key_x_inputs = public_key_x_inputs.iter();
-                            let mut public_key_x = [0i32; 32];
-                            for (i, pkx) in public_key_x.iter_mut().enumerate() {
-                                let x_byte = public_key_x_inputs
-                                    .next()
-                                    .ok_or_else(|| Error::MalformedBlackBoxFunc(
-                                        BlackBoxFunc::EcdsaSecp256r1,
-                                        format!("Missing rest of `x` component for public key. Tried to get byte {i} but failed"),
-                                    ))?;
-                                let x_byte_index = x_byte.witness.witness_index() as i32;
-                                *pkx = x_byte_index;
-                            }
-
-                            // public key y
-                            let mut public_key_y_inputs = public_key_y_inputs.iter();
-                            let mut public_key_y = [0i32; 32];
-                            for (i, pky) in public_key_y.iter_mut().enumerate() {
-                                let y_byte = public_key_y_inputs
-                                    .next()
-                                    .ok_or_else(|| Error::MalformedBlackBoxFunc(
-                                        BlackBoxFunc::EcdsaSecp256r1,
-                                        format!("Missing rest of `y` component for public key. Tried to get byte {i} but failed"),
-                                    ))?;
-                                let y_byte_index = y_byte.witness.witness_index() as i32;
-                                *pky = y_byte_index;
-                            }
-
-                            // signature
-                            let mut signature_inputs = signature_inputs.iter();
-                            let mut signature = [0i32; 64];
-                            for (i, sig) in signature.iter_mut().enumerate() {
-                                let sig_byte =
-                                    signature_inputs.next().ok_or_else(|| Error::MalformedBlackBoxFunc(
-                                        BlackBoxFunc::EcdsaSecp256r1,
-                                        format!("Missing rest of signature. Tried to get byte {i} but failed"),
-                                    ))?;
-                                let sig_byte_index = sig_byte.witness.witness_index() as i32;
-                                *sig = sig_byte_index;
-                            }
-
-                            // The rest of the input is the message
-                            let mut hashed_message = Vec::new();
-                            for msg in hashed_message_inputs.iter() {
-                                let msg_byte_index = msg.witness.witness_index() as i32;
-                                hashed_message.push(msg_byte_index);
-                            }
-
-                            // result
-                            let result = output.witness_index() as i32;
-
-                            let constraint = EcdsaConstraint {
-                                hashed_message,
-                                signature,
-                                public_key_x,
-                                public_key_y,
-                                result,
-                            };
-
-                            ecdsa_secp256r1_constraints.push(constraint);
-                        }
                         BlackBoxFuncCall::EcdsaSecp256k1 {
                             public_key_x: public_key_x_inputs,
                             public_key_y: public_key_y_inputs,
@@ -1161,7 +1138,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             // result
                             let result = output.witness_index() as i32;
 
-                            let constraint = EcdsaConstraint {
+                            let constraint = EcdsaK1Constraint {
                                 hashed_message,
                                 signature,
                                 public_key_x,
@@ -1170,6 +1147,74 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             };
 
                             ecdsa_secp256k1_constraints.push(constraint);
+                        }
+                        BlackBoxFuncCall::EcdsaSecp256r1 {
+                            public_key_x: public_key_x_inputs,
+                            public_key_y: public_key_y_inputs,
+                            signature: signature_inputs,
+                            hashed_message: hashed_message_inputs,
+                            output,
+                        } => {
+                            // public key x
+                            let mut public_key_x_inputs = public_key_x_inputs.iter();
+                            let mut public_key_x = [0i32; 32];
+                            for (i, pkx) in public_key_x.iter_mut().enumerate() {
+                                let x_byte = public_key_x_inputs
+                                    .next()
+                                    .ok_or_else(|| Error::MalformedBlackBoxFunc(
+                                        BlackBoxFunc::EcdsaSecp256r1,
+                                        format!("Missing rest of `x` component for public key. Tried to get byte {i} but failed"),
+                                    ))?;
+                                let x_byte_index = x_byte.witness.witness_index() as i32;
+                                *pkx = x_byte_index;
+                            }
+
+                            // public key y
+                            let mut public_key_y_inputs = public_key_y_inputs.iter();
+                            let mut public_key_y = [0i32; 32];
+                            for (i, pky) in public_key_y.iter_mut().enumerate() {
+                                let y_byte = public_key_y_inputs
+                                    .next()
+                                    .ok_or_else(|| Error::MalformedBlackBoxFunc(
+                                        BlackBoxFunc::EcdsaSecp256r1,
+                                        format!("Missing rest of `y` component for public key. Tried to get byte {i} but failed"),
+                                    ))?;
+                                let y_byte_index = y_byte.witness.witness_index() as i32;
+                                *pky = y_byte_index;
+                            }
+
+                            // signature
+                            let mut signature_inputs = signature_inputs.iter();
+                            let mut signature = [0i32; 64];
+                            for (i, sig) in signature.iter_mut().enumerate() {
+                                let sig_byte =
+                                    signature_inputs.next().ok_or_else(|| Error::MalformedBlackBoxFunc(
+                                        BlackBoxFunc::EcdsaSecp256r1,
+                                        format!("Missing rest of signature. Tried to get byte {i} but failed"),
+                                    ))?;
+                                let sig_byte_index = sig_byte.witness.witness_index() as i32;
+                                *sig = sig_byte_index;
+                            }
+
+                            // The rest of the input is the message
+                            let mut hashed_message = Vec::new();
+                            for msg in hashed_message_inputs.iter() {
+                                let msg_byte_index = msg.witness.witness_index() as i32;
+                                hashed_message.push(msg_byte_index);
+                            }
+
+                            // result
+                            let result = output.witness_index() as i32;
+
+                            let constraint = EcdsaR1Constraint {
+                                hashed_message,
+                                signature,
+                                public_key_x,
+                                public_key_y,
+                                result,
+                            };
+
+                            ecdsa_secp256r1_constraints.push(constraint);
                         }
                         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
                             let scalar = input.witness.witness_index() as i32;
