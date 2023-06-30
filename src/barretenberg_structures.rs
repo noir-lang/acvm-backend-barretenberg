@@ -131,7 +131,7 @@ impl RangeConstraint {
     }
 }
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct EcdsaK1Constraint {
+pub(crate) struct EcdsaConstraint {
     pub(crate) hashed_message: Vec<i32>,
     // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
     #[serde(with = "BigArray")]
@@ -141,52 +141,7 @@ pub(crate) struct EcdsaK1Constraint {
     pub(crate) result: i32,
 }
 
-impl EcdsaK1Constraint {
-    fn to_bytes(&self) -> Vec<u8> {
-        let mut buffer = Vec::new();
-
-        let message_len = (self.hashed_message.len()) as u32;
-        buffer.extend_from_slice(&message_len.to_be_bytes());
-        for constraint in self.hashed_message.iter() {
-            buffer.extend_from_slice(&constraint.to_be_bytes());
-        }
-
-        let sig_len = (self.signature.len()) as u32;
-        buffer.extend_from_slice(&sig_len.to_be_bytes());
-        for sig_byte in self.signature.iter() {
-            buffer.extend_from_slice(&sig_byte.to_be_bytes());
-        }
-
-        let pub_key_x_len = (self.public_key_x.len()) as u32;
-        buffer.extend_from_slice(&pub_key_x_len.to_be_bytes());
-        for x_byte in self.public_key_x.iter() {
-            buffer.extend_from_slice(&x_byte.to_be_bytes());
-        }
-
-        let pub_key_y_len = (self.public_key_y.len()) as u32;
-        buffer.extend_from_slice(&pub_key_y_len.to_be_bytes());
-        for y_byte in self.public_key_y.iter() {
-            buffer.extend_from_slice(&y_byte.to_be_bytes());
-        }
-
-        buffer.extend_from_slice(&self.result.to_be_bytes());
-
-        buffer
-    }
-}
-
-#[derive(Clone, Hash, Debug, Serialize, Deserialize)]
-pub(crate) struct EcdsaR1Constraint {
-    pub(crate) hashed_message: Vec<i32>,
-    // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
-    #[serde(with = "BigArray")]
-    pub(crate) signature: [i32; 64],
-    pub(crate) public_key_x: [i32; 32],
-    pub(crate) public_key_y: [i32; 32],
-    pub(crate) result: i32,
-}
-
-impl EcdsaR1Constraint {
+impl EcdsaConstraint {
     fn to_bytes(&self) -> Vec<u8> {
         let mut buffer = Vec::new();
 
@@ -483,8 +438,8 @@ pub struct ConstraintSystem {
     range_constraints: Vec<RangeConstraint>,
     sha256_constraints: Vec<Sha256Constraint>,
     schnorr_constraints: Vec<SchnorrConstraint>,
-    ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint>,
-    ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint>,
+    ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
+    ecdsa_secp256r1_constraints: Vec<EcdsaConstraint>,
     blake2s_constraints: Vec<Blake2sConstraint>,
     block_constraints: Vec<BlockConstraint>,
     keccak_constraints: Vec<Keccak256Constraint>,
@@ -543,7 +498,7 @@ impl ConstraintSystem {
 
     pub(crate) fn ecdsa_secp256k1_constraints(
         mut self,
-        ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint>,
+        ecdsa_secp256k1_constraints: Vec<EcdsaConstraint>,
     ) -> Self {
         self.ecdsa_secp256k1_constraints = ecdsa_secp256k1_constraints;
         self
@@ -551,7 +506,7 @@ impl ConstraintSystem {
 
     pub(crate) fn ecdsa_secp256r1_constraints(
         mut self,
-        ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint>,
+        ecdsa_secp256r1_constraints: Vec<EcdsaConstraint>,
     ) -> Self {
         self.ecdsa_secp256r1_constraints = ecdsa_secp256r1_constraints;
         self
@@ -880,8 +835,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
         let mut schnorr_constraints: Vec<SchnorrConstraint> = Vec::new();
-        let mut ecdsa_secp256k1_constraints: Vec<EcdsaK1Constraint> = Vec::new();
-        let mut ecdsa_secp256r1_constraints: Vec<EcdsaR1Constraint> = Vec::new();
+        let mut ecdsa_secp256k1_constraints: Vec<EcdsaConstraint> = Vec::new();
+        let mut ecdsa_secp256r1_constraints: Vec<EcdsaConstraint> = Vec::new();
         let mut fixed_base_scalar_mul_constraints: Vec<FixedBaseScalarMulConstraint> = Vec::new();
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
         let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
@@ -1138,7 +1093,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             // result
                             let result = output.witness_index() as i32;
 
-                            let constraint = EcdsaK1Constraint {
+                            let constraint = EcdsaConstraint {
                                 hashed_message,
                                 signature,
                                 public_key_x,
@@ -1206,7 +1161,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             // result
                             let result = output.witness_index() as i32;
 
-                            let constraint = EcdsaR1Constraint {
+                            let constraint = EcdsaConstraint {
                                 hashed_message,
                                 signature,
                                 public_key_x,

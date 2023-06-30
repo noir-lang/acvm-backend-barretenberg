@@ -14,7 +14,6 @@ pub(crate) trait Composer {
 
     async fn get_crs(&self, constraint_system: &ConstraintSystem) -> Result<CRS, Error> {
         let num_points = self.get_circuit_size(constraint_system)?;
-        println!("num points: {}", num_points);
 
         download_crs(num_points as usize).await
     }
@@ -71,13 +70,11 @@ impl Composer for Barretenberg {
     fn get_circuit_size(&self, constraint_system: &ConstraintSystem) -> Result<u32, Error> {
         let cs_buf = constraint_system.to_bytes();
 
-        println!("get circuit size start");
         let circuit_size;
         unsafe {
             circuit_size =
                 barretenberg_sys::composer::get_total_circuit_size(cs_buf.as_slice().as_ptr());
         }
-        println!("get circuit size end");
 
         pow2ceil(circuit_size + NUM_RESERVED_GATES)
     }
