@@ -5,7 +5,7 @@ version = 3
 [[package]]
 name = "acir"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=9a3ff5afd90340b96391271d592a636d89555104#9a3ff5afd90340b96391271d592a636d89555104"
+source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#6cfe4c044fb963611b7ef222b82ba5063a3d4426"
 dependencies = [
  "acir_field",
  "brillig_vm",
@@ -18,7 +18,7 @@ dependencies = [
 [[package]]
 name = "acir_field"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=9a3ff5afd90340b96391271d592a636d89555104#9a3ff5afd90340b96391271d592a636d89555104"
+source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#6cfe4c044fb963611b7ef222b82ba5063a3d4426"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -31,7 +31,7 @@ dependencies = [
 [[package]]
 name = "acvm"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=9a3ff5afd90340b96391271d592a636d89555104#9a3ff5afd90340b96391271d592a636d89555104"
+source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#6cfe4c044fb963611b7ef222b82ba5063a3d4426"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -69,7 +69,7 @@ dependencies = [
 [[package]]
 name = "acvm_stdlib"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=9a3ff5afd90340b96391271d592a636d89555104#9a3ff5afd90340b96391271d592a636d89555104"
+source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#6cfe4c044fb963611b7ef222b82ba5063a3d4426"
 dependencies = [
  "acir",
 ]
@@ -380,7 +380,7 @@ dependencies = [
 [[package]]
 name = "brillig_vm"
 version = "0.15.1"
-source = "git+https://github.com/noir-lang/acvm?rev=9a3ff5afd90340b96391271d592a636d89555104#9a3ff5afd90340b96391271d592a636d89555104"
+source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#6cfe4c044fb963611b7ef222b82ba5063a3d4426"
 dependencies = [
  "acir_field",
  "serde",
