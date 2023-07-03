@@ -649,6 +649,24 @@ mod test {
         )
         .unwrap();
 
+        // temporary: Check that new signature matches old one. Remove this before merging
+        let sig: [u8; 64] = [
+            5, 202, 31, 146, 81, 242, 246, 69, 43, 107, 249, 153, 198, 44, 14, 111, 191, 121, 137,
+            166, 160, 103, 18, 181, 243, 233, 226, 95, 67, 16, 37, 128, 85, 76, 19, 253, 30, 77,
+            192, 53, 138, 205, 69, 33, 236, 163, 83, 194, 84, 137, 184, 221, 176, 121, 179, 27, 63,
+            70, 54, 16, 176, 250, 39, 239,
+        ];
+        assert_eq!(
+            sig_s,
+            FieldElement::from_be_bytes_reduce(&sig[0..32]),
+            "bad sig_s"
+        );
+        assert_eq!(
+            sig_e,
+            FieldElement::from_be_bytes_reduce(&sig[32..64]),
+            "bad sig_e"
+        );
+
         let message: Vec<FieldElement> = vec![
             0_i128.into(),
             1_i128.into(),
