@@ -803,29 +803,38 @@ mod test {
 
     #[test]
     async fn test_memory_constraints() -> Result<(), Error> {
-        let two_field = FieldElement::one() + FieldElement::one();
-        let one = Constraint {
-            a: 0,
+        let a0 = Constraint {
+            a: 2,
             b: 0,
             c: 0,
             qm: FieldElement::zero(),
-            ql: FieldElement::zero(),
-            qr: FieldElement::zero(),
-            qo: FieldElement::zero(),
-            qc: FieldElement::one(),
-        };
-
-        let two_x_constraint = Constraint {
-            a: 1,
-            b: 0,
-            c: 0,
-            qm: FieldElement::zero(),
-            ql: two_field,
+            ql: FieldElement::one(),
             qr: FieldElement::zero(),
             qo: FieldElement::zero(),
             qc: FieldElement::zero(),
         };
-        let x_1_constraint = Constraint {
+        let a1 = Constraint {
+            a: 3,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+
+        let r1 = Constraint {
+            a: 2,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let r2 = Constraint {
             a: 1,
             b: 0,
             c: 0,
@@ -833,7 +842,7 @@ mod test {
             ql: FieldElement::one(),
             qr: FieldElement::zero(),
             qo: FieldElement::zero(),
-            qc: FieldElement::one(),
+            qc: FieldElement::zero(),
         };
 
         let y_constraint = Constraint {
@@ -856,22 +865,24 @@ mod test {
             qo: FieldElement::zero(),
             qc: FieldElement::zero(),
         };
+
         let op1 = MemOpBarretenberg {
-            index: two_x_constraint,
+            index: r1,
             value: y_constraint,
             is_store: 0,
         };
         let op2 = MemOpBarretenberg {
-            index: x_1_constraint.clone(),
+            index: r2.clone(),
             value: z_constraint,
             is_store: 0,
         };
         let block_constraint = BlockConstraint {
-            init: vec![one, x_1_constraint],
+            init: vec![a0, a1],
             trace: vec![op1, op2],
             is_ram: 0,
         };
 
+        let two_field = FieldElement::one() + FieldElement::one();
         let result_constraint = Constraint {
             a: 2,
             b: 3,
