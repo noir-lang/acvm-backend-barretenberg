@@ -178,9 +178,8 @@ impl EcdsaConstraint {
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
 pub(crate) struct SchnorrConstraint {
     pub(crate) message: Vec<i32>,
-    // Required until Serde adopts const generics: https://github.com/serde-rs/serde/issues/1937
-    #[serde(with = "BigArray")]
-    pub(crate) signature: [i32; 64],
+    pub(crate) signature_s: i32,
+    pub(crate) signature_e: i32,
     pub(crate) public_key_x: i32,
     pub(crate) public_key_y: i32,
     pub(crate) result: i32,
@@ -196,12 +195,8 @@ impl SchnorrConstraint {
             buffer.extend_from_slice(&constraint.to_be_bytes());
         }
 
-        let sig_len = (self.signature.len()) as u32;
-        buffer.extend_from_slice(&sig_len.to_be_bytes());
-        for sig_byte in self.signature.iter() {
-            buffer.extend_from_slice(&sig_byte.to_be_bytes());
-        }
-
+        buffer.extend_from_slice(&self.signature_s.to_be_bytes());
+        buffer.extend_from_slice(&self.signature_e.to_be_bytes());
         buffer.extend_from_slice(&self.public_key_x.to_be_bytes());
         buffer.extend_from_slice(&self.public_key_y.to_be_bytes());
         buffer.extend_from_slice(&self.result.to_be_bytes());
@@ -953,26 +948,16 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         BlackBoxFuncCall::SchnorrVerify {
                             public_key_x,
                             public_key_y,
-                            signature,
+                            signature_s,
+                            signature_e,
                             message: message_inputs,
                             output,
                         } => {
-                            // pub_key_x
                             let public_key_x = public_key_x.witness.witness_index() as i32;
-                            // pub_key_y
                             let public_key_y = public_key_y.witness.witness_index() as i32;
-                            // signature
-                            let mut signature_iter = signature.iter();
-                            let mut signature = [0i32; 64];
-                            for (i, sig) in signature.iter_mut().enumerate() {
-                                let sig_byte =
-                                    signature_iter.next().ok_or_else(||Error::MalformedBlackBoxFunc(
-                                        BlackBoxFunc::SchnorrVerify,
-                                        format!("Missing rest of signature. Tried to get byte {i} but failed"),
-                                    ))?;
-                                let sig_byte_index = sig_byte.witness.witness_index() as i32;
-                                *sig = sig_byte_index
-                            }
+
+                            let signature_s = signature_s.witness.witness_index() as i32;
+                            let signature_e = signature_e.witness.witness_index() as i32;
 
                             // The rest of the input is the message
                             let mut message = Vec::new();
@@ -986,9 +971,10 @@ impl TryFrom<&Circuit> for ConstraintSystem {
 
                             let constraint = SchnorrConstraint {
                                 message,
-                                signature,
                                 public_key_x,
                                 public_key_y,
+                                signature_s,
+                                signature_e,
                                 result,
                             };
 
@@ -1005,9 +991,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 inputs.push(scalar_index);
                             }
 
-                            assert_eq!(outputs.len(), 2);
-                            let result_x = outputs[0].witness_index() as i32;
-                            let result_y = outputs[1].witness_index() as i32;
+                            let result_x = outputs.0.witness_index() as i32;
+                            let result_y = outputs.1.witness_index() as i32;
 
                             let constraint = PedersenConstraint {
                                 inputs,
@@ -1174,9 +1159,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
                             let scalar = input.witness.witness_index() as i32;
 
-                            assert_eq!(outputs.len(), 2);
-                            let pubkey_x = outputs[0].witness_index() as i32;
-                            let pubkey_y = outputs[1].witness_index() as i32;
+                            let pubkey_x = outputs.0.witness_index() as i32;
+                            let pubkey_y = outputs.1.witness_index() as i32;
 
                             let fixed_base_scalar_mul = FixedBaseScalarMulConstraint {
                                 scalar,
@@ -1337,7 +1321,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
+                Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // Directives, Oracles and Brillig are only needed by the pwg
                 }
                 Opcode::Block(_) => {
