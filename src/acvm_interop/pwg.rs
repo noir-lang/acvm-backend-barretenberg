@@ -12,8 +12,7 @@ impl BlackBoxFunctionSolver for Barretenberg {
         &self,
         public_key_x: &FieldElement,
         public_key_y: &FieldElement,
-        signature_s: &FieldElement,
-        signature_e: &FieldElement,
+        signature: &[u8],
         message: &[u8],
     ) -> Result<bool, OpcodeResolutionError> {
         // In barretenberg, if the signature fails, then the whole thing fails.
@@ -25,11 +24,11 @@ impl BlackBoxFunctionSolver for Barretenberg {
             .collect();
         let pub_key: [u8; 64] = pub_key.try_into().unwrap();
 
-        let signature_s: [u8; 32] = signature_s.to_be_bytes().try_into().unwrap();
-        let signature_e: [u8; 32] = signature_e.to_be_bytes().try_into().unwrap();
+        let sig_s: [u8; 32] = signature[0..32].try_into().unwrap();
+        let sig_e: [u8; 32] = signature[32..64].try_into().unwrap();
 
         let valid_signature = self
-            .verify_signature(pub_key, signature_s, signature_e, message)
+            .verify_signature(pub_key, sig_s, sig_e, message)
             .map_err(|err| {
                 OpcodeResolutionError::BlackBoxFunctionFailed(
                     BlackBoxFunc::SchnorrVerify,
