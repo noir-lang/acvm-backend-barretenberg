@@ -783,116 +783,123 @@ mod test {
         test_composer_with_pk_vk(constraint_system, vec![case_1]).await
     }
 
-    // #[test]
-    // async fn test_memory_constraints() -> Result<(), Error> {
-    //     let two_field = FieldElement::one() + FieldElement::one();
-    //     let one = Constraint {
-    //         a: 0,
-    //         b: 0,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: FieldElement::zero(),
-    //         qr: FieldElement::zero(),
-    //         qo: FieldElement::zero(),
-    //         qc: FieldElement::one(),
-    //     };
+    #[test]
+    async fn test_memory_constraints() -> Result<(), Error> {
+        let a0 = Constraint {
+            a: 2,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let a1 = Constraint {
+            a: 3,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
 
-    //     let two_x_constraint = Constraint {
-    //         a: 1,
-    //         b: 0,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: two_field,
-    //         qr: FieldElement::zero(),
-    //         qo: FieldElement::zero(),
-    //         qc: FieldElement::zero(),
-    //     };
-    //     let x_1_constraint = Constraint {
-    //         a: 1,
-    //         b: 0,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: FieldElement::one(),
-    //         qr: FieldElement::zero(),
-    //         qo: FieldElement::zero(),
-    //         qc: FieldElement::one(),
-    //     };
+        let r1 = Constraint {
+            a: 2,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let r2 = Constraint {
+            a: 1,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
 
-    //     let y_constraint = Constraint {
-    //         a: 2,
-    //         b: 0,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: FieldElement::one(),
-    //         qr: FieldElement::zero(),
-    //         qo: FieldElement::zero(),
-    //         qc: FieldElement::zero(),
-    //     };
-    //     let z_constraint = Constraint {
-    //         a: 3,
-    //         b: 0,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: FieldElement::one(),
-    //         qr: FieldElement::zero(),
-    //         qo: FieldElement::zero(),
-    //         qc: FieldElement::zero(),
-    //     };
-    //     let op1 = MemOpBarretenberg {
-    //         index: two_x_constraint,
-    //         value: y_constraint,
-    //         is_store: 0,
-    //     };
-    //     let op2 = MemOpBarretenberg {
-    //         index: x_1_constraint.clone(),
-    //         value: z_constraint,
-    //         is_store: 0,
-    //     };
-    //     let block_constraint = BlockConstraint {
-    //         init: vec![one, x_1_constraint],
-    //         trace: vec![op1, op2],
-    //         is_ram: 0,
-    //     };
+        let y_constraint = Constraint {
+            a: 2,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
+        let z_constraint = Constraint {
+            a: 3,
+            b: 0,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::zero(),
+            qo: FieldElement::zero(),
+            qc: FieldElement::zero(),
+        };
 
-    //     let result_constraint = Constraint {
-    //         a: 2,
-    //         b: 3,
-    //         c: 0,
-    //         qm: FieldElement::zero(),
-    //         ql: FieldElement::one(),
-    //         qr: FieldElement::one(),
-    //         qo: FieldElement::zero(),
-    //         qc: -(two_field),
-    //     };
-    //     let constraint_system = ConstraintSystem::new()
-    //         .var_num(4)
-    //         .block_constraints(vec![block_constraint])
-    //         .constraints(vec![result_constraint]);
+        let op1 = MemOpBarretenberg {
+            index: r1,
+            value: y_constraint,
+            is_store: 0,
+        };
+        let op2 = MemOpBarretenberg {
+            index: r2.clone(),
+            value: z_constraint,
+            is_store: 0,
+        };
+        let block_constraint = BlockConstraint {
+            init: vec![a0, a1],
+            trace: vec![op1, op2],
+            is_ram: 0,
+        };
 
-    //     let scalar_0 = FieldElement::zero();
-    //     let scalar_1 = FieldElement::one();
-    //     let witness_values = vec![scalar_0, scalar_1, scalar_1];
+        let two_field = FieldElement::one() + FieldElement::one();
+        let result_constraint = Constraint {
+            a: 2,
+            b: 3,
+            c: 0,
+            qm: FieldElement::zero(),
+            ql: FieldElement::one(),
+            qr: FieldElement::one(),
+            qo: FieldElement::zero(),
+            qc: -(two_field),
+        };
+        let constraint_system = ConstraintSystem::new()
+            .var_num(4)
+            .block_constraints(vec![block_constraint])
+            .constraints(vec![result_constraint]);
 
-    //     let case_1 = WitnessResult {
-    //         witness: witness_values.into(),
-    //         public_inputs: Assignments::default(),
-    //         result: true,
-    //     };
+        let scalar_0 = FieldElement::zero();
+        let scalar_1 = FieldElement::one();
+        let witness_values = vec![scalar_0, scalar_1, scalar_1];
 
-    //     let bad_values = vec![scalar_0, scalar_1, scalar_1 + scalar_1];
-    //     let case_2 = WitnessResult {
-    //         witness: bad_values.into(),
-    //         public_inputs: Assignments::default(),
-    //         result: false,
-    //     };
+        let case_1 = WitnessResult {
+            witness: witness_values.into(),
+            public_inputs: Assignments::default(),
+            result: true,
+        };
 
-    //     println!("constraint_system: {:?}", constraint_system);
+        let bad_values = vec![scalar_0, scalar_1, scalar_1 + scalar_1];
+        let case_2 = WitnessResult {
+            witness: bad_values.into(),
+            public_inputs: Assignments::default(),
+            result: false,
+        };
 
-    //     println!("case 1 {:?}", case_1);
-    //     println!("case 2 {:?}", case_2);
+        test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
+    }
 
-    //     test_composer_with_pk_vk(constraint_system, vec![case_1, case_2]).await
-    // }
     #[test]
     async fn test_logic_constraints() -> Result<(), Error> {
         /*
