@@ -957,11 +957,9 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                             message: message_inputs,
                             output,
                         } => {
-                            // pub_key_x
                             let public_key_x = public_key_x.witness.witness_index() as i32;
-                            // pub_key_y
                             let public_key_y = public_key_y.witness.witness_index() as i32;
-                            // signature
+
                             let mut signature_iter = signature.iter();
                             let mut signature = [0i32; 64];
                             for (i, sig) in signature.iter_mut().enumerate() {
@@ -1005,9 +1003,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                                 inputs.push(scalar_index);
                             }
 
-                            assert_eq!(outputs.len(), 2);
-                            let result_x = outputs[0].witness_index() as i32;
-                            let result_y = outputs[1].witness_index() as i32;
+                            let result_x = outputs.0.witness_index() as i32;
+                            let result_y = outputs.1.witness_index() as i32;
 
                             let constraint = PedersenConstraint {
                                 inputs,
@@ -1174,9 +1171,8 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         BlackBoxFuncCall::FixedBaseScalarMul { input, outputs } => {
                             let scalar = input.witness.witness_index() as i32;
 
-                            assert_eq!(outputs.len(), 2);
-                            let pubkey_x = outputs[0].witness_index() as i32;
-                            let pubkey_y = outputs[1].witness_index() as i32;
+                            let pubkey_x = outputs.0.witness_index() as i32;
+                            let pubkey_y = outputs.1.witness_index() as i32;
 
                             let fixed_base_scalar_mul = FixedBaseScalarMulConstraint {
                                 scalar,
@@ -1337,7 +1333,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                         }
                     };
                 }
-                Opcode::Directive(_) | Opcode::Oracle(_) | Opcode::Brillig(_) => {
+                Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // Directives, Oracles and Brillig are only needed by the pwg
                 }
                 Opcode::Block(_) => {

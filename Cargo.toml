@@ -1,7 +1,7 @@
 [package]
 name = "acvm-backend-barretenberg"
 description = "An ACVM backend which allows proving/verifying ACIR circuits against Aztec Lab's Barretenberg library."
-version = "0.5.1"
+version = "0.6.0"
 authors = ["The Noir Team <team@noir-lang.org>"]
 edition = "2021"
 rust-version = "1.66"
