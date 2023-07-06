@@ -38,9 +38,8 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::Pedersen
                 | BlackBoxFunc::HashToField128Security
                 | BlackBoxFunc::EcdsaSecp256k1
-                | BlackBoxFunc::FixedBaseScalarMul => true,
-
-                BlackBoxFunc::RecursiveAggregation => false,
+                | BlackBoxFunc::FixedBaseScalarMul
+                | BlackBoxFunc::RecursiveAggregation => true,
             },
         }
     }
