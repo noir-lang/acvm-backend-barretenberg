@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.6.0...v0.6.1) (2023-07-06)
+
+
+### Features
+
+* switch RecursiveAggregation support to true ([#225](https://github.com/noir-lang/acvm-backend-barretenberg/issues/225)) ([e9462ae](https://github.com/noir-lang/acvm-backend-barretenberg/commit/e9462ae015ec0dfb0a23ccbb89562071f87940f5))
+
 ## [0.6.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.5.1...v0.6.0) (2023-07-06)
 
 
