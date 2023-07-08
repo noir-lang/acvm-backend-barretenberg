@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.7.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.6.1...v0.7.0) (2023-07-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* **bberg:** add secp256r1 builtin to barretenberg ([#223](https://github.com/noir-lang/acvm-backend-barretenberg/issues/223))
+
+### Features
+
+* **bberg:** add secp256r1 builtin to barretenberg ([#223](https://github.com/noir-lang/acvm-backend-barretenberg/issues/223)) ([ceb4770](https://github.com/noir-lang/acvm-backend-barretenberg/commit/ceb47705a492fcdcea1f3c098aaab42ea8edbf2e))
+
 ## [0.6.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.6.0...v0.6.1) (2023-07-06)
 
 
