@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.16.0"
-source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#202f0db43501e731b3cccabb77294539f45e1201"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "502a9126627ae67868515031c2283e64f3e1fef5ff93850009ed89a8a24fac60"
 dependencies = [
  "acir_field",
  "brillig_vm",
@@ -17,8 +18,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.16.0"
-source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#202f0db43501e731b3cccabb77294539f45e1201"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a98fe4e3f9156f5551c8c9686e8f720a990d000e1e666e08a86e938a36ac8be"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,8 +32,9 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.16.0"
-source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#202f0db43501e731b3cccabb77294539f45e1201"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95315759a51115860af49a492791ae5155c3d2c0555eec1358faa5d74c763391"
 dependencies = [
  "acir",
  "acvm_stdlib",
@@ -68,8 +71,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.16.0"
-source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#202f0db43501e731b3cccabb77294539f45e1201"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f7d2d8407e55ac26078af1d783408525e7f906e531cb04adcc47650d7994f62"
 dependencies = [
  "acir",
 ]
@@ -379,8 +383,9 @@ dependencies = [
 
 [[package]]
 name = "brillig_vm"
-version = "0.16.0"
-source = "git+https://github.com/noir-lang/acvm?branch=md/hackathon-patch#202f0db43501e731b3cccabb77294539f45e1201"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36821ba87dd1807784d679bca54d753665014b109f6acfe38516eec7f3d71941"
 dependencies = [
  "acir_field",
  "blake2",
