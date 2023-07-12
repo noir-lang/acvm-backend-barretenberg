@@ -1,4 +1,4 @@
-use acvm::SmartContract;
+use acvm::{acir::circuit::Circuit, SmartContract};
 
 use crate::{crs::CRS, BackendError, Barretenberg};
 
@@ -12,6 +12,7 @@ impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(
         &self,
         common_reference_string: &[u8],
+        _circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<String, Self::Error> {
         use std::slice;
@@ -46,6 +47,7 @@ impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(
         &self,
         common_reference_string: &[u8],
+        _circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<String, Self::Error> {
         let CRS { g2_data, .. } = common_reference_string.try_into()?;
@@ -77,7 +79,7 @@ impl SmartContract for Barretenberg {
 
 #[cfg(test)]
 mod tests {
-    use acvm::SmartContract;
+    use acvm::{acir::circuit::Circuit, SmartContract};
     use tokio::test;
 
     use crate::BackendError;
@@ -113,7 +115,11 @@ mod tests {
 
         let common_reference_string: Vec<u8> = crs.try_into()?;
 
-        let contract = bb.eth_contract_from_vk(&common_reference_string, &verification_key)?;
+        let contract = bb.eth_contract_from_vk(
+            &common_reference_string,
+            &Circuit::default(),
+            &verification_key,
+        )?;
 
         assert!(contract.contains("contract BaseUltraVerifier"));
         assert!(contract.contains("contract UltraVerifier"));
