@@ -1,6 +1,5 @@
 use acvm::acir::BlackBoxFunc;
-use acvm::pwg::OpcodeResolutionError;
-use acvm::{BlackBoxFunctionSolver, FieldElement};
+use acvm::{BlackBoxFunctionSolver, BlackBoxResolutionError, FieldElement};
 
 use crate::pedersen::Pedersen;
 use crate::scalar_mul::ScalarMul;
@@ -14,7 +13,7 @@ impl BlackBoxFunctionSolver for Barretenberg {
         public_key_y: &FieldElement,
         signature: &[u8],
         message: &[u8],
-    ) -> Result<bool, OpcodeResolutionError> {
+    ) -> Result<bool, BlackBoxResolutionError> {
         // In barretenberg, if the signature fails, then the whole thing fails.
 
         let pub_key: Vec<u8> = public_key_x
@@ -30,10 +29,7 @@ impl BlackBoxFunctionSolver for Barretenberg {
         let valid_signature = self
             .verify_signature(pub_key, sig_s, sig_e, message)
             .map_err(|err| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::SchnorrVerify,
-                    err.to_string(),
-                )
+                BlackBoxResolutionError::Failed(BlackBoxFunc::SchnorrVerify, err.to_string())
             })?;
         if !valid_signature {
             dbg!("signature has failed to verify");
@@ -46,25 +42,17 @@ impl BlackBoxFunctionSolver for Barretenberg {
         &self,
         inputs: &[FieldElement],
         domain_separator: u32,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         self.encrypt(inputs.to_vec(), domain_separator)
-            .map_err(|err| {
-                OpcodeResolutionError::BlackBoxFunctionFailed(
-                    BlackBoxFunc::Pedersen,
-                    err.to_string(),
-                )
-            })
+            .map_err(|err| BlackBoxResolutionError::Failed(BlackBoxFunc::Pedersen, err.to_string()))
     }
 
     fn fixed_base_scalar_mul(
         &self,
         input: &FieldElement,
-    ) -> Result<(FieldElement, FieldElement), OpcodeResolutionError> {
+    ) -> Result<(FieldElement, FieldElement), BlackBoxResolutionError> {
         self.fixed_base(input).map_err(|err| {
-            OpcodeResolutionError::BlackBoxFunctionFailed(
-                BlackBoxFunc::FixedBaseScalarMul,
-                err.to_string(),
-            )
+            BlackBoxResolutionError::Failed(BlackBoxFunc::FixedBaseScalarMul, err.to_string())
         })
     }
 }
