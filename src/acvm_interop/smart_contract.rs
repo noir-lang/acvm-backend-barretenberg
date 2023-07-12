@@ -47,6 +47,7 @@ impl SmartContract for Barretenberg {
     fn eth_contract_from_vk(
         &self,
         common_reference_string: &[u8],
+        _circuit: &Circuit,
         verification_key: &[u8],
     ) -> Result<String, Self::Error> {
         let CRS { g2_data, .. } = common_reference_string.try_into()?;
