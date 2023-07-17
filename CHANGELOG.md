@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.8.0...v0.9.0) (2023-07-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* update to ACVM 0.19.0 ([#230](https://github.com/noir-lang/acvm-backend-barretenberg/issues/230))
+
+### Miscellaneous Chores
+
+* update to ACVM 0.19.0 ([#230](https://github.com/noir-lang/acvm-backend-barretenberg/issues/230)) ([3f1d967](https://github.com/noir-lang/acvm-backend-barretenberg/commit/3f1d9674b904acb02c2a3e52481be8a6104c3a9d))
+
 ## [0.8.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.7.0...v0.8.0) (2023-07-12)
 
 
