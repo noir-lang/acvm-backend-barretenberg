@@ -27,6 +27,8 @@ impl ProofSystemCompiler for Barretenberg {
             Opcode::ROM(_) => true,
             Opcode::RAM(_) => true,
             Opcode::Brillig(_) => true,
+            Opcode::MemoryInit { .. } => true,
+            Opcode::MemoryOp { .. } => true,
             Opcode::BlackBoxFuncCall(func) => match func.get_black_box_func() {
                 BlackBoxFunc::AND
                 | BlackBoxFunc::XOR
