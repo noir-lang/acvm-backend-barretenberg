@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, FunctionInput, MemoryBlock};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
@@ -841,6 +843,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut hash_to_field_constraints: Vec<HashToFieldConstraint> = Vec::new();
         let mut recursion_constraints: Vec<RecursionConstraint> = Vec::new();
 
+        let mut blocks: BTreeMap<u32, BlockConstraint> = BTreeMap::new();
         for gate in circuit.opcodes.iter() {
             match gate {
                 Opcode::Arithmetic(expression) => {
@@ -1344,6 +1347,36 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                 }
                 Opcode::ROM(block) => {
                     block_constraints.push(BlockConstraint::from_memory_block(block, false))
+                }
+                Opcode::MemoryOp { block_id, op } => {
+                    let block = blocks
+                        .get_mut(&block_id.0)
+                        .expect("memory operation on an uninitialized block");
+
+                    let index = serialize_arithmetic_gates(&op.index);
+                    let value = serialize_arithmetic_gates(&op.value);
+                    let bb_op = MemOpBarretenberg {
+                        is_store: op.operation.to_const().unwrap().to_u128() as i8,
+                        index,
+                        value,
+                    };
+                    block.trace.push(bb_op);
+                }
+                Opcode::MemoryInit { block_id, init } => {
+                    let init = init
+                        .iter()
+                        .map(|w| {
+                            let mut constraint = Constraint::default();
+                            constraint.set_linear_term(FieldElement::one(), w.as_usize() as i32);
+                            constraint
+                        })
+                        .collect();
+                    let block = BlockConstraint {
+                        init,
+                        trace: Vec::new(),
+                        is_ram: 1,
+                    };
+                    blocks.insert(block_id.0, block);
                 }
             }
         }
