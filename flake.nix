@@ -110,7 +110,7 @@
       commonArgs = {
         pname = "acvm-backend-barretenberg";
         # x-release-please-start-version
-        version = "0.9.0";
+        version = "0.9.1";
         # x-release-please-end
 
         src = pkgs.lib.cleanSourceWith {

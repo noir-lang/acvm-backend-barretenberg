@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.9.0...v0.9.1) (2023-07-21)
+
+
+### Features
+
+* add support for atomic memory opcodes ([#232](https://github.com/noir-lang/acvm-backend-barretenberg/issues/232)) ([a7aa6e9](https://github.com/noir-lang/acvm-backend-barretenberg/commit/a7aa6e9505bb402c1b3db0a990845ed26928e7aa))
+
 ## [0.9.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.8.0...v0.9.0) (2023-07-17)
 
 
