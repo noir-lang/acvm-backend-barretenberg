@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, FunctionInput, MemoryBlock};
+use acvm::acir::circuit::opcodes::{BlackBoxFuncCall, FunctionInput};
 use acvm::acir::circuit::{Circuit, Opcode};
 use acvm::acir::native_types::Expression;
 use acvm::acir::BlackBoxFunc;
@@ -741,32 +741,6 @@ impl BlockConstraint {
 
         buffer
     }
-
-    fn from_memory_block(b: &MemoryBlock, is_ram_block: bool) -> BlockConstraint {
-        let mut init = Vec::new();
-        let mut trace = Vec::new();
-        let len = b.len as usize;
-        for op in b.trace.iter().take(len) {
-            assert_eq!(op.operation, Expression::one());
-            init.push(serialize_arithmetic_gates(&op.value));
-        }
-        for op in b.trace.iter().skip(len) {
-            let index = serialize_arithmetic_gates(&op.index);
-            let value = serialize_arithmetic_gates(&op.value);
-            let bb_op = MemOpBarretenberg {
-                is_store: op.operation.to_const().unwrap().to_u128() as i8,
-                index,
-                value,
-            };
-            trace.push(bb_op);
-        }
-        let is_ram = i8::from(is_ram_block);
-        BlockConstraint {
-            init,
-            trace,
-            is_ram,
-        }
-    }
 }
 
 #[derive(Clone, Hash, Debug, Serialize, Deserialize)]
@@ -832,7 +806,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
         let mut logic_constraints: Vec<LogicConstraint> = Vec::new();
         let mut sha256_constraints: Vec<Sha256Constraint> = Vec::new();
         let mut blake2s_constraints: Vec<Blake2sConstraint> = Vec::new();
-        let mut block_constraints: Vec<BlockConstraint> = Vec::new();
+        let block_constraints: Vec<BlockConstraint> = Vec::new();
         let mut keccak_constraints: Vec<Keccak256Constraint> = Vec::new();
         let mut keccak_var_constraints: Vec<Keccak256VarConstraint> = Vec::new();
         let mut pedersen_constraints: Vec<PedersenConstraint> = Vec::new();
@@ -1338,15 +1312,6 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                 }
                 Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // Directives, Oracles and Brillig are only needed by the pwg
-                }
-                Opcode::Block(_) => {
-                    // Block is managed by ACVM
-                }
-                Opcode::RAM(block) => {
-                    block_constraints.push(BlockConstraint::from_memory_block(block, true))
-                }
-                Opcode::ROM(block) => {
-                    block_constraints.push(BlockConstraint::from_memory_block(block, false))
                 }
                 Opcode::MemoryOp { block_id, op } => {
                     let block = blocks

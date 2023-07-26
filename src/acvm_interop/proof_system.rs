@@ -23,9 +23,6 @@ impl ProofSystemCompiler for Barretenberg {
         match opcode {
             Opcode::Arithmetic(_) => true,
             Opcode::Directive(_) => true,
-            Opcode::Block(_) => false,
-            Opcode::ROM(_) => true,
-            Opcode::RAM(_) => true,
             Opcode::Brillig(_) => true,
             Opcode::MemoryInit { .. } => true,
             Opcode::MemoryOp { .. } => true,
