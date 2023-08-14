@@ -75,6 +75,7 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         RUST_TEST_THREADS = "1";
+        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
       };
 
       nativeEnvironment = sharedEnvironment // {
@@ -82,10 +83,7 @@
         LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
       };
 
-      wasmEnvironment = sharedEnvironment // {
-        # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
-      };
+      wasmEnvironment = sharedEnvironment // { };
 
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
       # source filter to include .sol files in addition to usual rust/cargo source files

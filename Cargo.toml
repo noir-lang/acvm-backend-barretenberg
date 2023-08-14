@@ -47,4 +47,4 @@ native = ["dep:barretenberg-sys"]
 wasm = ["dep:wasmer", "dep:rust-embed", "dep:getrandom"]
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "61266056a0be5c7397ed64ee68b781a21c382cd3" }
+acvm = { git = "https://github.com/noir-lang/acvm", rev = "766d76e1419ba90a2c0e76e8da3c02db10497e35" }
