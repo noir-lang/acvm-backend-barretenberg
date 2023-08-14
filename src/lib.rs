@@ -19,6 +19,12 @@ mod composer;
 mod crs;
 mod pippenger;
 
+#[cfg(feature = "native")]
+mod black_box_solver;
+
+#[cfg(feature = "native")]
+pub use black_box_solver::BarretenbergBlackBoxSolver;
+
 pub use barretenberg_structures::ConstraintSystem;
 
 use acvm::acir::BlackBoxFunc;
@@ -26,7 +32,14 @@ use thiserror::Error;
 
 #[cfg(feature = "native")]
 #[derive(Debug, Error)]
-enum FeatureError {}
+enum FeatureError {
+    #[error("Could not slice field element")]
+    FieldElementSlice {
+        source: std::array::TryFromSliceError,
+    },
+    #[error("Expected a Vec of length {0} but it was {1}")]
+    FieldToArray(usize, usize),
+}
 
 #[cfg(not(feature = "native"))]
 #[derive(Debug, Error)]
@@ -129,12 +142,20 @@ impl Default for Barretenberg {
 
 #[cfg(feature = "native")]
 mod native {
-    use super::Barretenberg;
+    use super::{Barretenberg, Error, FeatureError};
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
             Barretenberg {}
         }
+    }
+
+    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; 32], Error> {
+        let v = f.to_be_bytes();
+        let result: [u8; 32] = v
+            .try_into()
+            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
+        Ok(result)
     }
 }
 
