@@ -28,7 +28,7 @@ mod test {
     use super::*;
     #[test]
     fn smoke_test() -> Result<(), Error> {
-        let barretenberg = Barretenberg::new();
+        let barretenberg = BarretenbergBlackBoxSolver::new();
         let input = FieldElement::one();
 
         let res = barretenberg.fixed_base(&input)?;

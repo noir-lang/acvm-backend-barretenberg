@@ -53,7 +53,7 @@ impl SchnorrSig for BarretenbergBlackBoxSolver {
 
 #[test]
 fn basic_interop() -> Result<(), Error> {
-    let barretenberg = Barretenberg::new();
+    let barretenberg = BarretenbergBlackBoxSolver::new();
 
     // First case should pass, standard procedure for Schnorr
     let private_key = [2; 32];
