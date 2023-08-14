@@ -17,10 +17,7 @@ mod acvm_interop;
 mod barretenberg_structures;
 mod composer;
 mod crs;
-mod pedersen;
 mod pippenger;
-mod scalar_mul;
-mod schnorr;
 
 pub use barretenberg_structures::ConstraintSystem;
 
@@ -29,14 +26,7 @@ use thiserror::Error;
 
 #[cfg(feature = "native")]
 #[derive(Debug, Error)]
-enum FeatureError {
-    #[error("Could not slice field element")]
-    FieldElementSlice {
-        source: std::array::TryFromSliceError,
-    },
-    #[error("Expected a Vec of length {0} but it was {1}")]
-    FieldToArray(usize, usize),
-}
+enum FeatureError {}
 
 #[cfg(not(feature = "native"))]
 #[derive(Debug, Error)]
@@ -137,35 +127,14 @@ impl Default for Barretenberg {
     }
 }
 
-#[test]
-fn smoke() -> Result<(), Error> {
-    use crate::pedersen::Pedersen;
-
-    let b = Barretenberg::new();
-    let (x, y) = b.encrypt(
-        vec![acvm::FieldElement::zero(), acvm::FieldElement::one()],
-        0,
-    )?;
-    dbg!(x.to_hex(), y.to_hex());
-    Ok(())
-}
-
 #[cfg(feature = "native")]
 mod native {
-    use super::{Barretenberg, Error, FeatureError};
+    use super::Barretenberg;
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
             Barretenberg {}
         }
-    }
-
-    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; 32], Error> {
-        let v = f.to_be_bytes();
-        let result: [u8; 32] = v
-            .try_into()
-            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
-        Ok(result)
     }
 }
 
@@ -182,15 +151,6 @@ mod wasm {
 
     /// The number of bytes necessary to represent a pointer to memory inside the wasm.
     pub(super) const POINTER_BYTES: usize = 4;
-
-    /// The Barretenberg WASM gives us 1024 bytes of scratch space which we can use without
-    /// needing to allocate/free it ourselves. This can be useful for when we need to pass in several small variables
-    /// when calling functions on the wasm, however it's important to not overrun this scratch space as otherwise
-    /// the written data will begin to corrupt the stack.
-    ///
-    /// Using this scratch space isn't particularly safe if we have multiple threads interacting with the wasm however,
-    /// each thread could write to the same pointer address simultaneously.
-    pub(super) const WASM_SCRATCH_BYTES: usize = 1024;
 
     /// Embed the Barretenberg WASM file
     #[derive(rust_embed::RustEmbed)]
