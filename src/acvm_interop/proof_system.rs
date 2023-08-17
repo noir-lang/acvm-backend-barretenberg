@@ -1,8 +1,15 @@
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::Path;
+
 use acvm::acir::circuit::Opcode;
 use acvm::acir::{circuit::Circuit, native_types::WitnessMap, BlackBoxFunc};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
+use tempfile::tempdir;
 
+use crate::barretenberg_shim::WriteVkCommand;
+use crate::FIELD_BYTES;
 use crate::{barretenberg_structures::Assignments, composer::Composer, BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
@@ -43,7 +50,7 @@ impl ProofSystemCompiler for Barretenberg {
             },
         }
     }
-
+    // TODO: This is being deprecated
     fn preprocess(
         &self,
         common_reference_string: &[u8],
@@ -63,13 +70,40 @@ impl ProofSystemCompiler for Barretenberg {
         common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
-        proving_key: &[u8],
+        proving_key: &[u8], // This is PreProcessedProgram
         _is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
-        let crs = common_reference_string.try_into()?;
-        let assignments = flatten_witness_map(circuit, witness_values);
+        let temp_directory = tempdir().expect("could not create a temporary directory");
 
-        Ok(self.create_proof_with_pk(&crs, &circuit.try_into()?, assignments, proving_key)?)
+        let temp_directory = temp_directory.path();
+
+        let serialized_witnesses: Vec<u8> = witness_values
+            .try_into()
+            .expect("could not serialize witness map");
+        let witness_path = temp_directory.join("witness").with_extension("tr");
+        write_to_file(&serialized_witnesses, &witness_path);
+
+        let circuit_path = temp_directory.join("circuit").with_extension("json");
+        write_to_file(&proving_key, &circuit_path);
+
+        let temp_dir_path = temp_directory.to_str().unwrap();
+
+        let proof_path = temp_directory.join("proof").with_extension("proof");
+        let pk = crate::barretenberg_shim::ProveCommand {
+            verbose: true,
+            path_to_crs: temp_dir_path.to_string(),
+            is_recursive: _is_recursive,
+            path_to_json_abi: circuit_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_proof_output: proof_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
+        };
+
+        pk.run().expect("prove command failed");
+        let proof_with_public_inputs =
+            read_bytes_from_file(&proof_path.as_os_str().to_str().unwrap()).unwrap();
+        let proof =
+            remove_public_inputs(circuit.public_inputs().0.len(), &proof_with_public_inputs);
+        Ok(proof)
     }
 
     fn verify_with_vk(
@@ -78,23 +112,49 @@ impl ProofSystemCompiler for Barretenberg {
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
-        verification_key: &[u8],
+        verification_key: &[u8], // This is PreProcessedProgram
         _is_recursive: bool,
     ) -> Result<bool, Self::Error> {
-        let crs = common_reference_string.try_into()?;
+        // let crs = common_reference_string.try_into()?;
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> =
             public_inputs.into_iter().map(|(_, el)| el).collect();
 
-        Ok(Composer::verify_with_vk(
-            self,
-            &crs,
-            &circuit.try_into()?,
-            proof,
-            flattened_public_inputs.into(),
-            verification_key,
-        )?)
+        let proof_with_public_inputs =
+            prepend_public_inputs(proof.to_vec(), flattened_public_inputs.to_vec());
+
+        let temp_directory = tempdir().expect("could not create a temporary directory");
+        let temp_directory = temp_directory.path();
+        let temp_dir_path = temp_directory.to_str().unwrap();
+
+        let proof_path = temp_directory.join("proof").with_extension("proof");
+        write_to_file(&proof_with_public_inputs, &proof_path);
+
+        let circuit_path = temp_directory.join("circuit").with_extension("json");
+        write_to_file(&verification_key, &circuit_path);
+
+        let vk_path = temp_directory.join("vk");
+
+        // Create the VK here
+        WriteVkCommand {
+            verbose: false,
+            path_to_crs: temp_dir_path.to_string(),
+            is_recursive: false,
+            path_to_json_abi: circuit_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_vk_output: vk_path.as_os_str().to_str().unwrap().to_string(),
+        }
+        .run()
+        .expect("write vk command failed");
+
+        Ok(crate::barretenberg_shim::VerifyCommand {
+            verbose: false,
+            path_to_crs: temp_dir_path.to_string(),
+            is_recursive: false,
+            path_to_proof: proof_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_vk: vk_path.as_os_str().to_str().unwrap().to_string(),
+        }
+        .run())
     }
 
     fn proof_as_fields(
@@ -130,4 +190,52 @@ fn flatten_witness_map(circuit: &Circuit, witness_values: WitnessMap) -> Assignm
         .collect();
 
     witness_assignments.into()
+}
+
+pub(super) fn write_to_file(bytes: &[u8], path: &Path) -> String {
+    let display = path.display();
+
+    let mut file = match File::create(path) {
+        Err(why) => panic!("couldn't create {display}: {why}"),
+        Ok(file) => file,
+    };
+
+    match file.write_all(bytes) {
+        Err(why) => panic!("couldn't write to {display}: {why}"),
+        Ok(_) => display.to_string(),
+    }
+}
+
+fn read_bytes_from_file(path: &str) -> std::io::Result<Vec<u8>> {
+    // Open the file for reading.
+    let mut file = File::open(path)?;
+
+    // Create a buffer to store the bytes.
+    let mut buffer = Vec::new();
+
+    // Read bytes from the file.
+    file.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
+}
+
+/// Removes the public inputs which are prepended to a proof by Barretenberg.
+fn remove_public_inputs(num_pub_inputs: usize, proof: &[u8]) -> Vec<u8> {
+    // Barretenberg prepends the public inputs onto the proof so we need to remove
+    // the first `num_pub_inputs` field elements.
+    let num_bytes_to_remove = num_pub_inputs * FIELD_BYTES;
+    proof[num_bytes_to_remove..].to_vec()
+}
+
+/// Prepends a set of public inputs to a proof.
+fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Vec<FieldElement>) -> Vec<u8> {
+    if public_inputs.is_empty() {
+        return proof;
+    }
+
+    let public_inputs_bytes = public_inputs
+        .into_iter()
+        .flat_map(|assignment| assignment.to_be_bytes());
+
+    public_inputs_bytes.chain(proof.into_iter()).collect()
 }
