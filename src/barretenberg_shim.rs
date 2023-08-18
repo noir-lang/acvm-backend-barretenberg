@@ -2,10 +2,7 @@
 
 use std::env;
 
-//
-// TODO: use an environment variable to set the path to the binary
-// TODO: this will be set by nargo
-//
+/// Returns the path to the binary that was set by the `NARGO_BINARIES_PATH` environment variable
 fn get_binary_path() -> String {
     // Get the NARGO_BINARIES_PATH environment variable
     if let Ok(bin_path) = env::var("NARGO_BINARIES_PATH") {
