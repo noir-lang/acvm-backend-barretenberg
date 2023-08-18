@@ -124,6 +124,8 @@ const FIELD_BYTES: usize = 32;
 #[derive(Debug)]
 pub struct Barretenberg {
     #[cfg(not(feature = "native"))]
+    store: std::cell::RefCell<wasmer::Store>,
+    #[cfg(not(feature = "native"))]
     memory: wasmer::Memory,
     #[cfg(not(feature = "native"))]
     instance: wasmer::Instance,
@@ -169,7 +171,12 @@ mod native {
 
 #[cfg(not(feature = "native"))]
 mod wasm {
-    use wasmer::{imports, Function, Instance, Memory, MemoryType, Module, Store, Value};
+    use std::cell::RefCell;
+
+    use wasmer::{
+        imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Module,
+        Store, Value, WasmPtr,
+    };
 
     use super::{Barretenberg, Error, FeatureError};
 
@@ -193,14 +200,13 @@ mod wasm {
 
     impl Barretenberg {
         pub(crate) fn new() -> Barretenberg {
-            let (instance, memory) = instance_load();
-            Barretenberg { memory, instance }
+            let (instance, memory, store) = instance_load();
+            Barretenberg {
+                memory,
+                instance,
+                store: RefCell::new(store),
+            }
         }
-    }
-
-    #[derive(wasmer::WasmerEnv, Clone)]
-    struct Env {
-        memory: Memory,
     }
 
     /// A wrapper around the arguments or return value from a WASM call.
@@ -285,26 +291,12 @@ mod wasm {
 
     impl Barretenberg {
         /// Transfer bytes to WASM heap
-        pub(super) fn transfer_to_heap(&self, arr: &[u8], offset: usize) {
+        pub(super) fn transfer_to_heap(&self, data: &[u8], offset: usize) {
             let memory = &self.memory;
+            let store = self.store.borrow();
+            let memory_view = memory.view(&store);
 
-            #[cfg(target_arch = "wasm32")]
-            {
-                let view = memory.uint8view();
-                for (byte_id, cell_id) in (offset..(offset + arr.len())).enumerate() {
-                    view.set_index(cell_id as u32, arr[byte_id])
-                }
-            }
-
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                for (byte_id, cell) in memory.uint8view()[offset..(offset + arr.len())]
-                    .iter()
-                    .enumerate()
-                {
-                    cell.set(arr[byte_id]);
-                }
-            }
+            memory_view.write(offset as u64, data).unwrap()
         }
 
         // TODO: Consider making this Result-returning
@@ -314,21 +306,16 @@ mod wasm {
                 .expect("Read memory should be of the specified length")
         }
 
-        pub(super) fn read_memory_variable_length(&self, start: usize, length: usize) -> Vec<u8> {
+        // TODO: Consider making this Result-returning
+        pub(super) fn read_memory_variable_length(&self, offset: usize, length: usize) -> Vec<u8> {
             let memory = &self.memory;
-            let end = start + length;
+            let store = &self.store.borrow();
+            let memory_view = memory.view(&store);
 
-            #[cfg(target_arch = "wasm32")]
-            return memory
-                .uint8view()
-                .subarray(start as u32, end as u32)
-                .to_vec();
+            let mut buf = vec![0; length];
 
-            #[cfg(not(target_arch = "wasm32"))]
-            return memory.view()[start..end]
-                .iter()
-                .map(|cell| cell.get())
-                .collect();
+            memory_view.read(offset as u64, &mut buf).unwrap();
+            buf
         }
 
         pub(super) fn get_pointer(&self, ptr_ptr: usize) -> usize {
@@ -358,12 +345,12 @@ mod wasm {
                     source,
                 }
             })?;
-            let boxed_value =
-                func.call(&args)
-                    .map_err(|source| FeatureError::FunctionCallFailed {
-                        name: name.to_string(),
-                        source,
-                    })?;
+            let boxed_value = func
+                .call(&mut self.store.borrow_mut(), &args)
+                .map_err(|source| FeatureError::FunctionCallFailed {
+                    name: name.to_string(),
+                    source,
+                })?;
             let option_value = boxed_value.first().cloned();
 
             Ok(WASMValue(option_value))
@@ -389,112 +376,90 @@ mod wasm {
         }
     }
 
-    fn load_module() -> (Module, Store) {
-        let store = Store::default();
+    fn instance_load() -> (Instance, Memory, Store) {
+        let mut store = Store::default();
 
-        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
-        (module, store)
-    }
+        let mem_type = MemoryType::new(23, None, false);
+        let memory = Memory::new(&mut store, mem_type).unwrap();
 
-    fn instance_load() -> (Instance, Memory) {
-        let (module, store) = load_module();
-
-        let mem_type = MemoryType::new(130, None, false);
-        let memory = Memory::new(&store, mem_type).unwrap();
-
+        let function_env = FunctionEnv::new(&mut store, memory.clone());
         let custom_imports = imports! {
             "env" => {
-                "logstr" => Function::new_native_with_env(
-                    &store,
-                    Env {
-                        memory: memory.clone(),
-                    },
+                "logstr" => Function::new_typed_with_env(
+                    &mut store,
+                    &function_env,
                     logstr,
                 ),
-                "set_data" => Function::new_native(&store, set_data),
-                "get_data" => Function::new_native(&store, get_data),
-                "env_load_verifier_crs" => Function::new_native(&store, env_load_verifier_crs),
-                "env_load_prover_crs" => Function::new_native(&store, env_load_prover_crs),
+                "set_data" => Function::new_typed(&mut store, set_data),
+                "get_data" => Function::new_typed(&mut store, get_data),
+                "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
+                "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
                 "memory" => memory.clone(),
             },
             "wasi_snapshot_preview1" => {
-                "fd_read" => Function::new_native(&store, fd_read),
-                "fd_close" => Function::new_native(&store, fd_close),
-                "proc_exit" =>  Function::new_native(&store, proc_exit),
-                "fd_fdstat_get" => Function::new_native(&store, fd_fdstat_get),
-                "random_get" => Function::new_native_with_env(
-                    &store,
-                    Env {
-                        memory: memory.clone(),
-                    },
+                "fd_read" => Function::new_typed(&mut store, fd_read),
+                "fd_close" => Function::new_typed(&mut store, fd_close),
+                "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
+                "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
+                "random_get" => Function::new_typed_with_env(
+                    &mut store,
+                    &function_env,
                     random_get
                 ),
-                "fd_seek" => Function::new_native(&store, fd_seek),
-                "fd_write" => Function::new_native(&store, fd_write),
-                "environ_sizes_get" => Function::new_native(&store, environ_sizes_get),
-                "environ_get" => Function::new_native(&store, environ_get),
+                "fd_seek" => Function::new_typed(&mut store, fd_seek),
+                "fd_write" => Function::new_typed(&mut store, fd_write),
+                "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
+                "environ_get" => Function::new_typed(&mut store, environ_get),
+                "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
             },
         };
 
-        (Instance::new(&module, &custom_imports).unwrap(), memory)
+        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
+
+        (
+            Instance::new(&mut store, &module, &custom_imports).unwrap(),
+            memory,
+            store,
+        )
     }
 
-    fn logstr(env: &Env, ptr: i32) {
-        let mut ptr_end = 0;
-        let byte_view = env.memory.uint8view();
+    fn logstr(mut env: FunctionEnvMut<Memory>, ptr: i32) {
+        let (memory, store) = env.data_and_store_mut();
+        let memory_view = memory.view(&store);
 
-        #[cfg(target_arch = "wasm32")]
-        for (i, cell) in byte_view.to_vec()[ptr as usize..].iter().enumerate() {
-            if cell != &0_u8 {
-                ptr_end = i;
-            } else {
-                break;
-            }
-        }
+        let log_str_wasm_ptr: WasmPtr<u8, wasmer::Memory32> = WasmPtr::new(ptr as u32);
 
-        #[cfg(not(target_arch = "wasm32"))]
-        for (i, cell) in byte_view[ptr as usize..].iter().enumerate() {
-            if cell.get() != 0 {
-                ptr_end = i;
-            } else {
-                break;
-            }
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        let str_vec: Vec<_> =
-            byte_view.to_vec()[ptr as usize..=(ptr + ptr_end as i32) as usize].to_vec();
-
-        #[cfg(not(target_arch = "wasm32"))]
-        let str_vec: Vec<_> = byte_view[ptr as usize..=(ptr + ptr_end as i32) as usize]
-            .iter()
-            .cloned()
-            .map(|chr| chr.get())
-            .collect();
-
-        // Convert the subslice to a `&str`.
-        let string = std::str::from_utf8(&str_vec).unwrap();
-
-        // Print it!
-        println!("{string}");
+        match log_str_wasm_ptr.read_utf8_string_with_nul(&memory_view) {
+            Ok(log_string) => println!("{log_string}"),
+            Err(err) => println!("Error while reading log string from memory: {err}"),
+        };
     }
 
     // Based on https://github.com/wasmerio/wasmer/blob/2.3.0/lib/wasi/src/syscalls/mod.rs#L2537
-    fn random_get(env: &Env, buf: i32, buf_len: i32) -> i32 {
+    fn random_get(mut env: FunctionEnvMut<Memory>, buf_ptr: i32, buf_len: i32) -> i32 {
         let mut u8_buffer = vec![0; buf_len as usize];
         let res = getrandom::getrandom(&mut u8_buffer);
         match res {
             Ok(()) => {
-                unsafe {
-                    env.memory
-                        .uint8view()
-                        .subarray(buf as u32, buf as u32 + buf_len as u32)
-                        .copy_from(&u8_buffer);
+                let (memory, store) = env.data_and_store_mut();
+                let memory_view = memory.view(&store);
+                match memory_view.write(buf_ptr as u64, u8_buffer.as_mut_slice()) {
+                    Ok(_) => {
+                        0_i32 // __WASI_ESUCCESS
+                    }
+                    Err(_) => {
+                        29_i32 // __WASI_EIO
+                    }
                 }
-                0_i32 // __WASI_ESUCCESS
             }
-            Err(_) => 29_i32, // __WASI_EIO
+            Err(_) => {
+                29_i32 // __WASI_EIO
+            }
         }
+    }
+
+    fn clock_time_get(_: i32, _: i64, _: i32) -> i32 {
+        unimplemented!("clock_time_get is not implemented")
     }
 
     fn proc_exit(_: i32) {
