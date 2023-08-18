@@ -6,7 +6,7 @@ use std::env;
 fn get_binary_path() -> String {
     // Get the NARGO_BINARIES_PATH environment variable
     if let Ok(bin_path) = env::var("NARGO_BINARIES_PATH") {
-        return format!("{}", bin_path);
+        return bin_path;
     } else {
         // TODO: This will be done once and for all in Nargo in the future; when Nargo gets installed
         unreachable!("`NARGO_BINARIES_PATH` environment variable not set. Please run the bash script to download the binaries and set the path variable");
