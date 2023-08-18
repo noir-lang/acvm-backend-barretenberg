@@ -93,7 +93,7 @@ impl ProofSystemCompiler for Barretenberg {
         // TODO as the proving key for now.
         // TODO: This is the same for the verification procedure.
         let circuit_path = temp_directory.join("circuit").with_extension("json");
-        write_to_file(&proving_key, &circuit_path);
+        write_to_file(proving_key, &circuit_path);
 
         // Create proof and store it in the specified path
         let proof_path = temp_directory.join("proof").with_extension("proof");
@@ -159,7 +159,7 @@ impl ProofSystemCompiler for Barretenberg {
         // TODO: Callers of this method should pass the serialized preprocessProgram to
         // TODO as the verification key for now
         let circuit_path = temp_directory.join("circuit").with_extension("json");
-        write_to_file(&verification_key, &circuit_path);
+        write_to_file(verification_key, &circuit_path);
 
         // Create the verification key and write it to the specified path
         let vk_path = temp_directory.join("vk");
