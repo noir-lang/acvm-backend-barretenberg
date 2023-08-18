@@ -70,35 +70,51 @@ impl ProofSystemCompiler for Barretenberg {
         common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
-        proving_key: &[u8], // This is PreProcessedProgram
+        proving_key: &[u8], // This is PreProcessedProgram.
         _is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
-
         let temp_directory = temp_directory.path();
+        let temp_dir_path_str = temp_directory.to_str().unwrap();
 
+        // Create a temporary file for the witness
         let serialized_witnesses: Vec<u8> = witness_values
             .try_into()
             .expect("could not serialize witness map");
         let witness_path = temp_directory.join("witness").with_extension("tr");
         write_to_file(&serialized_witnesses, &witness_path);
 
+        // Create a temporary file for the circuit
+        //
+        // TODO: We are using the proving key here while the PR to change barretenberg
+        // TODO to accepting Circuits has not been merged.
+        //
+        // TODO: Callers of this method should pass the serialized preprocessProgram to
+        // TODO as the proving key for now.
+        // TODO: This is the same for the verification procedure.
         let circuit_path = temp_directory.join("circuit").with_extension("json");
         write_to_file(&proving_key, &circuit_path);
 
-        let temp_dir_path = temp_directory.to_str().unwrap();
-
+        // Create proof and store it in the specified path
         let proof_path = temp_directory.join("proof").with_extension("proof");
-        let pk = crate::barretenberg_shim::ProveCommand {
+        crate::barretenberg_shim::ProveCommand {
             verbose: true,
-            path_to_crs: temp_dir_path.to_string(),
+            path_to_crs: temp_dir_path_str.to_string(),
             is_recursive: _is_recursive,
             path_to_json_abi: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_proof_output: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
-        };
+        }
+        .run()
+        .expect("prove command failed");
 
-        pk.run().expect("prove command failed");
+        // Barretenberg return the proof prepended with the public inputs.
+        //
+        // This is not how the API expects the proof to be formatted,
+        // so we remove the public inputs from the proof.
+        //
+        // TODO: As noted in the verification procedure, this is an abstraction leak
+        // TODO: and will need modifications to barretenberg
         let proof_with_public_inputs =
             read_bytes_from_file(&proof_path.as_os_str().to_str().unwrap()).unwrap();
         let proof =
@@ -115,28 +131,38 @@ impl ProofSystemCompiler for Barretenberg {
         verification_key: &[u8], // This is PreProcessedProgram
         _is_recursive: bool,
     ) -> Result<bool, Self::Error> {
-        // let crs = common_reference_string.try_into()?;
+        let temp_directory = tempdir().expect("could not create a temporary directory");
+        let temp_directory = temp_directory.path();
+        let temp_dir_path = temp_directory.to_str().unwrap();
+
         // Unlike when proving, we omit any unassigned witnesses.
         // Witness values should be ordered by their index but we skip over any indices without an assignment.
         let flattened_public_inputs: Vec<FieldElement> =
             public_inputs.into_iter().map(|(_, el)| el).collect();
 
+        // Barretenberg expects the proof to be prepended with the public inputs.
+        //
+        // TODO: This is an abstraction leak and barretenberg's API should accept the public inputs
+        // TODO: separately and then prepend them internally
         let proof_with_public_inputs =
             prepend_public_inputs(proof.to_vec(), flattened_public_inputs.to_vec());
 
-        let temp_directory = tempdir().expect("could not create a temporary directory");
-        let temp_directory = temp_directory.path();
-        let temp_dir_path = temp_directory.to_str().unwrap();
-
+        // Create a temporary file for the proof
         let proof_path = temp_directory.join("proof").with_extension("proof");
         write_to_file(&proof_with_public_inputs, &proof_path);
 
+        // Create a temporary file for the circuit
+        //
+        // TODO: We are using the verification key here while the PR to change barretenberg
+        // TODO to accepting Circuits has not been merged.
+        //
+        // TODO: Callers of this method should pass the serialized preprocessProgram to
+        // TODO as the verification key for now
         let circuit_path = temp_directory.join("circuit").with_extension("json");
         write_to_file(&verification_key, &circuit_path);
 
+        // Create the verification key and write it to the specified path
         let vk_path = temp_directory.join("vk");
-
-        // Create the VK here
         WriteVkCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
@@ -147,10 +173,11 @@ impl ProofSystemCompiler for Barretenberg {
         .run()
         .expect("write vk command failed");
 
+        // Verify the proof
         Ok(crate::barretenberg_shim::VerifyCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
-            is_recursive: false,
+            is_recursive: _is_recursive,
             path_to_proof: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_vk: vk_path.as_os_str().to_str().unwrap().to_string(),
         }
