@@ -13,6 +13,10 @@ fn get_binary_path() -> String {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("Error communicating with barretenberg binary")]
+pub struct CliShimError;
+
 pub struct VerifyCommand {
     pub verbose: bool,
     pub path_to_crs: String,
@@ -56,7 +60,7 @@ struct ContractCommand {
 }
 
 impl ContractCommand {
-    pub fn run(self) -> Result<(), ()> {
+    fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -68,6 +72,8 @@ impl ContractCommand {
             .arg("-o")
             .arg(self.path_to_contract_output);
 
+        println!("{:?}", command);
+
         if self.verbose {
             command.arg("-v");
         }
@@ -78,7 +84,7 @@ impl ContractCommand {
         if output.status.success() {
             Ok(())
         } else {
-            Err(())
+            Err(CliShimError)
         }
     }
 }
@@ -92,7 +98,7 @@ pub struct WriteVkCommand {
 }
 
 impl WriteVkCommand {
-    pub fn run(self) -> Result<(), ()> {
+    pub fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -116,7 +122,7 @@ impl WriteVkCommand {
         if output.status.success() {
             Ok(())
         } else {
-            Err(())
+            Err(CliShimError)
         }
     }
 }
@@ -130,7 +136,7 @@ pub struct ProveCommand {
 }
 
 impl ProveCommand {
-    pub fn run(self) -> Result<(), ()> {
+    pub fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -151,12 +157,14 @@ impl ProveCommand {
             command.arg("-r");
         }
 
+        println!("{:?}", command.output());
+
         let output = command.output().expect("Failed to execute command");
 
         if output.status.success() {
             Ok(())
         } else {
-            Err(())
+            Err(CliShimError)
         }
     }
 }
@@ -170,7 +178,7 @@ struct ProveAndVerifyCommand {
 }
 
 impl ProveAndVerifyCommand {
-    pub fn run(self) -> bool {
+    fn run(self) -> bool {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -201,7 +209,7 @@ struct GatesCommand {
 }
 
 impl GatesCommand {
-    pub fn run(self) -> String {
+    fn run(self) -> String {
         let output = std::process::Command::new(get_binary_path())
             .arg("gates")
             .arg("-j")
@@ -250,7 +258,7 @@ fn prove_command() {
     let path_to_1_mul = "./src/1_mul.json";
     let path_to_1_mul_witness = "./src/witness.tr";
     let path_to_crs = "./src/crs";
-    let path_to_proof_output = "./src/proofs/proof1";
+    let path_to_proof_output = "./src/proof1";
     let prove_command = ProveCommand {
         verbose: true,
         path_to_crs: path_to_crs.to_string(),
@@ -298,7 +306,7 @@ fn contract_command() {
 
     assert!(write_vk_command.run().is_ok());
 
-    let path_to_contract_output = "./src/contracts/contract.sol";
+    let path_to_contract_output = "./src/contract.sol";
     let contract_command = ContractCommand {
         verbose: true,
         path_to_vk: path_to_vk_output.to_string(),
