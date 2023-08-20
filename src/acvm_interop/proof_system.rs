@@ -10,7 +10,7 @@ use tempfile::tempdir;
 
 use crate::barretenberg_shim::WriteVkCommand;
 use crate::FIELD_BYTES;
-use crate::{barretenberg_structures::Assignments, composer::Composer, BackendError, Barretenberg};
+use crate::{composer::Composer, BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
@@ -87,7 +87,7 @@ impl ProofSystemCompiler for Barretenberg {
         // Create a temporary file for the circuit
         //
         let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
-        let serialized_circuit = serialize_circuit(&circuit);
+        let serialized_circuit = serialize_circuit(circuit);
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create proof and store it in the specified path
@@ -111,7 +111,7 @@ impl ProofSystemCompiler for Barretenberg {
         // TODO: As noted in the verification procedure, this is an abstraction leak
         // TODO: and will need modifications to barretenberg
         let proof_with_public_inputs =
-            read_bytes_from_file(&proof_path.as_os_str().to_str().unwrap()).unwrap();
+            read_bytes_from_file(proof_path.as_os_str().to_str().unwrap()).unwrap();
         let proof =
             remove_public_inputs(circuit.public_inputs().0.len(), &proof_with_public_inputs);
         Ok(proof)
@@ -148,7 +148,7 @@ impl ProofSystemCompiler for Barretenberg {
 
         // Create a temporary file for the circuit
         let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
-        let serialized_circuit = serialize_circuit(&circuit);
+        let serialized_circuit = serialize_circuit(circuit);
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create the verification key and write it to the specified path
@@ -241,10 +241,9 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Vec<FieldElement>) -> Ve
 
 // TODO: See nargo/src/artifacts/mod.rs
 // TODO: This method should live in ACVM and be the default method for serializing/deserializing circuits
-use base64::Engine;
 fn serialize_circuit(circuit: &Circuit) -> String {
+    use base64::Engine;
     let mut circuit_bytes: Vec<u8> = Vec::new();
     circuit.write(&mut circuit_bytes).unwrap();
-    let encoded_b64 = base64::engine::general_purpose::STANDARD.encode(circuit_bytes);
-    return encoded_b64;
+    base64::engine::general_purpose::STANDARD.encode(circuit_bytes)
 }
