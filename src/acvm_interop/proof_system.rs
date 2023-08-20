@@ -217,7 +217,7 @@ pub(super) fn write_to_file(bytes: &[u8], path: &Path) -> String {
     }
 }
 
-fn read_bytes_from_file(path: &str) -> std::io::Result<Vec<u8>> {
+pub(super) fn read_bytes_from_file(path: &str) -> std::io::Result<Vec<u8>> {
     // Open the file for reading.
     let mut file = File::open(path)?;
 
@@ -253,7 +253,7 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Vec<FieldElement>) -> Ve
 
 // TODO: See nargo/src/artifacts/mod.rs
 // TODO: This method should live in ACVM and be the default method for serializing/deserializing circuits
-fn serialize_circuit(circuit: &Circuit) -> String {
+pub(super) fn serialize_circuit(circuit: &Circuit) -> String {
     use base64::Engine;
     let mut circuit_bytes: Vec<u8> = Vec::new();
     circuit.write(&mut circuit_bytes).unwrap();
