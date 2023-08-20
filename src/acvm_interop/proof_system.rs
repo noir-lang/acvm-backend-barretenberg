@@ -8,7 +8,7 @@ use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
-use crate::barretenberg_shim::WriteVkCommand;
+use crate::barretenberg_shim::{GatesCommand, WriteVkCommand};
 use crate::FIELD_BYTES;
 use crate::{composer::Composer, BackendError, Barretenberg};
 
@@ -20,10 +20,22 @@ impl ProofSystemCompiler for Barretenberg {
     }
 
     fn get_exact_circuit_size(&self, circuit: &Circuit) -> Result<u32, Self::Error> {
-        Ok(Composer::get_exact_circuit_size(
-            self,
-            &circuit.try_into()?,
-        )?)
+        let temp_directory = tempdir().expect("could not create a temporary directory");
+        let temp_directory = temp_directory.path();
+        let temp_dir_path_str = temp_directory.to_str().unwrap();
+
+        // Create a temporary file for the circuit
+        //
+        let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
+        let serialized_circuit = serialize_circuit(circuit);
+        write_to_file(serialized_circuit.as_bytes(), &circuit_path);
+
+        let number_of_gates_needed = GatesCommand {
+            path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
+        }
+        .run();
+
+        Ok(number_of_gates_needed)
     }
 
     fn supports_opcode(&self, opcode: &Opcode) -> bool {
