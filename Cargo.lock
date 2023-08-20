@@ -53,6 +53,7 @@ version = "0.10.0"
 dependencies = [
  "acvm",
  "barretenberg-sys",
+ "base64",
  "bincode",
  "bytesize",
  "getrandom",
@@ -61,7 +62,6 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde-big-array",
- "serde_json",
  "tempfile",
  "thiserror",
  "tokio",
