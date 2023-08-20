@@ -17,6 +17,8 @@ fn get_binary_path() -> String {
 #[error("Error communicating with barretenberg binary")]
 pub struct CliShimError;
 
+/// VerifyCommand will call the barretenberg binary
+/// to verify a proof
 pub struct VerifyCommand {
     pub verbose: bool,
     pub path_to_crs: String,
@@ -52,6 +54,13 @@ impl VerifyCommand {
     }
 }
 
+/// VerifyCommand will call the barretenberg binary
+/// to return a solidity library with the verification key
+/// that can be used to verify proofs on-chain.
+///
+/// This does not return a Solidity file that is able
+/// to verify a proof. See acvm_interop/contract.sol for the
+/// remaining logic that is missing.
 pub struct ContractCommand {
     pub verbose: bool,
     pub path_to_crs: String,
@@ -89,6 +98,8 @@ impl ContractCommand {
     }
 }
 
+/// WriteCommand will call the barretenberg binary
+/// to write a verification key to a file
 pub struct WriteVkCommand {
     pub verbose: bool,
     pub path_to_crs: String,
@@ -126,6 +137,14 @@ impl WriteVkCommand {
         }
     }
 }
+
+/// ProveCommand will call the barretenberg binary
+/// to create a proof, given the witness and the bytecode.
+///
+/// Note:Internally barretenberg will create and discard the
+/// proving key, so this is not returned.
+///
+/// The proof will be written to the specified output file.
 pub struct ProveCommand {
     pub verbose: bool,
     pub path_to_crs: String,
@@ -169,6 +188,11 @@ impl ProveCommand {
     }
 }
 
+/// ProveAndVerifyCommand will call the barretenberg binary
+/// to create a proof and then verify the proof once created.
+///
+/// Note: Functions like this are useful for testing. In a real workflow,
+/// ProveCommand and VerifyCommand will be used separately.
 struct ProveAndVerifyCommand {
     verbose: bool,
     path_to_crs: String,
@@ -204,6 +228,9 @@ impl ProveAndVerifyCommand {
     }
 }
 
+/// GatesCommand will call the barretenberg binary
+/// to return the number of gates needed to create a proof
+/// for the given bytecode.
 pub struct GatesCommand {
     pub path_to_bytecode: String,
 }
