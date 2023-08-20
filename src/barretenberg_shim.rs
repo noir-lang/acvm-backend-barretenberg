@@ -204,22 +204,25 @@ impl ProveAndVerifyCommand {
     }
 }
 
-struct GatesCommand {
-    path_to_bytecode: String,
+pub struct GatesCommand {
+    pub path_to_bytecode: String,
 }
 
 impl GatesCommand {
-    fn run(self) -> String {
+    pub fn run(self) -> u32 {
         let output = std::process::Command::new(get_binary_path())
             .arg("gates")
             .arg("-b")
             .arg(self.path_to_bytecode)
             .output()
             .expect("Failed to execute command");
+
         // Note: barretenberg includes the newline, so that subsequent prints to stdout
         // are not on the same line as the gates output.
         let number_gates_with_new_line: String = String::from_utf8_lossy(&output.stdout).into();
-        number_gates_with_new_line.trim().to_string()
+        let number_of_gates = number_gates_with_new_line.trim().to_string();
+
+        number_of_gates.parse::<u32>().unwrap()
     }
 }
 
@@ -231,7 +234,7 @@ fn gate_command() {
     };
 
     let output = gate_command.run();
-    assert_eq!(output, "2775");
+    assert_eq!(output, 2775);
 }
 
 #[test]
