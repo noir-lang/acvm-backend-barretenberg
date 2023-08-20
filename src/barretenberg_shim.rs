@@ -52,15 +52,15 @@ impl VerifyCommand {
     }
 }
 
-struct ContractCommand {
-    verbose: bool,
-    path_to_crs: String,
-    path_to_vk: String,
-    path_to_contract_output: String,
+pub struct ContractCommand {
+    pub verbose: bool,
+    pub path_to_crs: String,
+    pub path_to_vk: String,
+    pub path_to_contract_output: String,
 }
 
 impl ContractCommand {
-    fn run(self) -> Result<(), CliShimError> {
+    pub fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
