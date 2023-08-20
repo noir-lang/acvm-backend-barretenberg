@@ -70,7 +70,7 @@ impl ProofSystemCompiler for Barretenberg {
         _common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
-        proving_key: &[u8], // This is PreProcessedProgram.
+        _proving_key: &[u8],
         _is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
@@ -86,14 +86,9 @@ impl ProofSystemCompiler for Barretenberg {
 
         // Create a temporary file for the circuit
         //
-        // TODO: We are using the proving key here while the PR to change barretenberg
-        // TODO to accepting Circuits has not been merged.
-        //
-        // TODO: Callers of this method should pass the serialized preprocessProgram to
-        // TODO as the proving key for now.
-        // TODO: This is the same for the verification procedure.
-        let circuit_path = temp_directory.join("circuit").with_extension("json");
-        write_to_file(proving_key, &circuit_path);
+        let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
+        let serialized_circuit = serialize_circuit(&circuit);
+        write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create proof and store it in the specified path
         let proof_path = temp_directory.join("proof").with_extension("proof");
@@ -101,7 +96,7 @@ impl ProofSystemCompiler for Barretenberg {
             verbose: true,
             path_to_crs: temp_dir_path_str.to_string(),
             is_recursive: _is_recursive,
-            path_to_json_abi: circuit_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_proof_output: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
         }
@@ -127,8 +122,8 @@ impl ProofSystemCompiler for Barretenberg {
         _common_reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
-        _circuit: &Circuit,
-        verification_key: &[u8], // This is PreProcessedProgram
+        circuit: &Circuit,
+        _verification_key: &[u8],
         _is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
@@ -152,14 +147,9 @@ impl ProofSystemCompiler for Barretenberg {
         write_to_file(&proof_with_public_inputs, &proof_path);
 
         // Create a temporary file for the circuit
-        //
-        // TODO: We are using the verification key here while the PR to change barretenberg
-        // TODO to accepting Circuits has not been merged.
-        //
-        // TODO: Callers of this method should pass the serialized preprocessProgram to
-        // TODO as the verification key for now
-        let circuit_path = temp_directory.join("circuit").with_extension("json");
-        write_to_file(verification_key, &circuit_path);
+        let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
+        let serialized_circuit = serialize_circuit(&circuit);
+        write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create the verification key and write it to the specified path
         let vk_path = temp_directory.join("vk");
@@ -167,7 +157,7 @@ impl ProofSystemCompiler for Barretenberg {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
             is_recursive: false,
-            path_to_json_abi: circuit_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_vk_output: vk_path.as_os_str().to_str().unwrap().to_string(),
         }
         .run()
@@ -247,4 +237,14 @@ fn prepend_public_inputs(proof: Vec<u8>, public_inputs: Vec<FieldElement>) -> Ve
         .flat_map(|assignment| assignment.to_be_bytes());
 
     public_inputs_bytes.chain(proof.into_iter()).collect()
+}
+
+// TODO: See nargo/src/artifacts/mod.rs
+// TODO: This method should live in ACVM and be the default method for serializing/deserializing circuits
+use base64::Engine;
+fn serialize_circuit(circuit: &Circuit) -> String {
+    let mut circuit_bytes: Vec<u8> = Vec::new();
+    circuit.write(&mut circuit_bytes).unwrap();
+    let encoded_b64 = base64::engine::general_purpose::STANDARD.encode(circuit_bytes);
+    return encoded_b64;
 }
