@@ -1,6 +1,10 @@
+use super::proof_system::{read_bytes_from_file, serialize_circuit, write_to_file};
+use crate::{
+    barretenberg_shim::{ContractCommand, WriteVkCommand},
+    BackendError, Barretenberg,
+};
 use acvm::{acir::circuit::Circuit, SmartContract};
-
-use crate::{crs::CRS, BackendError, Barretenberg};
+use tempfile::tempdir;
 
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
@@ -11,29 +15,44 @@ impl SmartContract for Barretenberg {
 
     fn eth_contract_from_vk(
         &self,
-        common_reference_string: &[u8],
-        _circuit: &Circuit,
-        verification_key: &[u8],
+        _common_reference_string: &[u8],
+        circuit: &Circuit,
+        _verification_key: &[u8],
     ) -> Result<String, Self::Error> {
-        use std::slice;
+        let temp_directory = tempdir().expect("could not create a temporary directory");
+        let temp_directory = temp_directory.path();
+        let temp_dir_path = temp_directory.to_str().unwrap();
 
-        let CRS { g2_data, .. } = common_reference_string.try_into()?;
+        // Create a temporary file for the circuit
+        let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
+        let serialized_circuit = serialize_circuit(circuit);
+        write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
-        let mut contract_ptr: *mut u8 = std::ptr::null_mut();
-        let p_contract_ptr = &mut contract_ptr as *mut *mut u8;
-        let verification_key = verification_key.to_vec();
-        let sc_as_bytes;
-        let contract_size;
-        unsafe {
-            contract_size = barretenberg_sys::composer::get_solidity_verifier(
-                &g2_data,
-                &verification_key,
-                p_contract_ptr,
-            );
-            sc_as_bytes = slice::from_raw_parts(contract_ptr, contract_size)
-        };
+        // Create the verification key and write it to the specified path
+        let vk_path = temp_directory.join("vk");
+        WriteVkCommand {
+            verbose: false,
+            path_to_crs: temp_dir_path.to_string(),
+            is_recursive: false,
+            path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_vk_output: vk_path.as_os_str().to_str().unwrap().to_string(),
+        }
+        .run()
+        .expect("write vk command failed");
 
-        let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
+        let contract_path = temp_directory.join("contract.sol");
+        ContractCommand {
+            verbose: false,
+            path_to_crs: temp_dir_path.to_string(),
+            path_to_vk: vk_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_contract_output: contract_path.as_os_str().to_str().unwrap().to_string(),
+        }
+        .run()
+        .expect("contract command failed");
+
+        let smart_contract =
+            read_bytes_from_file(contract_path.as_os_str().to_str().unwrap()).unwrap();
+        let verification_key_library = String::from_utf8(smart_contract).unwrap();
         Ok(format!(
             "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
         ))
