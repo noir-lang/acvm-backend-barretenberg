@@ -85,7 +85,7 @@ impl ProofSystemCompiler for Barretenberg {
         circuit: &Circuit,
         witness_values: WitnessMap,
         _proving_key: &[u8],
-        _is_recursive: bool,
+        is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
         let temp_directory = temp_directory.path();
@@ -109,7 +109,7 @@ impl ProofSystemCompiler for Barretenberg {
         crate::barretenberg_shim::ProveCommand {
             verbose: true,
             path_to_crs: temp_dir_path_str.to_string(),
-            is_recursive: _is_recursive,
+            is_recursive,
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_proof_output: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
@@ -138,7 +138,7 @@ impl ProofSystemCompiler for Barretenberg {
         public_inputs: WitnessMap,
         circuit: &Circuit,
         _verification_key: &[u8],
-        _is_recursive: bool,
+        is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
         let temp_directory = temp_directory.path();
@@ -170,7 +170,7 @@ impl ProofSystemCompiler for Barretenberg {
         WriteVkCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
-            is_recursive: false,
+            is_recursive,
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_vk_output: vk_path.as_os_str().to_str().unwrap().to_string(),
         }
@@ -181,7 +181,7 @@ impl ProofSystemCompiler for Barretenberg {
         Ok(crate::barretenberg_shim::VerifyCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
-            is_recursive: _is_recursive,
+            is_recursive,
             path_to_proof: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_vk: vk_path.as_os_str().to_str().unwrap().to_string(),
         }
