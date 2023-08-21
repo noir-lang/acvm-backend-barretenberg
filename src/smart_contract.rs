@@ -105,8 +105,8 @@ mod tests {
 
     #[test]
     async fn test_smart_contract() -> Result<(), BackendError> {
+        use crate::barretenberg::composer::Composer;
         use crate::barretenberg_structures::{Constraint, ConstraintSystem};
-        use crate::composer::Composer;
         use crate::Barretenberg;
         use acvm::FieldElement;
 

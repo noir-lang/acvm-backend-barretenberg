@@ -8,9 +8,10 @@ use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
+use crate::barretenberg::composer::Composer;
+use crate::barretenberg::FIELD_BYTES;
 use crate::barretenberg_shim::{GatesCommand, WriteVkCommand};
-use crate::FIELD_BYTES;
-use crate::{composer::Composer, BackendError, Barretenberg};
+use crate::{BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
@@ -31,6 +32,7 @@ impl ProofSystemCompiler for Barretenberg {
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         let number_of_gates_needed = GatesCommand {
+            path_to_crs: temp_dir_path_str.to_string(),
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
         }
         .run();

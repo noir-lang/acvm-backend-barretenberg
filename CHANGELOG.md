@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.11.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.10.1...v0.11.0) (2023-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Update `acvm` to 0.22.0 ([#240](https://github.com/noir-lang/acvm-backend-barretenberg/issues/240))
+
+### Features
+
+* Update `acvm` to 0.22.0 ([#240](https://github.com/noir-lang/acvm-backend-barretenberg/issues/240)) ([d8342fd](https://github.com/noir-lang/acvm-backend-barretenberg/commit/d8342fd6da605ac3bbd889edf89cd122bc4689ce))
+
+## [0.10.1](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.10.0...v0.10.1) (2023-08-18)
+
+
+### Features
+
+* Migrate to `wasmer` 3.3.0 ([#236](https://github.com/noir-lang/acvm-backend-barretenberg/issues/236)) ([e115e38](https://github.com/noir-lang/acvm-backend-barretenberg/commit/e115e38856887c6b1eeead3534534ac7e6327ea9))
+
 ## [0.10.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.9.1...v0.10.0) (2023-07-26)
 
 

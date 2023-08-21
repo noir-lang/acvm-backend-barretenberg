@@ -3,7 +3,8 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
 
-use crate::{CRSError, Error};
+use super::CRSError;
+use crate::Error;
 
 // TODO(#175): Use manifest parsing in BB instead of hardcoding these
 const G1_START: usize = 28;
@@ -38,7 +39,7 @@ impl CRS {
             self.num_points = num_points;
         }
 
-        Ok(())
+        Ok::<(), Error>(())
     }
 }
 
@@ -126,7 +127,7 @@ pub(crate) async fn download_crs(num_points: usize) -> Result<CRS, Error> {
     let g1_data = download(G1_START, g1_end).await?;
     let g2_data = download(G2_START, G2_END).await?;
 
-    Ok(CRS {
+    Ok::<CRS, Error>(CRS {
         g1_data,
         g2_data,
         num_points,
@@ -137,7 +138,8 @@ pub(crate) async fn download_crs(num_points: usize) -> Result<CRS, Error> {
 mod tests {
     use tokio::test;
 
-    use crate::{crs::download_crs, Error};
+    use super::download_crs;
+    use crate::Error;
 
     #[test]
     async fn does_not_panic() -> Result<(), Error> {
