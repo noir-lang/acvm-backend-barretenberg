@@ -6,6 +6,9 @@ use crate::{
 use acvm::{acir::circuit::Circuit, SmartContract};
 use tempfile::tempdir;
 
+/// Embed the Solidity verifier file
+const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
+
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
