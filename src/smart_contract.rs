@@ -6,10 +6,6 @@ use crate::{
 use acvm::{acir::circuit::Circuit, SmartContract};
 use tempfile::tempdir;
 
-/// Embed the Solidity verifier file
-const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
-
-#[cfg(feature = "native")]
 impl SmartContract for Barretenberg {
     type Error = BackendError;
 
@@ -53,43 +49,6 @@ impl SmartContract for Barretenberg {
         let smart_contract =
             read_bytes_from_file(contract_path.as_os_str().to_str().unwrap()).unwrap();
         let verification_key_library = String::from_utf8(smart_contract).unwrap();
-        Ok(format!(
-            "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
-        ))
-    }
-}
-
-#[cfg(not(feature = "native"))]
-impl SmartContract for Barretenberg {
-    type Error = BackendError;
-
-    fn eth_contract_from_vk(
-        &self,
-        common_reference_string: &[u8],
-        _circuit: &Circuit,
-        verification_key: &[u8],
-    ) -> Result<String, Self::Error> {
-        let CRS { g2_data, .. } = common_reference_string.try_into()?;
-
-        let g2_ptr = self.allocate(&g2_data)?;
-        let vk_ptr = self.allocate(verification_key)?;
-
-        // The smart contract string is not actually written to this pointer.
-        // `contract_ptr_ptr` is a pointer to a pointer which holds the smart contract string.
-        let contract_ptr_ptr: usize = 0;
-
-        let contract_size = self.call_multiple(
-            "acir_proofs_get_solidity_verifier",
-            vec![&g2_ptr, &vk_ptr, &contract_ptr_ptr.into()],
-        )?;
-
-        // We then need to read the pointer at `contract_ptr_ptr` to get the smart contract's location
-        // and then slice memory again at `contract_ptr_ptr` to get the smart contract string.
-        let contract_ptr = self.get_pointer(contract_ptr_ptr);
-
-        let sc_as_bytes = self.read_memory_variable_length(contract_ptr, contract_size.try_into()?);
-
-        let verification_key_library: String = sc_as_bytes.iter().map(|b| *b as char).collect();
         Ok(format!(
             "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
         ))
