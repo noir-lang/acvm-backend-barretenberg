@@ -4,7 +4,7 @@ pub(crate) struct Pippenger {
     #[cfg(feature = "native")]
     pippenger_ptr: *mut std::os::raw::c_void,
     #[cfg(not(feature = "native"))]
-    pippenger_ptr: crate::wasm::WASMValue,
+    pippenger_ptr: super::wasm::WASMValue,
 }
 
 #[cfg(feature = "native")]
@@ -16,7 +16,7 @@ impl Pippenger {
 
 #[cfg(not(feature = "native"))]
 impl Pippenger {
-    pub(crate) fn pointer(&self) -> crate::wasm::WASMValue {
+    pub(crate) fn pointer(&self) -> super::wasm::WASMValue {
         self.pippenger_ptr.clone()
     }
 }

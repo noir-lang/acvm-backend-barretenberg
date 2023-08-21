@@ -432,7 +432,7 @@ impl LogicConstraint {
 }
 
 #[derive(Clone, Hash, Debug, Default, Serialize, Deserialize)]
-pub struct ConstraintSystem {
+pub(super) struct ConstraintSystem {
     var_num: u32,
     public_inputs: Vec<u32>,
 
@@ -578,7 +578,7 @@ impl ConstraintSystem {
         self.public_inputs.len()
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
         let mut buffer: Vec<u8> = Vec::new();
 
         // Push lengths onto the buffer

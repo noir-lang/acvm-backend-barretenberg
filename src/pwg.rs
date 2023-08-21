@@ -1,9 +1,9 @@
 use acvm::acir::BlackBoxFunc;
 use acvm::{BlackBoxFunctionSolver, BlackBoxResolutionError, FieldElement};
 
-use crate::pedersen::Pedersen;
-use crate::scalar_mul::ScalarMul;
-use crate::schnorr::SchnorrSig;
+use crate::barretenberg::pedersen::Pedersen;
+use crate::barretenberg::scalar_mul::ScalarMul;
+use crate::barretenberg::schnorr::SchnorrSig;
 use crate::Barretenberg;
 
 impl BlackBoxFunctionSolver for Barretenberg {
