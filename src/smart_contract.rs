@@ -1,6 +1,6 @@
 use acvm::{acir::circuit::Circuit, SmartContract};
 
-use crate::{crs::CRS, BackendError, Barretenberg};
+use crate::{barretenberg::crs::CRS, BackendError, Barretenberg};
 
 /// Embed the Solidity verifier file
 const ULTRA_VERIFIER_CONTRACT: &str = include_str!("contract.sol");
@@ -86,8 +86,8 @@ mod tests {
 
     #[test]
     async fn test_smart_contract() -> Result<(), BackendError> {
+        use crate::barretenberg::composer::Composer;
         use crate::barretenberg_structures::{Constraint, ConstraintSystem};
-        use crate::composer::Composer;
         use crate::Barretenberg;
         use acvm::FieldElement;
 

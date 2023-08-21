@@ -3,7 +3,9 @@ use acvm::acir::{circuit::Circuit, native_types::WitnessMap, BlackBoxFunc};
 use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 
-use crate::{barretenberg_structures::Assignments, composer::Composer, BackendError, Barretenberg};
+use crate::barretenberg::composer::Composer;
+use crate::barretenberg_structures::Assignments;
+use crate::{BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
