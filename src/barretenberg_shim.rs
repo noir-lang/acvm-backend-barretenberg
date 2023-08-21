@@ -15,20 +15,20 @@ fn get_binary_path() -> String {
 
 #[derive(Debug, thiserror::Error)]
 #[error("Error communicating with barretenberg binary")]
-pub struct CliShimError;
+pub(crate) struct CliShimError;
 
 /// VerifyCommand will call the barretenberg binary
 /// to verify a proof
-pub struct VerifyCommand {
-    pub verbose: bool,
-    pub path_to_crs: String,
-    pub is_recursive: bool,
-    pub path_to_proof: String,
-    pub path_to_vk: String,
+pub(crate) struct VerifyCommand {
+    pub(crate) verbose: bool,
+    pub(crate) path_to_crs: String,
+    pub(crate) is_recursive: bool,
+    pub(crate) path_to_proof: String,
+    pub(crate) path_to_vk: String,
 }
 
 impl VerifyCommand {
-    pub fn run(self) -> bool {
+    pub(crate) fn run(self) -> bool {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -61,15 +61,15 @@ impl VerifyCommand {
 /// This does not return a Solidity file that is able
 /// to verify a proof. See acvm_interop/contract.sol for the
 /// remaining logic that is missing.
-pub struct ContractCommand {
-    pub verbose: bool,
-    pub path_to_crs: String,
-    pub path_to_vk: String,
-    pub path_to_contract_output: String,
+pub(crate) struct ContractCommand {
+    pub(crate) verbose: bool,
+    pub(crate) path_to_crs: String,
+    pub(crate) path_to_vk: String,
+    pub(crate) path_to_contract_output: String,
 }
 
 impl ContractCommand {
-    pub fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -100,16 +100,16 @@ impl ContractCommand {
 
 /// WriteCommand will call the barretenberg binary
 /// to write a verification key to a file
-pub struct WriteVkCommand {
-    pub verbose: bool,
-    pub path_to_crs: String,
-    pub is_recursive: bool,
-    pub path_to_bytecode: String,
-    pub path_to_vk_output: String,
+pub(crate) struct WriteVkCommand {
+    pub(crate) verbose: bool,
+    pub(crate) path_to_crs: String,
+    pub(crate) is_recursive: bool,
+    pub(crate) path_to_bytecode: String,
+    pub(crate) path_to_vk_output: String,
 }
 
 impl WriteVkCommand {
-    pub fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -145,17 +145,17 @@ impl WriteVkCommand {
 /// proving key, so this is not returned.
 ///
 /// The proof will be written to the specified output file.
-pub struct ProveCommand {
-    pub verbose: bool,
-    pub path_to_crs: String,
-    pub is_recursive: bool,
-    pub path_to_bytecode: String,
-    pub path_to_proof_output: String,
-    pub path_to_witness: String,
+pub(crate) struct ProveCommand {
+    pub(crate) verbose: bool,
+    pub(crate) path_to_crs: String,
+    pub(crate) is_recursive: bool,
+    pub(crate) path_to_bytecode: String,
+    pub(crate) path_to_proof_output: String,
+    pub(crate) path_to_witness: String,
 }
 
 impl ProveCommand {
-    pub fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         let mut command = std::process::Command::new(get_binary_path());
 
         command
@@ -193,6 +193,7 @@ impl ProveCommand {
 ///
 /// Note: Functions like this are useful for testing. In a real workflow,
 /// ProveCommand and VerifyCommand will be used separately.
+#[allow(dead_code)]
 struct ProveAndVerifyCommand {
     verbose: bool,
     path_to_crs: String,
@@ -201,6 +202,7 @@ struct ProveAndVerifyCommand {
     path_to_witness: String,
 }
 
+#[allow(dead_code)]
 impl ProveAndVerifyCommand {
     fn run(self) -> bool {
         let mut command = std::process::Command::new(get_binary_path());
@@ -231,13 +233,13 @@ impl ProveAndVerifyCommand {
 /// GatesCommand will call the barretenberg binary
 /// to return the number of gates needed to create a proof
 /// for the given bytecode.
-pub struct GatesCommand {
-    pub path_to_crs: String,
-    pub path_to_bytecode: String,
+pub(crate) struct GatesCommand {
+    pub(crate) path_to_crs: String,
+    pub(crate) path_to_bytecode: String,
 }
 
 impl GatesCommand {
-    pub fn run(self) -> u32 {
+    pub(crate) fn run(self) -> u32 {
         let output = std::process::Command::new(get_binary_path())
             .arg("gates")
             .arg("-c")
