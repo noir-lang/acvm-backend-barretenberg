@@ -190,7 +190,7 @@ mod wasm {
     /// Notice, `Option<Value>` is used because not every call returns a value,
     /// some calls are simply made to free a pointer or manipulate the heap.
     #[derive(Debug, Clone)]
-    pub(super) struct WASMValue(Option<Value>);
+    pub(crate) struct WASMValue(Option<Value>);
 
     impl From<usize> for WASMValue {
         fn from(value: usize) -> Self {
@@ -284,7 +284,7 @@ mod wasm {
         }
 
         // TODO: Consider making this Result-returning
-        pub(super) fn read_memory_variable_length(&self, offset: usize, length: usize) -> Vec<u8> {
+        pub(crate) fn read_memory_variable_length(&self, offset: usize, length: usize) -> Vec<u8> {
             let memory = &self.memory;
             let store = &self.store.borrow();
             let memory_view = memory.view(&store);
@@ -295,7 +295,7 @@ mod wasm {
             buf
         }
 
-        pub(super) fn get_pointer(&self, ptr_ptr: usize) -> usize {
+        pub(crate) fn get_pointer(&self, ptr_ptr: usize) -> usize {
             let ptr: [u8; POINTER_BYTES] = self.read_memory(ptr_ptr);
             u32::from_le_bytes(ptr) as usize
         }
@@ -304,7 +304,7 @@ mod wasm {
             self.call_multiple(name, vec![param])
         }
 
-        pub(super) fn call_multiple(
+        pub(crate) fn call_multiple(
             &self,
             name: &str,
             params: Vec<&WASMValue>,
@@ -334,7 +334,7 @@ mod wasm {
         }
 
         /// Creates a pointer and allocates the bytes that the pointer references to, to the heap
-        pub(super) fn allocate(&self, bytes: &[u8]) -> Result<WASMValue, Error> {
+        pub(crate) fn allocate(&self, bytes: &[u8]) -> Result<WASMValue, Error> {
             let ptr: i32 = self.call("bbmalloc", &bytes.len().into())?.try_into()?;
 
             let i32_bytes = ptr.to_be_bytes();
