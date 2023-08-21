@@ -232,6 +232,7 @@ impl ProveAndVerifyCommand {
 /// to return the number of gates needed to create a proof
 /// for the given bytecode.
 pub struct GatesCommand {
+    pub path_to_crs: String,
     pub path_to_bytecode: String,
 }
 
@@ -239,6 +240,8 @@ impl GatesCommand {
     pub fn run(self) -> u32 {
         let output = std::process::Command::new(get_binary_path())
             .arg("gates")
+            .arg("-c")
+            .arg(self.path_to_crs)
             .arg("-b")
             .arg(self.path_to_bytecode)
             .output()
@@ -256,7 +259,10 @@ impl GatesCommand {
 #[test]
 fn gate_command() {
     let path_to_1_mul = "./src/1_mul.bytecode";
+    let path_to_crs = "./src/crs";
+
     let gate_command = GatesCommand {
+        path_to_crs: path_to_crs.to_string(),
         path_to_bytecode: path_to_1_mul.to_string(),
     };
 

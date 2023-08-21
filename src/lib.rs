@@ -13,8 +13,7 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
-mod acvm_interop;
-pub mod barretenberg_shim;
+mod barretenberg_shim;
 mod barretenberg_structures;
 mod composer;
 mod crs;
