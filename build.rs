@@ -13,7 +13,7 @@ use std::io::Cursor;
 
 const USERNAME: &str = "AztecProtocol";
 const REPO: &str = "barretenberg";
-const VERSION: &str = "0.3.6";
+const VERSION: &str = "0.4.2";
 const TAG: &str = formatcp!("barretenberg-v{}", VERSION);
 const DEST_FOLDER: &str = ".nargo/backends/acvm-backend-barretenberg";
 const BINARY_NAME: &str = "backend_binary";
