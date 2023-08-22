@@ -16,6 +16,10 @@ pub(crate) use prove::ProveCommand;
 pub(crate) use verify::VerifyCommand;
 pub(crate) use write_vk::WriteVkCommand;
 
+#[derive(Debug, thiserror::Error)]
+#[error("Error communicating with barretenberg binary")]
+pub(crate) struct CliShimError;
+
 const USERNAME: &str = "AztecProtocol";
 const REPO: &str = "barretenberg";
 const VERSION: &str = "0.4.2";
@@ -39,33 +43,11 @@ fn get_binary_path() -> PathBuf {
 
 fn assert_binary_exists() {
     if !get_binary_path().exists() {
-        get_bb()
+        download_bb_binary()
     }
 }
 
-fn download_compressed_file() -> Cursor<Vec<u8>> {
-    let archive_name = match env!("TARGET_OS") {
-        "linux" => "bb-ubuntu.tar.gz",
-        "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
-        _ => panic!("Unsupported OS"),
-    };
-
-    try_download(&format!("{API_URL}/{archive_name}"))
-        .unwrap_or_else(|error| panic!("\n\nDownload error: {}\n\n", error))
-}
-
-/// Try to download the specified URL into a buffer which is returned.
-fn try_download(url: &str) -> Result<Cursor<Vec<u8>>, String> {
-    let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
-
-    let bytes = response.bytes().unwrap();
-
-    // TODO: Check SHA of downloaded binary
-
-    Ok(Cursor::new(bytes.to_vec()))
-}
-
-fn get_bb() {
+fn download_bb_binary() {
     use flate2::read::GzDecoder;
     use tar::Archive;
     use tempfile::tempdir;
@@ -74,7 +56,15 @@ fn get_bb() {
     std::fs::create_dir_all(DEST_FOLDER).unwrap();
 
     // Download sources
-    let compressed_file = download_compressed_file();
+
+    let archive_name = match env!("TARGET_OS") {
+        "linux" => "bb-ubuntu.tar.gz",
+        "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
+        _ => panic!("Unsupported OS"),
+    };
+
+    let compressed_file = download_binary_from_url(&format!("{API_URL}/{archive_name}"))
+        .unwrap_or_else(|error| panic!("\n\nDownload error: {}\n\n", error));
 
     // Unpack the tarball
     let gz_decoder = GzDecoder::new(compressed_file);
@@ -95,9 +85,16 @@ fn get_bb() {
     drop(temp_directory);
 }
 
-#[derive(Debug, thiserror::Error)]
-#[error("Error communicating with barretenberg binary")]
-pub(crate) struct CliShimError;
+/// Try to download the specified URL into a buffer which is returned.
+fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
+    let response = reqwest::blocking::get(url).map_err(|error| error.to_string())?;
+
+    let bytes = response.bytes().unwrap();
+
+    // TODO: Check SHA of downloaded binary
+
+    Ok(Cursor::new(bytes.to_vec()))
+}
 
 #[test]
 fn no_command_provided_works() {
