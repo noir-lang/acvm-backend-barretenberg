@@ -1313,7 +1313,7 @@ impl TryFrom<&Circuit> for ConstraintSystem {
                 Opcode::Directive(_) | Opcode::Brillig(_) => {
                     // Directives, Oracles and Brillig are only needed by the pwg
                 }
-                Opcode::MemoryOp { block_id, op } => {
+                Opcode::MemoryOp { block_id, op, predicate: _ } => {
                     let block = blocks
                         .get_mut(&block_id.0)
                         .expect("memory operation on an uninitialized block");

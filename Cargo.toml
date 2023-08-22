@@ -45,3 +45,6 @@ tokio = { version = "1.0", features = ["macros"] }
 default = ["native"]
 native = ["dep:barretenberg-sys"]
 wasm = ["dep:wasmer", "dep:rust-embed", "dep:getrandom"]
+
+[patch.crates-io]
+acvm = { git = "https://github.com/noir-lang/acvm.git", rev = "4b4e8a6a25b27e82bddbfe58caa3d421285b4a82" }
