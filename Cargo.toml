@@ -17,6 +17,7 @@ acvm = { version = "0.22.0", features = ["bn254"] }
 thiserror = "1.0.21"
 base64 = "0.21.2"
 
+dirs = "5.0.1"
 tempfile = "3.6.0"
 
 # Native
