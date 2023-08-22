@@ -14,7 +14,7 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
 mod barretenberg;
-mod barretenberg_shim;
+mod bb;
 mod common_reference_string;
 mod proof_system;
 mod pwg;

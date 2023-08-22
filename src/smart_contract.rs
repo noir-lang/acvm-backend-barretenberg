@@ -1,6 +1,6 @@
 use super::proof_system::{read_bytes_from_file, serialize_circuit, write_to_file};
 use crate::{
-    barretenberg_shim::{ContractCommand, WriteVkCommand},
+    bb::{ContractCommand, WriteVkCommand},
     BackendError, Barretenberg,
 };
 use acvm::{acir::circuit::Circuit, SmartContract};

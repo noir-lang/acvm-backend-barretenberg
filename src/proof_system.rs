@@ -9,7 +9,7 @@ use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
 use crate::barretenberg::FIELD_BYTES;
-use crate::barretenberg_shim::{GatesCommand, WriteVkCommand};
+use crate::bb::{GatesCommand, ProveCommand, VerifyCommand, WriteVkCommand};
 use crate::{BackendError, Barretenberg};
 
 impl ProofSystemCompiler for Barretenberg {
@@ -99,7 +99,7 @@ impl ProofSystemCompiler for Barretenberg {
 
         // Create proof and store it in the specified path
         let proof_path = temp_directory.join("proof").with_extension("proof");
-        crate::barretenberg_shim::ProveCommand {
+        ProveCommand {
             verbose: true,
             path_to_crs: temp_dir_path_str.to_string(),
             is_recursive,
@@ -171,7 +171,7 @@ impl ProofSystemCompiler for Barretenberg {
         .expect("write vk command failed");
 
         // Verify the proof
-        Ok(crate::barretenberg_shim::VerifyCommand {
+        Ok(VerifyCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
             is_recursive,
