@@ -1,4 +1,4 @@
-use super::proof_system::{read_bytes_from_file, serialize_circuit, write_to_file};
+use super::proof_system::{serialize_circuit, write_to_file};
 use crate::{
     bb::{ContractCommand, WriteVkCommand},
     BackendError, Barretenberg,
@@ -28,30 +28,26 @@ impl SmartContract for Barretenberg {
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create the verification key and write it to the specified path
-        let vk_path = temp_directory.join("vk");
+        let vk_path = temp_directory.join("vk").to_str().unwrap().to_string();
         WriteVkCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
             is_recursive: false,
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
-            path_to_vk_output: vk_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_vk_output: vk_path.clone(),
         }
         .run()
         .expect("write vk command failed");
 
-        let contract_path = temp_directory.join("contract.sol");
-        ContractCommand {
+        let verification_key_library = ContractCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
-            path_to_vk: vk_path.as_os_str().to_str().unwrap().to_string(),
-            path_to_contract_output: contract_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_vk: vk_path,
+            path_to_contract_output: "/dev/null".to_string(), // Contract is read from stdout
         }
         .run()
         .expect("contract command failed");
 
-        let smart_contract =
-            read_bytes_from_file(contract_path.as_os_str().to_str().unwrap()).unwrap();
-        let verification_key_library = String::from_utf8(smart_contract).unwrap();
         Ok(format!(
             "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
         ))

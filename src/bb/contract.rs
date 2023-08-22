@@ -15,7 +15,7 @@ pub(crate) struct ContractCommand {
 }
 
 impl ContractCommand {
-    pub(crate) fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<String, CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -34,7 +34,8 @@ impl ContractCommand {
 
         let output = command.output().expect("Failed to execute command");
         if output.status.success() {
-            Ok(())
+            let contract_string = String::from_utf8_lossy(&output.stdout).into();
+            Ok(contract_string)
         } else {
             Err(CliShimError)
         }
