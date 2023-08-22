@@ -342,7 +342,7 @@ fn contract_command() {
 
     assert!(write_vk_command.run().is_ok());
 
-    let path_to_contract_output = "./src/contract.sol";
+    let path_to_contract_output = "./src/plonk_vk.sol";
     let contract_command = ContractCommand {
         verbose: true,
         path_to_vk: path_to_vk_output.to_string(),
