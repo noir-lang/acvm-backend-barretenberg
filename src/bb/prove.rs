@@ -17,7 +17,7 @@ pub(crate) struct ProveCommand {
 }
 
 impl ProveCommand {
-    pub(crate) fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<Vec<u8>, CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -42,7 +42,7 @@ impl ProveCommand {
         let output = command.output().expect("Failed to execute command");
 
         if output.status.success() {
-            Ok(())
+            Ok(output.stdout)
         } else {
             Err(CliShimError)
         }

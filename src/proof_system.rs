@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Write;
 use std::path::Path;
 
 use acvm::acir::circuit::Opcode;
@@ -98,14 +98,13 @@ impl ProofSystemCompiler for Barretenberg {
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create proof and store it in the specified path
-        let proof_path = temp_directory.join("proof").with_extension("proof");
-        ProveCommand {
+        let proof_with_public_inputs = ProveCommand {
             verbose: true,
             path_to_crs: temp_dir_path_str.to_string(),
             is_recursive,
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
-            path_to_proof_output: proof_path.as_os_str().to_str().unwrap().to_string(),
             path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
+            path_to_proof_output: "/dev/null".to_string(), // Proof is read from stdout
         }
         .run()
         .expect("prove command failed");
@@ -117,8 +116,6 @@ impl ProofSystemCompiler for Barretenberg {
         //
         // TODO: As noted in the verification procedure, this is an abstraction leak
         // TODO: and will need modifications to barretenberg
-        let proof_with_public_inputs =
-            read_bytes_from_file(proof_path.as_os_str().to_str().unwrap()).unwrap();
         let proof =
             remove_public_inputs(circuit.public_inputs().0.len(), &proof_with_public_inputs);
         Ok(proof)
@@ -210,19 +207,6 @@ pub(super) fn write_to_file(bytes: &[u8], path: &Path) -> String {
         Err(why) => panic!("couldn't write to {display}: {why}"),
         Ok(_) => display.to_string(),
     }
-}
-
-pub(super) fn read_bytes_from_file(path: &str) -> std::io::Result<Vec<u8>> {
-    // Open the file for reading.
-    let mut file = File::open(path)?;
-
-    // Create a buffer to store the bytes.
-    let mut buffer = Vec::new();
-
-    // Read bytes from the file.
-    file.read_to_end(&mut buffer)?;
-
-    Ok(buffer)
 }
 
 /// Removes the public inputs which are prepended to a proof by Barretenberg.
