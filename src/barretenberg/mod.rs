@@ -10,14 +10,10 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
-pub(crate) mod composer;
-pub(crate) mod crs;
 pub(crate) mod pedersen;
-mod pippenger;
 pub(crate) mod scalar_mul;
 pub(crate) mod schnorr;
 
-use acvm::acir::BlackBoxFunc;
 use thiserror::Error;
 
 #[cfg(feature = "native")]
@@ -62,37 +58,11 @@ pub(super) enum FeatureError {
     InvalidBool,
 }
 
-#[derive(Debug, Error)]
-pub(super) enum CRSError {
-    #[error("Failed to deserialize CRS")]
-    Deserialize { source: Box<bincode::ErrorKind> },
-    #[error("Failed to serialize CRS")]
-    Serialize { source: Box<bincode::ErrorKind> },
-
-    #[error("Failed to build request '{url}' ({source})")]
-    Request { url: String, source: reqwest::Error },
-    #[error("Failed to GET from '{url}' ({source})")]
-    Fetch { url: String, source: reqwest::Error },
-    #[error("Failed to get content length from '{url}'")]
-    Length { url: String },
-    #[error("Error while downloading file")]
-    Download { source: reqwest::Error },
-}
-
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Error)]
 pub(super) enum Error {
-    #[error("The value {0} overflows in the pow2ceil function")]
-    Pow2CeilOverflow(u32),
-
-    #[error("Malformed Black Box Function: {0} - {1}")]
-    MalformedBlackBoxFunc(BlackBoxFunc, String),
-
     #[error(transparent)]
     FromFeature(#[from] FeatureError),
-
-    #[error(transparent)]
-    CRS(#[from] CRSError),
 }
 
 /// The number of bytes necessary to store a `FieldElement`.

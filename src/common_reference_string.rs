@@ -1,6 +1,6 @@
 use acvm::{acir::circuit::Circuit, async_trait, CommonReferenceString};
 
-use crate::{barretenberg::composer::Composer, BackendError, Barretenberg};
+use crate::{BackendError, Barretenberg};
 
 // TODO(#185): Ensure CRS download works in JS
 #[async_trait(?Send)]
@@ -9,26 +9,16 @@ impl CommonReferenceString for Barretenberg {
 
     async fn generate_common_reference_string(
         &self,
-        circuit: &Circuit,
+        _circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
-        let constraint_system = &circuit.try_into()?;
-        let common_reference_string = self.get_crs(constraint_system).await?.try_into()?;
-        // Separated to have nicer coercion on error types
-        Ok(common_reference_string)
+        unimplemented!("CRS handling is now left to the backend")
     }
 
     async fn update_common_reference_string(
         &self,
-        common_reference_string: Vec<u8>,
-        circuit: &Circuit,
+        _common_reference_string: Vec<u8>,
+        _circuit: &Circuit,
     ) -> Result<Vec<u8>, Self::Error> {
-        let mut crs = common_reference_string.try_into()?;
-        let constraint_system = &circuit.try_into()?;
-        let common_reference_string = self
-            .update_crs(&mut crs, constraint_system)
-            .await?
-            .try_into()?;
-        // Separated to have nicer coercion on error types
-        Ok(common_reference_string)
+        unimplemented!("CRS handling is now left to the backend")
     }
 }

@@ -15,14 +15,13 @@ compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
 mod barretenberg;
 mod barretenberg_shim;
-mod barretenberg_structures;
 mod common_reference_string;
 mod proof_system;
 mod pwg;
 mod smart_contract;
 
 pub use barretenberg::Barretenberg;
-use barretenberg::{CRSError, Error, FeatureError};
+use barretenberg::{Error, FeatureError};
 
 impl acvm::Backend for Barretenberg {}
 
@@ -32,12 +31,6 @@ pub struct BackendError(#[from] Error);
 
 impl From<FeatureError> for BackendError {
     fn from(value: FeatureError) -> Self {
-        value.into()
-    }
-}
-
-impl From<CRSError> for BackendError {
-    fn from(value: CRSError) -> Self {
         value.into()
     }
 }

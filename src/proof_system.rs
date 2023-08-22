@@ -8,7 +8,6 @@ use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
-use crate::barretenberg::composer::Composer;
 use crate::barretenberg::FIELD_BYTES;
 use crate::barretenberg_shim::{GatesCommand, WriteVkCommand};
 use crate::{BackendError, Barretenberg};
@@ -64,19 +63,13 @@ impl ProofSystemCompiler for Barretenberg {
             },
         }
     }
-    // TODO: This is being deprecated
+
     fn preprocess(
         &self,
-        common_reference_string: &[u8],
-        circuit: &Circuit,
+        _common_reference_string: &[u8],
+        _circuit: &Circuit,
     ) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
-        let crs = common_reference_string.try_into()?;
-        let constraint_system = &circuit.try_into()?;
-
-        let proving_key = self.compute_proving_key(constraint_system)?;
-        let verification_key = self.compute_verification_key(&crs, &proving_key)?;
-
-        Ok((proving_key, verification_key))
+        unimplemented!("Key generation is now left to the backend.")
     }
 
     fn prove_with_pk(
