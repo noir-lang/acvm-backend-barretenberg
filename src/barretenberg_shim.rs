@@ -48,8 +48,6 @@ impl VerifyCommand {
         }
 
         let output = command.output().expect("Failed to execute command");
-        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
         output.status.success()
     }
 }
@@ -81,15 +79,11 @@ impl ContractCommand {
             .arg("-o")
             .arg(self.path_to_contract_output);
 
-        println!("{:?}", command);
-
         if self.verbose {
             command.arg("-v");
         }
 
         let output = command.output().expect("Failed to execute command");
-        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
-        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
         if output.status.success() {
             Ok(())
         } else {
@@ -175,8 +169,6 @@ impl ProveCommand {
         if self.is_recursive {
             command.arg("-r");
         }
-
-        println!("{:?}", command.output());
 
         let output = command.output().expect("Failed to execute command");
 
