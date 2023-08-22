@@ -1,4 +1,4 @@
-use super::{get_binary_path, CliShimError};
+use super::{assert_binary_exists, get_binary_path, CliShimError};
 
 /// WriteCommand will call the barretenberg binary
 /// to write a verification key to a file
@@ -12,6 +12,7 @@ pub(crate) struct WriteVkCommand {
 
 impl WriteVkCommand {
     pub(crate) fn run(self) -> Result<(), CliShimError> {
+        assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
         command

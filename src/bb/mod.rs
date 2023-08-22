@@ -22,6 +22,12 @@ fn get_binary_path() -> PathBuf {
         .join(".nargo/backends/acvm-backend-barretenberg/backend_binary")
 }
 
+fn assert_binary_exists() {
+    if !get_binary_path().exists() {
+        panic!("Barretenberg binary isn't installed")
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 #[error("Error communicating with barretenberg binary")]
 pub(crate) struct CliShimError;

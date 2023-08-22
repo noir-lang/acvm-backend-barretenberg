@@ -1,4 +1,4 @@
-use super::get_binary_path;
+use super::{assert_binary_exists, get_binary_path};
 
 /// ProveAndVerifyCommand will call the barretenberg binary
 /// to create a proof and then verify the proof once created.
@@ -17,6 +17,7 @@ struct ProveAndVerifyCommand {
 #[allow(dead_code)]
 impl ProveAndVerifyCommand {
     fn run(self) -> bool {
+        assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
         command

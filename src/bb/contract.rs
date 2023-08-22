@@ -1,4 +1,4 @@
-use super::{get_binary_path, CliShimError};
+use super::{assert_binary_exists, get_binary_path, CliShimError};
 
 /// VerifyCommand will call the barretenberg binary
 /// to return a solidity library with the verification key
@@ -16,6 +16,7 @@ pub(crate) struct ContractCommand {
 
 impl ContractCommand {
     pub(crate) fn run(self) -> Result<(), CliShimError> {
+        assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
         command

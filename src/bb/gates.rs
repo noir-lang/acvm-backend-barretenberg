@@ -1,4 +1,4 @@
-use super::get_binary_path;
+use super::{assert_binary_exists, get_binary_path};
 
 /// GatesCommand will call the barretenberg binary
 /// to return the number of gates needed to create a proof
@@ -10,6 +10,7 @@ pub(crate) struct GatesCommand {
 
 impl GatesCommand {
     pub(crate) fn run(self) -> u32 {
+        assert_binary_exists();
         let output = std::process::Command::new(get_binary_path())
             .arg("gates")
             .arg("-c")

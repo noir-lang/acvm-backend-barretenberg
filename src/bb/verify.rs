@@ -1,4 +1,4 @@
-use super::get_binary_path;
+use super::{assert_binary_exists, get_binary_path};
 
 /// VerifyCommand will call the barretenberg binary
 /// to verify a proof
@@ -12,6 +12,7 @@ pub(crate) struct VerifyCommand {
 
 impl VerifyCommand {
     pub(crate) fn run(self) -> bool {
+        assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
         command
