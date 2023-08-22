@@ -24,7 +24,7 @@ const DEST_FOLDER: &str = ".nargo/backends/acvm-backend-barretenberg";
 const BINARY_NAME: &str = "backend_binary";
 
 const API_URL: &str = formatcp!(
-    "https://github.com/{}/{}/releases/download/{}/",
+    "https://github.com/{}/{}/releases/download/{}",
     USERNAME,
     REPO,
     TAG
