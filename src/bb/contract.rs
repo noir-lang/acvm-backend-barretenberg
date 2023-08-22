@@ -46,7 +46,7 @@ fn contract_command() {
     let path_to_vk_output = "./src/vk1";
     let path_to_crs = "./src/crs";
 
-    let write_vk_command = WriteVkCommand {
+    let write_vk_command = super::WriteVkCommand {
         verbose: true,
         path_to_bytecode: path_to_1_mul.to_string(),
         path_to_vk_output: path_to_vk_output.to_string(),
