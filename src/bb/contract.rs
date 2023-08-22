@@ -11,7 +11,6 @@ pub(crate) struct ContractCommand {
     pub(crate) verbose: bool,
     pub(crate) path_to_crs: String,
     pub(crate) path_to_vk: String,
-    pub(crate) path_to_contract_output: String,
 }
 
 impl ContractCommand {
@@ -26,7 +25,7 @@ impl ContractCommand {
             .arg("-k")
             .arg(self.path_to_vk)
             .arg("-o")
-            .arg(self.path_to_contract_output);
+            .arg("/dev/null");
 
         if self.verbose {
             command.arg("-v");
@@ -58,11 +57,9 @@ fn contract_command() {
 
     assert!(write_vk_command.run().is_ok());
 
-    let path_to_contract_output = "./src/plonk_vk.sol";
     let contract_command = ContractCommand {
         verbose: true,
         path_to_vk: path_to_vk_output.to_string(),
-        path_to_contract_output: path_to_contract_output.to_string(),
         path_to_crs: path_to_crs.to_string(),
     };
 

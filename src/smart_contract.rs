@@ -43,7 +43,6 @@ impl SmartContract for Barretenberg {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
             path_to_vk: vk_path,
-            path_to_contract_output: "/dev/null".to_string(), // Contract is read from stdout
         }
         .run()
         .expect("contract command failed");

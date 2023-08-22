@@ -104,7 +104,6 @@ impl ProofSystemCompiler for Barretenberg {
             is_recursive,
             path_to_bytecode: circuit_path.as_os_str().to_str().unwrap().to_string(),
             path_to_witness: witness_path.as_os_str().to_str().unwrap().to_string(),
-            path_to_proof_output: "/dev/null".to_string(), // Proof is read from stdout
         }
         .run()
         .expect("prove command failed");

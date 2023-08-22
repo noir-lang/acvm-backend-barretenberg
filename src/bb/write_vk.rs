@@ -11,7 +11,7 @@ pub(crate) struct WriteVkCommand {
 }
 
 impl WriteVkCommand {
-    pub(crate) fn run(self) -> Result<(), CliShimError> {
+    pub(crate) fn run(self) -> Result<Vec<u8>, CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -34,7 +34,7 @@ impl WriteVkCommand {
         let output = command.output().expect("Failed to execute command");
 
         if output.status.success() {
-            Ok(())
+            Ok(output.stdout)
         } else {
             Err(CliShimError)
         }
@@ -44,15 +44,14 @@ impl WriteVkCommand {
 #[test]
 fn write_vk_command() {
     let path_to_1_mul = "./src/1_mul.bytecode";
-    let path_to_vk_output = "./src/vk1";
     let path_to_crs = "./src/crs";
 
     let write_vk_command = WriteVkCommand {
         verbose: true,
         path_to_bytecode: path_to_1_mul.to_string(),
-        path_to_vk_output: path_to_vk_output.to_string(),
-        is_recursive: false,
         path_to_crs: path_to_crs.to_string(),
+        is_recursive: false,
+        path_to_vk_output: "/dev/null".to_string(),
     };
 
     let vk_written = write_vk_command.run();

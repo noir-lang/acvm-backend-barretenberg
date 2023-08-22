@@ -12,7 +12,6 @@ pub(crate) struct ProveCommand {
     pub(crate) path_to_crs: String,
     pub(crate) is_recursive: bool,
     pub(crate) path_to_bytecode: String,
-    pub(crate) path_to_proof_output: String,
     pub(crate) path_to_witness: String,
 }
 
@@ -30,7 +29,7 @@ impl ProveCommand {
             .arg("-w")
             .arg(self.path_to_witness)
             .arg("-o")
-            .arg(self.path_to_proof_output);
+            .arg("/dev/null");
 
         if self.verbose {
             command.arg("-v");
@@ -54,14 +53,12 @@ fn prove_command() {
     let path_to_1_mul = "./src/1_mul.bytecode";
     let path_to_1_mul_witness = "./src/witness.tr";
     let path_to_crs = "./src/crs";
-    let path_to_proof_output = "./src/proof1";
     let prove_command = ProveCommand {
         verbose: true,
         path_to_crs: path_to_crs.to_string(),
         is_recursive: false,
         path_to_bytecode: path_to_1_mul.to_string(),
         path_to_witness: path_to_1_mul_witness.to_string(),
-        path_to_proof_output: path_to_proof_output.to_string(),
     };
 
     let proof_created = prove_command.run();
