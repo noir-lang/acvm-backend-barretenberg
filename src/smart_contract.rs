@@ -57,3 +57,44 @@ impl SmartContract for Barretenberg {
         ))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+
+    use acvm::{
+        acir::{
+            circuit::{Circuit, Opcode, PublicInputs},
+            native_types::{Expression, Witness},
+        },
+        SmartContract,
+    };
+
+    #[test]
+    fn test_smart_contract() {
+        use crate::Barretenberg;
+
+        let expression = &(Witness(1) + Witness(2)) - &Expression::from(Witness(3));
+        let constraint = Opcode::Arithmetic(expression);
+
+        let circuit = Circuit {
+            current_witness_index: 4,
+            opcodes: vec![constraint],
+            private_parameters: BTreeSet::from([Witness(1), Witness(2)]),
+            public_parameters: PublicInputs::default(),
+            return_values: PublicInputs::default(),
+        };
+
+        let bb = Barretenberg::new();
+
+        let common_reference_string = Vec::new();
+        let verification_key = Vec::new();
+        let contract = bb
+            .eth_contract_from_vk(&common_reference_string, &circuit, &verification_key)
+            .unwrap();
+
+        assert!(contract.contains("contract BaseUltraVerifier"));
+        assert!(contract.contains("contract UltraVerifier"));
+        assert!(contract.contains("library UltraVerificationKey"));
+    }
+}
