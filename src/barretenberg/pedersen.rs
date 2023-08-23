@@ -1,6 +1,8 @@
-use acvm::FieldElement;
-
+use super::barretenberg_structures::Assignments;
+use super::FIELD_BYTES;
 use super::{Barretenberg, Error};
+
+use acvm::FieldElement;
 
 pub(crate) trait Pedersen {
     fn compress_native(
@@ -81,8 +83,6 @@ impl Pedersen for Barretenberg {
         left: &FieldElement,
         right: &FieldElement,
     ) -> Result<FieldElement, Error> {
-        use super::FIELD_BYTES;
-
         let lhs_ptr: usize = 0;
         let rhs_ptr: usize = lhs_ptr + FIELD_BYTES;
         let result_ptr: usize = rhs_ptr + FIELD_BYTES;
@@ -101,9 +101,6 @@ impl Pedersen for Barretenberg {
 
     #[allow(dead_code)]
     fn compress_many(&self, inputs: Vec<FieldElement>) -> Result<FieldElement, Error> {
-        use super::FIELD_BYTES;
-        use crate::barretenberg_structures::Assignments;
-
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf)?;
         let result_ptr: usize = 0;
@@ -122,9 +119,6 @@ impl Pedersen for Barretenberg {
         inputs: Vec<FieldElement>,
         hash_index: u32,
     ) -> Result<(FieldElement, FieldElement), Error> {
-        use super::FIELD_BYTES;
-        use crate::barretenberg_structures::Assignments;
-
         let input_buf = Assignments::from(inputs).to_bytes();
         let input_ptr = self.allocate(&input_buf)?;
         let result_ptr: usize = 0;

@@ -10,6 +10,8 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
+#[cfg(feature = "wasm")]
+mod barretenberg_structures;
 pub(crate) mod pedersen;
 pub(crate) mod scalar_mul;
 pub(crate) mod schnorr;
