@@ -34,11 +34,28 @@ const API_URL: &str = formatcp!(
     TAG
 );
 
+fn get_bb_download_url() -> String {
+    match std::env::var("BB_BINARY_URL") {
+        Ok(path) => path,
+        Err(_) => {
+            let archive_name = match env!("TARGET_OS") {
+                "linux" => "bb-ubuntu.tar.gz",
+                "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
+                _ => panic!("Unsupported OS"),
+            };
+            format!("{API_URL}/{archive_name}")
+        }
+    }
+}
+
 /// Returns the path to the binary that was set by the `NARGO_BINARIES_PATH` environment variable
 fn get_binary_path() -> PathBuf {
-    dirs::home_dir()
-        .unwrap()
-        .join(formatcp!("{}/{}", DEST_FOLDER, BINARY_NAME))
+    match std::env::var("BB_BINARY_PATH") {
+        Ok(path) => PathBuf::from(path),
+        Err(_) => dirs::home_dir()
+            .unwrap()
+            .join(formatcp!("{}/{}", DEST_FOLDER, BINARY_NAME)),
+    }
 }
 
 fn assert_binary_exists() {
@@ -56,13 +73,7 @@ fn download_bb_binary() {
     std::fs::create_dir_all(get_binary_path().parent().unwrap()).unwrap();
 
     // Download sources
-    let archive_name = match env!("TARGET_OS") {
-        "linux" => "bb-ubuntu.tar.gz",
-        "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
-        _ => panic!("Unsupported OS"),
-    };
-
-    let compressed_file = download_binary_from_url(&format!("{API_URL}/{archive_name}"))
+    let compressed_file: Cursor<Vec<u8>> = download_binary_from_url(&get_bb_download_url())
         .unwrap_or_else(|error| panic!("\n\nDownload error: {}\n\n", error));
 
     // Unpack the tarball
@@ -98,7 +109,30 @@ fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
 #[test]
 fn no_command_provided_works() {
     // This is a simple test to check that the binaries work
+
+    println!("before exists?: {}", get_binary_path().exists());
+
     assert_binary_exists();
+
+    println!("after exists?: {}", get_binary_path().is_file());
+
+    println!("{}", get_binary_path().display());
+    println!(
+        "{}",
+        std::fs::canonicalize(get_binary_path()).unwrap().display()
+    );
+
+    let output = std::process::Command::new("ls")
+        .arg("-l")
+        .output()
+        .expect("Failed to execute command");
+
+    println!("{}", String::from_utf8_lossy(&output.stdout));
+    let output = std::process::Command::new("env")
+        .output()
+        .expect("Failed to execute command");
+
+    println!("{}", String::from_utf8_lossy(&output.stdout));
 
     let output = std::process::Command::new(get_binary_path())
         .output()

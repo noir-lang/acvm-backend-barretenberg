@@ -149,16 +149,26 @@
         buildInputs = [ ] ++ extraBuildInputs;
       };
 
+      bb_binary = builtins.fetchurl {
+        url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.2/bb-ubuntu.tar.gz";
+        sha256 = "sha256:15kxvabn7a94vadda156fvpzpnxkpgng2jrh86rj9m71aff4sqhz";
+      };
+
       # The `port` is parameterized to support parallel test runs without colliding static servers
       networkTestArgs = port: {
+        BB_BINARY_PATH = "./backend_binary";
+
+        BB_BINARY_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf bb_binary}";
+
         # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a static server
         # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
-        TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+        BARRETENBERG_TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
 
         # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
         # which avoids exposing the entire Nix store to the static server it starts
         # The static server is moved to the background and killed after checks are completed
         preCheck = ''
+          cp ${bb_binary} .
           cp ${pkgs.barretenberg-transcript00} .
           echo "Starting simple static server"
           ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
@@ -197,6 +207,7 @@
           pname = "native";
 
           cargoArtifacts = native-cargo-artifacts;
+          cargoTestExtraArgs = "no_command_provided_works";
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
@@ -216,6 +227,7 @@
           pname = "wasm";
 
           cargoArtifacts = wasm-cargo-artifacts;
+          cargoTestExtraArgs = "no_command_provided_works";
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
