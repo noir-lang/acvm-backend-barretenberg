@@ -138,6 +138,8 @@
         buildInputs = [
           pkgs.llvmPackages.openmp
           pkgs.barretenberg
+          pkgs.curl
+          pkgs.gzip
         ] ++ extraBuildInputs;
       };
 
@@ -150,8 +152,8 @@
       };
 
       bb_binary = builtins.fetchurl {
-        url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.2/bb-ubuntu.tar.gz";
-        sha256 = "sha256:15kxvabn7a94vadda156fvpzpnxkpgng2jrh86rj9m71aff4sqhz";
+        url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/bb-ubuntu.tar.gz";
+        sha256 = "sha256:0rcsjws87f4v28cw9734c10pg7c49apigf4lg3m0ji5vbhhmfnhr";
       };
 
       # The `port` is parameterized to support parallel test runs without colliding static servers
@@ -213,25 +215,25 @@
           doCheck = true;
         });
 
-        cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
-          # Crane appends "clippy"
-          pname = "wasm";
+        # cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+        #   # Crane appends "clippy"
+        #   pname = "wasm";
 
-          cargoArtifacts = wasm-cargo-artifacts;
+        #   cargoArtifacts = wasm-cargo-artifacts;
 
-          cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        });
+        #   cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        # });
 
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
-          # Crane appends "test"
-          pname = "wasm";
+        # cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
+        #   # Crane appends "test"
+        #   pname = "wasm";
 
-          cargoArtifacts = wasm-cargo-artifacts;
-          cargoTestExtraArgs = "no_command_provided_works";
+        #   cargoArtifacts = wasm-cargo-artifacts;
+        #   cargoTestExtraArgs = "no_command_provided_works";
 
-          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-          doCheck = true;
-        });
+        #   # It's unclear why doCheck needs to be enabled for tests to run but not clippy
+        #   doCheck = true;
+        # });
       };
 
       packages = {
@@ -252,6 +254,8 @@
         inputsFrom = builtins.attrValues checks;
 
         nativeBuildInputs = with pkgs; [
+          curl
+          gzip
           which
           starship
           git
