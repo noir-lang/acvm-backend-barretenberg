@@ -129,9 +129,6 @@ mod wasm {
 
     use super::{Barretenberg, Error, FeatureError};
 
-    /// The number of bytes necessary to represent a pointer to memory inside the wasm.
-    pub(super) const POINTER_BYTES: usize = 4;
-
     /// The Barretenberg WASM gives us 1024 bytes of scratch space which we can use without
     /// needing to allocate/free it ourselves. This can be useful for when we need to pass in several small variables
     /// when calling functions on the wasm, however it's important to not overrun this scratch space as otherwise
@@ -267,11 +264,6 @@ mod wasm {
             buf
         }
 
-        pub(crate) fn get_pointer(&self, ptr_ptr: usize) -> usize {
-            let ptr: [u8; POINTER_BYTES] = self.read_memory(ptr_ptr);
-            u32::from_le_bytes(ptr) as usize
-        }
-
         pub(super) fn call(&self, name: &str, param: &WASMValue) -> Result<WASMValue, Error> {
             self.call_multiple(name, vec![param])
         }
@@ -314,14 +306,6 @@ mod wasm {
 
             self.transfer_to_heap(bytes, u32_bytes as usize);
             Ok(ptr.into())
-        }
-
-        /// Frees a pointer.
-        /// Notice we consume the Value, if you clone the value before passing it to free
-        /// It most likely is a bug
-        pub(super) fn free(&self, pointer: WASMValue) -> Result<(), Error> {
-            self.call("bbfree", &pointer)?;
-            Ok(())
         }
     }
 
