@@ -133,9 +133,9 @@
           pkgs.pkg-config
           # This provides the `lld` linker to cargo
           pkgs.llvmPackages.bintools
-          # This is linux specific and i used to patch the rpath and interpreter of the bb binary
+        ] ++ pkgs.lib.optionals stdenv.isLinux [
+          # This is linux specific and used to patch the rpath and interpreter of the bb binary
           pkgs.patchelf
-
         ];
 
         buildInputs = [
