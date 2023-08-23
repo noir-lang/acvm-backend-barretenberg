@@ -133,12 +133,17 @@
           pkgs.pkg-config
           # This provides the `lld` linker to cargo
           pkgs.llvmPackages.bintools
+          # This is linux specific and i used to patch the rpath and interpreter of the bb binary
+          pkgs.patchelf
+
         ];
 
         buildInputs = [
           pkgs.llvmPackages.openmp
           pkgs.barretenberg
           pkgs.curl
+          stdenv.cc.cc.lib
+          pkgs.gcc.cc.lib
           pkgs.gzip
         ] ++ extraBuildInputs;
       };
@@ -170,7 +175,15 @@
         # which avoids exposing the entire Nix store to the static server it starts
         # The static server is moved to the background and killed after checks are completed
         preCheck = ''
-          cp ${bb_binary} .
+          echo "Extracting bb binary"
+          mkdir extracted
+          tar -xf ${bb_binary} -C extracted
+          cp extracted/cpp/build/bin/bb ./backend_binary
+          
+          echo "Patching bb binary"
+          patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
+          patchelf --set-interpreter ${stdenv.cc.libc}/lib/ld-linux-x86-64.so.2 ./backend_binary
+
           cp ${pkgs.barretenberg-transcript00} .
           echo "Starting simple static server"
           ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
