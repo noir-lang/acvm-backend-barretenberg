@@ -52,11 +52,10 @@ fn download_bb_binary() {
     use tar::Archive;
     use tempfile::tempdir;
 
-    // Create directories
-    std::fs::create_dir_all(DEST_FOLDER).unwrap();
+    // Create directory to place binary in.
+    std::fs::create_dir_all(get_binary_path().parent().unwrap()).unwrap();
 
     // Download sources
-
     let archive_name = match env!("TARGET_OS") {
         "linux" => "bb-ubuntu.tar.gz",
         "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
