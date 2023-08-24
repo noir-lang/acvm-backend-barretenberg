@@ -243,31 +243,29 @@
           pname = "native";
 
           cargoArtifacts = native-cargo-artifacts;
-          cargoTestExtraArgs = "no_command_provided_works";
 
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
 
-        # cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
-        #   # Crane appends "clippy"
-        #   pname = "wasm";
+        cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
+          # Crane appends "clippy"
+          pname = "wasm";
 
-        #   cargoArtifacts = wasm-cargo-artifacts;
+          cargoArtifacts = wasm-cargo-artifacts;
 
-        #   cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        # });
+          cargoClippyExtraArgs = "--all-targets -- -D warnings";
+        });
 
-        # cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
-        #   # Crane appends "test"
-        #   pname = "wasm";
+        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
+          # Crane appends "test"
+          pname = "wasm";
 
-        #   cargoArtifacts = wasm-cargo-artifacts;
-        #   cargoTestExtraArgs = "no_command_provided_works";
+          cargoArtifacts = wasm-cargo-artifacts;
 
-        #   # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-        #   doCheck = true;
-        # });
+          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
+          doCheck = true;
+        });
       };
 
       packages = {
