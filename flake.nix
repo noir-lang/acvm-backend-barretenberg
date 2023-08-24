@@ -160,7 +160,8 @@
 
         buildInputs = [ ] ++ extraBuildInputs;
       };
-# Conditionally download the binary based on whether it is linux or mac
+      
+      # Conditionally download the binary based on whether it is linux or mac
       bb_binary = let
         platformSpecificUrl = if stdenv.hostPlatform.isLinux then
           "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/bb-ubuntu.tar.gz"
@@ -175,7 +176,6 @@
           "sha256:0pnsd56z0vkai7m0advawfgcvq9jbnpqm7lk98n5flqj583x3w35"
         else
           throw "Unsupported platform";
-
       in builtins.fetchurl {
         url = platformSpecificUrl;
         sha256 = platformSpecificHash;
