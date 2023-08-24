@@ -157,63 +157,63 @@
       };
 # Conditionally download the binary based on whether it is linux or mac
       bb_binary = let
-  platformSpecificUrl = if stdenv.hostPlatform.isLinux then
-    "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/bb-ubuntu.tar.gz"
-  else if stdenv.hostPlatform.isDarwin then
-    "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/barretenberg-x86_64-apple-darwin.tar.gz"
-  else
-    throw "Unsupported platform";
+        platformSpecificUrl = if stdenv.hostPlatform.isLinux then
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/bb-ubuntu.tar.gz"
+        else if stdenv.hostPlatform.isDarwin then
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/barretenberg-x86_64-apple-darwin.tar.gz"
+        else
+          throw "Unsupported platform";
 
-  platformSpecificHash = if stdenv.hostPlatform.isLinux then
-    "sha256:0rcsjws87f4v28cw9734c10pg7c49apigf4lg3m0ji5vbhhmfnhr"
-  else if stdenv.hostPlatform.isDarwin then
-    "sha256:0pnsd56z0vkai7m0advawfgcvq9jbnpqm7lk98n5flqj583x3w35"
-  else
-    throw "Unsupported platform";
+        platformSpecificHash = if stdenv.hostPlatform.isLinux then
+          "sha256:0rcsjws87f4v28cw9734c10pg7c49apigf4lg3m0ji5vbhhmfnhr"
+        else if stdenv.hostPlatform.isDarwin then
+          "sha256:0pnsd56z0vkai7m0advawfgcvq9jbnpqm7lk98n5flqj583x3w35"
+        else
+          throw "Unsupported platform";
 
-in builtins.fetchurl {
-  url = platformSpecificUrl;
-  sha256 = platformSpecificHash;
-};
+      in builtins.fetchurl {
+        url = platformSpecificUrl;
+        sha256 = platformSpecificHash;
+      };
 
 
       # The `port` is parameterized to support parallel test runs without colliding static servers
       networkTestArgs = port: {
-  BB_BINARY_PATH = "./backend_binary";
+        BB_BINARY_PATH = "./backend_binary";
 
-  BB_BINARY_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf bb_binary}";
+        BB_BINARY_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf bb_binary}";
 
-  BARRETENBERG_TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+        BARRETENBERG_TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
 
-  preCheck = ''
-    echo "Extracting bb binary"
-    mkdir extracted
-    tar -xf ${bb_binary} -C extracted
+        preCheck = ''
+          echo "Extracting bb binary"
+          mkdir extracted
+          tar -xf ${bb_binary} -C extracted
 
-    # Conditionally patch the binary for Linux
-    ${if stdenv.hostPlatform.isLinux then ''
+          # Conditionally patch the binary for Linux
+          ${if stdenv.hostPlatform.isLinux then ''
 
-      cp extracted/cpp/build/bin/bb ./backend_binary
-    
-      echo "Patching bb binary for Linux"
-      patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
-      patchelf --set-interpreter ${stdenv.cc.libc}/lib/ld-linux-x86-64.so.2 ./backend_binary
-    '' else if stdenv.hostPlatform.isDarwin then ''
-      cp extracted/bb ./backend_binary
-    '' else
-      throw "Unsupported platform"
-    }
+            cp extracted/cpp/build/bin/bb ./backend_binary
+          
+            echo "Patching bb binary for Linux"
+            patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
+            patchelf --set-interpreter ${stdenv.cc.libc}/lib/ld-linux-x86-64.so.2 ./backend_binary
+          '' else if stdenv.hostPlatform.isDarwin then ''
+            cp extracted/bb ./backend_binary
+          '' else
+            throw "Unsupported platform"
+          }
 
-    cp ${pkgs.barretenberg-transcript00} .
-    echo "Starting simple static server"
-    ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
-    HTTP_SERVER_PID=$!
-  '';
+          cp ${pkgs.barretenberg-transcript00} .
+          echo "Starting simple static server"
+          ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
+          HTTP_SERVER_PID=$!
+        '';
 
-  postCheck = ''
-    kill $HTTP_SERVER_PID
-  '';
-};
+        postCheck = ''
+          kill $HTTP_SERVER_PID
+        '';
+      };
 
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
