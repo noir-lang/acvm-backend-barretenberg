@@ -8,9 +8,8 @@ use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
-use crate::barretenberg::FIELD_BYTES;
 use crate::bb::{GatesCommand, ProveCommand, VerifyCommand, WriteVkCommand};
-use crate::{BackendError, Barretenberg};
+use crate::{BackendError, Barretenberg, FIELD_BYTES};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
