@@ -38,7 +38,7 @@
     };
 
     barretenberg = {
-      url = "github:AztecProtocol/barretenberg";
+      url = "github:AztecProtocol/barretenberg?ref=barretenberg-v0.4.3";
       # All of these inputs (a.k.a. dependencies) need to align with inputs we
       # use so they use the `inputs.*.follows` syntax to reference our inputs
       inputs = {
