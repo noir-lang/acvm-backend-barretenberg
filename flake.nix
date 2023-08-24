@@ -77,16 +77,6 @@
         RUST_TEST_THREADS = "1";
       };
 
-      nativeEnvironment = sharedEnvironment // {
-        # rust-bindgen needs to know the location of libclang
-        LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-      };
-
-      wasmEnvironment = sharedEnvironment // {
-        # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
-      };
-
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
       # source filter to include .sol files in addition to usual rust/cargo source files.
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;
@@ -133,16 +123,11 @@
       };
 
       # Combine the environment and other configuration needed for crane to build with the native feature
-      nativeArgs = nativeEnvironment // commonArgs // {
+      nativeArgs = sharedEnvironment // commonArgs // {
         # Use our custom stdenv to build and test our Rust project
         inherit stdenv;
 
-        nativeBuildInputs = [
-          # This provides the pkg-config tool to find barretenberg & other native libraries
-          pkgs.pkg-config
-          # This provides the `lld` linker to cargo
-          pkgs.llvmPackages.bintools
-        ] ++ pkgs.lib.optionals stdenv.isLinux [
+        nativeBuildInputs = pkgs.lib.optionals stdenv.isLinux [
           # This is linux specific and used to patch the rpath and interpreter of the bb binary
           pkgs.patchelf
         ];
@@ -151,14 +136,6 @@
           pkgs.llvmPackages.openmp
           pkgs.barretenberg
         ] ++ extraBuildInputs;
-      };
-
-      # Combine the environment and other configuration needed for crane to build with the wasm feature
-      wasmArgs = wasmEnvironment // commonArgs // {
-        # We disable the default "native" feature and enable the "wasm" feature
-        cargoExtraArgs = "--no-default-features --features='wasm'";
-
-        buildInputs = [ ] ++ extraBuildInputs;
       };
       
       # Conditionally download the binary based on whether it is linux or mac
@@ -220,15 +197,10 @@
         '';
       };
 
-
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       native-cargo-artifacts = craneLib.buildDepsOnly nativeArgs;
-      wasm-cargo-artifacts = craneLib.buildDepsOnly wasmArgs;
-
+     
       acvm-backend-barretenberg-native = craneLib.buildPackage (nativeArgs // {
-        cargoArtifacts = native-cargo-artifacts;
-      });
-      acvm-backend-barretenberg-wasm = craneLib.buildPackage (wasmArgs // {
         cargoArtifacts = native-cargo-artifacts;
       });
     in
@@ -252,42 +224,21 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-
-        cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
-          # Crane appends "clippy"
-          pname = "wasm";
-
-          cargoArtifacts = wasm-cargo-artifacts;
-
-          cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        });
-
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
-          # Crane appends "test"
-          pname = "wasm";
-
-          cargoArtifacts = wasm-cargo-artifacts;
-
-          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-          doCheck = true;
-        });
       };
 
       packages = {
         inherit acvm-backend-barretenberg-native;
-        inherit acvm-backend-barretenberg-wasm;
 
         default = acvm-backend-barretenberg-native;
 
         # We expose the `*-cargo-artifacts` derivations so we can cache our cargo dependencies in CI
         inherit native-cargo-artifacts;
-        inherit wasm-cargo-artifacts;
       };
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
       # and extra tooling via `nativeBuildInputs`
-      devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // {
+      devShells.default = pkgs.mkShell.override { inherit stdenv; } (sharedEnvironment // {
         inputsFrom = builtins.attrValues checks;
 
         nativeBuildInputs = with pkgs; [

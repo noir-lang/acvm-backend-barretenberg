@@ -13,15 +13,16 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
-mod barretenberg;
 mod bb;
 mod common_reference_string;
 mod proof_system;
-mod pwg;
 mod smart_contract;
 
-pub use barretenberg::Barretenberg;
-use barretenberg::{Error, FeatureError};
+/// The number of bytes necessary to store a `FieldElement`.
+const FIELD_BYTES: usize = 32;
+
+#[derive(Debug, Default)]
+pub struct Barretenberg;
 
 impl acvm::Backend for Barretenberg {}
 
@@ -29,8 +30,6 @@ impl acvm::Backend for Barretenberg {}
 #[error(transparent)]
 pub struct BackendError(#[from] Error);
 
-impl From<FeatureError> for BackendError {
-    fn from(value: FeatureError) -> Self {
-        value.into()
-    }
-}
+#[allow(clippy::upper_case_acronyms)]
+#[derive(Debug, thiserror::Error)]
+enum Error {}
