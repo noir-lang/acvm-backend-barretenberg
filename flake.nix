@@ -108,6 +108,12 @@
         # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
         pkgs.libiconv
         pkgs.darwin.apple_sdk.frameworks.Security
+      ] ++ [
+        # Need to install various packages used by the `bb` binary.
+        pkgs.curl
+        stdenv.cc.cc.lib
+        pkgs.gcc.cc.lib
+        pkgs.gzip
       ];
 
       commonArgs = {
@@ -144,10 +150,6 @@
         buildInputs = [
           pkgs.llvmPackages.openmp
           pkgs.barretenberg
-          pkgs.curl
-          stdenv.cc.cc.lib
-          pkgs.gcc.cc.lib
-          pkgs.gzip
         ] ++ extraBuildInputs;
       };
 
