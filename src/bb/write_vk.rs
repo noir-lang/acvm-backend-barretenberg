@@ -11,7 +11,7 @@ pub(crate) struct WriteVkCommand {
 }
 
 impl WriteVkCommand {
-    pub(crate) fn run(self) -> Result<Vec<u8>, CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -34,7 +34,7 @@ impl WriteVkCommand {
         let output = command.output().expect("Failed to execute command");
 
         if output.status.success() {
-            Ok(output.stdout)
+            Ok(())
         } else {
             Err(CliShimError(String::from_utf8(output.stderr).unwrap()))
         }
