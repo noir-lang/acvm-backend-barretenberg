@@ -330,24 +330,12 @@ mod wasm {
                 "memory" => memory.clone(),
             },
             "wasi_snapshot_preview1" => {
-                "fd_read" => Function::new_typed(&mut store, fd_read),
-                "fd_close" => Function::new_typed(&mut store, fd_close),
                 "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
-                "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
-                "fd_prestat_get" => Function::new_typed(&mut store, fd_prestat_get),
-                "fd_prestat_dir_name" => Function::new_typed(&mut store, fd_prestat_dir_name),
-                "fd_fdstat_set_flags" => Function::new_typed(&mut store, fd_fdstat_set_flags),
-                "path_open" => Function::new_typed(&mut store, path_open),
                 "random_get" => Function::new_typed_with_env(
                     &mut store,
                     &function_env,
                     random_get
                 ),
-                "fd_seek" => Function::new_typed(&mut store, fd_seek),
-                "fd_write" => Function::new_typed(&mut store, fd_write),
-                "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
-                "environ_get" => Function::new_typed(&mut store, environ_get),
-                "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
             },
         };
 
@@ -395,56 +383,8 @@ mod wasm {
         }
     }
 
-    fn clock_time_get(_: i32, _: i64, _: i32) -> i32 {
-        unimplemented!("clock_time_get is not implemented")
-    }
-
     fn proc_exit(_: i32) {
-        unimplemented!("proc_exit is not implemented")
-    }
-
-    fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_write is not implemented")
-    }
-
-    fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_seek is not implemented")
-    }
-
-    fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_read is not implemented")
-    }
-
-    fn fd_fdstat_get(_: i32, _: i32) -> i32 {
-        unimplemented!("fd_fdstat_get is not implemented")
-    }
-
-    fn fd_prestat_get(_: i32, _: i32) -> i32 {
-        unimplemented!("fd_prestat_get is not implemented")
-    }
-
-    fn fd_fdstat_set_flags(_: i32, _: i32) -> i32 {
-        unimplemented!("fd_fdstat_set_flags is not implemented")
-    }
-
-    fn fd_prestat_dir_name(_: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_prestat_dir_name is not implemented")
-    }
-
-    fn path_open(_: i32, _: i32, _: i32, _: i32, _: i32, _: i64, _: i64, _: i32, _: i32) -> i32 {
-        unimplemented!("path_open is not implemented")
-    }
-
-    fn fd_close(_: i32) -> i32 {
-        unimplemented!("fd_close is not implemented")
-    }
-
-    fn environ_sizes_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_sizes_get is not implemented")
-    }
-
-    fn environ_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_get is not implemented")
+        // unimplemented!("proc_exit is not implemented")
     }
 
     fn set_data(_: i32, _: i32, _: i32) {
