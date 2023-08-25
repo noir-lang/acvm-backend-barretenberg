@@ -1,6 +1,7 @@
 use super::proof_system::{serialize_circuit, write_to_file};
 use crate::{
     bb::{ContractCommand, WriteVkCommand},
+    proof_system::read_bytes_from_file,
     BackendError, Barretenberg,
 };
 use acvm::{acir::circuit::Circuit, SmartContract};
@@ -39,13 +40,22 @@ impl SmartContract for Barretenberg {
         .run()
         .expect("write vk command failed");
 
-        let verification_key_library = ContractCommand {
+        let path_to_contract = temp_directory
+            .join("contract")
+            .to_str()
+            .unwrap()
+            .to_string();
+        ContractCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
             path_to_vk: vk_path,
+            path_to_contract: path_to_contract.clone(),
         }
         .run()
         .expect("contract command failed");
+
+        let verification_key_library_bytes = read_bytes_from_file(&path_to_contract).unwrap();
+        let verification_key_library = String::from_utf8(verification_key_library_bytes).unwrap();
 
         Ok(format!(
             "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"

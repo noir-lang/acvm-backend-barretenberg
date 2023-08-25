@@ -11,10 +11,11 @@ pub(crate) struct ContractCommand {
     pub(crate) verbose: bool,
     pub(crate) path_to_crs: String,
     pub(crate) path_to_vk: String,
+    pub(crate) path_to_contract: String,
 }
 
 impl ContractCommand {
-    pub(crate) fn run(self) -> Result<String, CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -25,7 +26,7 @@ impl ContractCommand {
             .arg("-k")
             .arg(self.path_to_vk)
             .arg("-o")
-            .arg("/dev/null");
+            .arg(self.path_to_contract);
 
         if self.verbose {
             command.arg("-v");
@@ -33,8 +34,7 @@ impl ContractCommand {
 
         let output = command.output().expect("Failed to execute command");
         if output.status.success() {
-            let contract_string = String::from_utf8_lossy(&output.stdout).into();
-            Ok(contract_string)
+            Ok(())
         } else {
             Err(CliShimError)
         }
@@ -51,6 +51,7 @@ fn contract_command() {
     let temp_directory = temp_directory.path();
     let path_to_crs = temp_directory.join("crs");
     let path_to_vk = temp_directory.join("vk");
+    let path_to_contract = temp_directory.join("contract");
 
     let write_vk_command = super::WriteVkCommand {
         verbose: true,
@@ -66,6 +67,7 @@ fn contract_command() {
         verbose: true,
         path_to_vk: path_to_vk.to_str().unwrap().to_string(),
         path_to_crs: path_to_crs.to_str().unwrap().to_string(),
+        path_to_contract: path_to_contract.to_str().unwrap().to_string(),
     };
 
     assert!(contract_command.run().is_ok());
