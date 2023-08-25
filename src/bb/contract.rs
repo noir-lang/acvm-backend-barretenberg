@@ -36,7 +36,7 @@ impl ContractCommand {
         if output.status.success() {
             Ok(())
         } else {
-            Err(CliShimError)
+            Err(CliShimError(String::from_utf8(output.stderr).unwrap()))
         }
     }
 }

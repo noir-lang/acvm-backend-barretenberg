@@ -17,8 +17,8 @@ pub(crate) use verify::VerifyCommand;
 pub(crate) use write_vk::WriteVkCommand;
 
 #[derive(Debug, thiserror::Error)]
-#[error("Error communicating with barretenberg binary")]
-pub(crate) struct CliShimError;
+#[error("Error communicating with barretenberg binary {0}")]
+pub(crate) struct CliShimError(String);
 
 const USERNAME: &str = "AztecProtocol";
 const REPO: &str = "barretenberg";
