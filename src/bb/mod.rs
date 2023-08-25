@@ -74,7 +74,7 @@ fn download_bb_binary() {
 
     // Download sources
     let compressed_file: Cursor<Vec<u8>> = download_binary_from_url(&get_bb_download_url())
-        .unwrap_or_else(|error| panic!("\n\nDownload error: {}\n\n", error));
+        .unwrap_or_else(|error| panic!("\n\nDownload error: {error}\n\n"));
 
     // Unpack the tarball
     let gz_decoder = GzDecoder::new(compressed_file);
