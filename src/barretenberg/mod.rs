@@ -149,7 +149,7 @@ mod wasm {
 
     /// Embed the Barretenberg WASM file
     #[derive(rust_embed::RustEmbed)]
-    #[folder = "/src/"]
+    #[folder = "src/barretenberg"]
     #[include = "barretenberg.wasm"]
     struct Wasm;
 
@@ -493,4 +493,10 @@ mod wasm {
     fn env_load_prover_crs(_: i32) -> i32 {
         unimplemented!("env_load_prover_crs is not implemented")
     }
+}
+
+#[test]
+fn foo() {
+    use crate::Barretenberg;
+    let bb = Barretenberg::new();
 }
