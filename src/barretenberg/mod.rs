@@ -321,7 +321,7 @@ mod wasm {
     fn instance_load() -> (Instance, Memory, Store) {
         let mut store = Store::default();
 
-        let mem_type = MemoryType::new(23, None, false);
+        let mem_type = MemoryType::new(18, Some(65536), false);
         let memory = Memory::new(&mut store, mem_type).unwrap();
 
         let function_env = FunctionEnv::new(&mut store, memory.clone());
@@ -343,6 +343,10 @@ mod wasm {
                 "fd_close" => Function::new_typed(&mut store, fd_close),
                 "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
                 "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
+                "fd_prestat_get" => Function::new_typed(&mut store, fd_prestat_get),
+                "fd_prestat_dir_name" => Function::new_typed(&mut store, fd_prestat_dir_name),
+                "fd_fdstat_set_flags" => Function::new_typed(&mut store, fd_fdstat_set_flags),
+                "path_open" => Function::new_typed(&mut store, path_open),
                 "random_get" => Function::new_typed_with_env(
                     &mut store,
                     &function_env,
@@ -370,8 +374,9 @@ mod wasm {
         if let Ok(module) = load_module(&cache, store, &bytes) {
             return Ok(module);
         };
-
+        let now = std::time::Instant::now();
         let module = Module::new(&store, &bytes).unwrap();
+        println!("Module load time: {:?}", now.elapsed().as_secs());
         store_module(&mut cache, &module, &bytes).unwrap();
 
         Ok(module)
@@ -466,6 +471,22 @@ mod wasm {
         unimplemented!("fd_fdstat_get is not implemented")
     }
 
+    fn fd_prestat_get(_: i32, _: i32) -> i32 {
+        unimplemented!("fd_prestat_get is not implemented")
+    }
+
+    fn fd_fdstat_set_flags(_: i32, _: i32) -> i32 {
+        unimplemented!("fd_fdstat_set_flags is not implemented")
+    }
+
+    fn fd_prestat_dir_name(_: i32, _: i32, _: i32) -> i32 {
+        unimplemented!("fd_prestat_dir_name is not implemented")
+    }
+
+    fn path_open(_: i32, _: i32, _: i32, _: i32, _: i32, _: i64, _: i64, _: i32, _: i32) -> i32 {
+        unimplemented!("path_open is not implemented")
+    }
+
     fn fd_close(_: i32) -> i32 {
         unimplemented!("fd_close is not implemented")
     }
@@ -497,6 +518,11 @@ mod wasm {
 
 #[test]
 fn foo() {
+    use crate::Barretenberg;
+    let bb = Barretenberg::new();
+}
+#[test]
+fn foo1() {
     use crate::Barretenberg;
     let bb = Barretenberg::new();
 }
