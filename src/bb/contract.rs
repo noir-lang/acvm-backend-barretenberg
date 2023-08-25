@@ -48,10 +48,10 @@ fn contract_command() {
     let path_to_1_mul = "./src/1_mul.bytecode";
 
     let temp_directory = tempdir().expect("could not create a temporary directory");
-    let temp_directory = temp_directory.path();
-    let path_to_crs = temp_directory.join("crs");
-    let path_to_vk = temp_directory.join("vk");
-    let path_to_contract = temp_directory.join("contract");
+    let temp_directory_path = temp_directory.path();
+    let path_to_crs = temp_directory_path.join("crs");
+    let path_to_vk = temp_directory_path.join("vk");
+    let path_to_contract = temp_directory_path.join("contract");
 
     let write_vk_command = super::WriteVkCommand {
         verbose: true,
@@ -71,4 +71,5 @@ fn contract_command() {
     };
 
     assert!(contract_command.run().is_ok());
+    drop(temp_directory);
 }

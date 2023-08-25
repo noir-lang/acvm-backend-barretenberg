@@ -51,8 +51,8 @@ fn prove_and_verify_command() {
     let path_to_1_mul_witness = "./src/witness.tr";
 
     let temp_directory = tempdir().expect("could not create a temporary directory");
-    let temp_directory = temp_directory.path();
-    let path_to_crs = temp_directory.join("crs");
+    let temp_directory_path = temp_directory.path();
+    let path_to_crs = temp_directory_path.join("crs");
 
     let prove_and_verify_command = ProveAndVerifyCommand {
         verbose: true,

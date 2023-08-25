@@ -57,10 +57,10 @@ fn prove_command() {
     let path_to_1_mul_witness = "./src/witness.tr";
 
     let temp_directory = tempdir().expect("could not create a temporary directory");
-    let temp_directory = temp_directory.path();
+    let temp_directory_path = temp_directory.path();
 
-    let path_to_crs = temp_directory.join("crs");
-    let path_to_proof = temp_directory.join("1_mul").with_extension("proof");
+    let path_to_crs = temp_directory_path.join("crs");
+    let path_to_proof = temp_directory_path.join("1_mul").with_extension("proof");
 
     let prove_command = ProveCommand {
         verbose: true,
