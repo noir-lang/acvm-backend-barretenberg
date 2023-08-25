@@ -43,15 +43,21 @@ impl WriteVkCommand {
 
 #[test]
 fn write_vk_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
-    let path_to_crs = "./src/crs";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory = temp_directory.path();
+    let path_to_crs = temp_directory.join("crs");
+    let path_to_vk = temp_directory.join("vk");
 
     let write_vk_command = WriteVkCommand {
         verbose: true,
         path_to_bytecode: path_to_1_mul.to_string(),
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
         is_recursive: false,
-        path_to_vk_output: "/dev/null".to_string(),
+        path_to_vk_output: path_to_vk.to_str().unwrap().to_string(),
     };
 
     let vk_written = write_vk_command.run();

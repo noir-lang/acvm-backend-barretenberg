@@ -43,24 +43,29 @@ impl ContractCommand {
 
 #[test]
 fn contract_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
-    let path_to_vk_output = "./src/vk1";
-    let path_to_crs = "./src/crs";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory = temp_directory.path();
+    let path_to_crs = temp_directory.join("crs");
+    let path_to_vk = temp_directory.join("vk");
 
     let write_vk_command = super::WriteVkCommand {
         verbose: true,
         path_to_bytecode: path_to_1_mul.to_string(),
-        path_to_vk_output: path_to_vk_output.to_string(),
+        path_to_vk_output: path_to_vk.to_str().unwrap().to_string(),
         is_recursive: false,
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
     };
 
     assert!(write_vk_command.run().is_ok());
 
     let contract_command = ContractCommand {
         verbose: true,
-        path_to_vk: path_to_vk_output.to_string(),
-        path_to_crs: path_to_crs.to_string(),
+        path_to_vk: path_to_vk.to_str().unwrap().to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
     };
 
     assert!(contract_command.run().is_ok());
