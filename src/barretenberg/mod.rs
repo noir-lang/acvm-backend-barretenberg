@@ -149,7 +149,7 @@ mod wasm {
 
     /// Embed the Barretenberg WASM file
     #[derive(rust_embed::RustEmbed)]
-    #[folder = "$BARRETENBERG_BIN_DIR"]
+    #[folder = "/src/"]
     #[include = "barretenberg.wasm"]
     struct Wasm;
 
