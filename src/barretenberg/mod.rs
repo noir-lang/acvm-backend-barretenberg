@@ -126,8 +126,17 @@ mod wasm {
         imports, Function, FunctionEnv, FunctionEnvMut, Instance, Memory, MemoryType, Module,
         Store, Value, WasmPtr,
     };
+    use wasmer_cache::{Cache, FileSystemCache, Hash};
 
     use super::{Barretenberg, Error, FeatureError};
+
+    use lazy_static::lazy_static;
+    use std::sync::Mutex;
+
+    lazy_static! {
+        pub static ref WASM_CACHE: Mutex<FileSystemCache> =
+            Mutex::new(FileSystemCache::new("./fs_cache").unwrap());
+    }
 
     /// The Barretenberg WASM gives us 1024 bytes of scratch space which we can use without
     /// needing to allocate/free it ourselves. This can be useful for when we need to pass in several small variables
@@ -346,14 +355,56 @@ mod wasm {
                 "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
             },
         };
-
-        let module = Module::new(&store, Wasm::get("barretenberg.wasm").unwrap().data).unwrap();
-
+        let module = get_or_load_module(&store).unwrap();
         (
             Instance::new(&mut store, &module, &custom_imports).unwrap(),
             memory,
             store,
         )
+    }
+
+    fn get_or_load_module(store: &Store) -> Result<Module, String> {
+        let mut cache = WASM_CACHE.lock().unwrap();
+        let bytes = Wasm::get("barretenberg.wasm").unwrap().data;
+
+        if let Ok(module) = load_module(&cache, store, &bytes) {
+            return Ok(module);
+        };
+
+        let module = Module::new(&store, &bytes).unwrap();
+        store_module(&mut cache, &module, &bytes).unwrap();
+
+        Ok(module)
+    }
+
+    fn store_module(
+        fs_cache: &mut FileSystemCache,
+        module: &Module,
+        bytes: &[u8],
+    ) -> Result<(), wasmer::SerializeError> {
+        // Create a new file system cache.
+        // let mut fs_cache = FileSystemCache::new("./fs_cache").unwrap();
+
+        // Compute a key for a given WebAssembly binary
+        let key = Hash::generate(bytes);
+
+        // Store a module into the cache given a key
+        fs_cache.store(key, module)
+    }
+
+    fn load_module(
+        fs_cache: &FileSystemCache,
+        store: &Store,
+        bytes: &[u8],
+    ) -> Result<Module, wasmer::DeserializeError> {
+        // Create a new file system cache.
+        // let mut fs_cache = FileSystemCache::new("./fs_cache").unwrap();
+
+        // Compute a key for a given WebAssembly binary
+        let key = Hash::generate(bytes);
+
+        // Load a module from the cache given a key
+        unsafe { fs_cache.load(store.engine(), key) }
     }
 
     fn logstr(mut env: FunctionEnvMut<Memory>, ptr: i32) {
