@@ -110,29 +110,7 @@ fn download_binary_from_url(url: &str) -> Result<Cursor<Vec<u8>>, String> {
 fn no_command_provided_works() {
     // This is a simple test to check that the binaries work
 
-    println!("before exists?: {}", get_binary_path().exists());
-
     assert_binary_exists();
-
-    println!("after exists?: {}", get_binary_path().is_file());
-
-    println!("{}", get_binary_path().display());
-    println!(
-        "{}",
-        std::fs::canonicalize(get_binary_path()).unwrap().display()
-    );
-
-    let output = std::process::Command::new("ls")
-        .arg("-l")
-        .output()
-        .expect("Failed to execute command");
-
-    println!("{}", String::from_utf8_lossy(&output.stdout));
-    let output = std::process::Command::new("env")
-        .output()
-        .expect("Failed to execute command");
-
-    println!("{}", String::from_utf8_lossy(&output.stdout));
 
     let output = std::process::Command::new(get_binary_path())
         .output()
