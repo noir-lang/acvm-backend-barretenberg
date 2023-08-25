@@ -403,14 +403,3 @@ mod wasm {
         unimplemented!("env_load_prover_crs is not implemented")
     }
 }
-
-#[test]
-fn foo() {
-    use crate::Barretenberg;
-    let bb = Barretenberg::new();
-}
-#[test]
-fn foo1() {
-    use crate::Barretenberg;
-    let bb = Barretenberg::new();
-}
