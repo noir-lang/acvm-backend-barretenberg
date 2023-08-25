@@ -19,7 +19,7 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-linux
-          - os: macos-latest-xl
+          - os: macos-latest
             target: x86_64-darwin
 
     steps:
