@@ -62,4 +62,5 @@ fn write_vk_command() {
 
     let vk_written = write_vk_command.run();
     assert!(vk_written.is_ok());
+    drop(temp_directory);
 }

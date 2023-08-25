@@ -64,4 +64,5 @@ fn prove_and_verify_command() {
 
     let output = prove_and_verify_command.run();
     assert!(output);
+    drop(temp_directory);
 }

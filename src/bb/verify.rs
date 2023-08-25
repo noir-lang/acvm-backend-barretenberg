@@ -83,4 +83,5 @@ fn verify_command() {
 
     let verified = verify_command.run();
     assert!(verified);
+    drop(temp_directory);
 }

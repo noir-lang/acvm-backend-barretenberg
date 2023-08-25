@@ -73,4 +73,5 @@ fn prove_command() {
 
     let proof_created = prove_command.run();
     assert!(proof_created.is_ok());
+    drop(temp_directory);
 }
