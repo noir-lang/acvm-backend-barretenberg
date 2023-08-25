@@ -20,16 +20,18 @@ impl SmartContract for Barretenberg {
         _verification_key: &[u8],
     ) -> Result<String, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
-        let temp_directory = temp_directory.path();
-        let temp_dir_path = temp_directory.to_str().unwrap();
+        let temp_directory_path = temp_directory.path();
+        let temp_dir_path = temp_directory_path.to_str().unwrap();
 
         // Create a temporary file for the circuit
-        let circuit_path = temp_directory.join("circuit").with_extension("bytecode");
+        let circuit_path = temp_directory_path
+            .join("circuit")
+            .with_extension("bytecode");
         let serialized_circuit = serialize_circuit(circuit);
         write_to_file(serialized_circuit.as_bytes(), &circuit_path);
 
         // Create the verification key and write it to the specified path
-        let vk_path = temp_directory.join("vk").to_str().unwrap().to_string();
+        let vk_path = temp_directory_path.join("vk").to_str().unwrap().to_string();
         WriteVkCommand {
             verbose: false,
             path_to_crs: temp_dir_path.to_string(),
@@ -40,7 +42,7 @@ impl SmartContract for Barretenberg {
         .run()
         .expect("write vk command failed");
 
-        let path_to_contract = temp_directory
+        let path_to_contract = temp_directory_path
             .join("contract")
             .to_str()
             .unwrap()
@@ -57,6 +59,7 @@ impl SmartContract for Barretenberg {
         let verification_key_library_bytes = read_bytes_from_file(&path_to_contract).unwrap();
         let verification_key_library = String::from_utf8(verification_key_library_bytes).unwrap();
 
+        drop(temp_directory);
         Ok(format!(
             "{verification_key_library}{ULTRA_VERIFIER_CONTRACT}"
         ))
