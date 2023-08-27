@@ -3,7 +3,7 @@ name: Test
 on: [push, pull_request]
 
 jobs:
-  test_default:
+  test_native:
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -21,7 +21,7 @@ jobs:
         toolchain: 1.67.0
         override: true
 
-    - name: Run tests (default features)
+    - name: Run tests
       uses: actions-rs/cargo@v1
       with:
         command: test
