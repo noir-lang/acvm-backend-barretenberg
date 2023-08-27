@@ -345,6 +345,5 @@ mod wasm {
         }
     }
 
-    // This is a method that
     fn proc_exit(_: i32) {}
 }
