@@ -289,10 +289,6 @@ mod wasm {
                     &function_env,
                     logstr,
                 ),
-                "set_data" => Function::new_typed(&mut store, set_data),
-                "get_data" => Function::new_typed(&mut store, get_data),
-                "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
-                "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
                 "memory" => memory.clone(),
             },
             "wasi_snapshot_preview1" => {
@@ -349,23 +345,6 @@ mod wasm {
         }
     }
 
-    fn proc_exit(_: i32) {
-        // unimplemented!("proc_exit is not implemented")
-    }
-
-    fn set_data(_: i32, _: i32, _: i32) {
-        unimplemented!("set_data is not implemented")
-    }
-
-    fn get_data(_: i32, _: i32) -> i32 {
-        unimplemented!("get_data is not implemented")
-    }
-
-    fn env_load_verifier_crs() -> i32 {
-        unimplemented!("env_load_verifier_crs is not implemented")
-    }
-
-    fn env_load_prover_crs(_: i32) -> i32 {
-        unimplemented!("env_load_prover_crs is not implemented")
-    }
+    // This is a method that
+    fn proc_exit(_: i32) {}
 }
