@@ -16,42 +16,6 @@ pub(crate) trait SchnorrSig {
     ) -> Result<bool, Error>;
 }
 
-#[cfg(feature = "native")]
-impl SchnorrSig for Barretenberg {
-    fn construct_signature(
-        &self,
-        message: &[u8],
-        private_key: [u8; 32],
-    ) -> Result<([u8; 32], [u8; 32]), Error> {
-        Ok(barretenberg_sys::schnorr::construct_signature(
-            message,
-            private_key,
-        ))
-    }
-
-    fn construct_public_key(&self, private_key: [u8; 32]) -> Result<[u8; 64], Error> {
-        Ok(barretenberg_sys::schnorr::construct_public_key(
-            &private_key,
-        ))
-    }
-
-    fn verify_signature(
-        &self,
-        pub_key: [u8; 64],
-        sig_s: [u8; 32],
-        sig_e: [u8; 32],
-        message: &[u8],
-    ) -> Result<bool, Error> {
-        Ok(barretenberg_sys::schnorr::verify_signature(
-            pub_key, sig_s, sig_e, message,
-        ))
-
-        // Note, currently for Barretenberg plonk, if the signature fails
-        // then the whole circuit fails.
-    }
-}
-
-#[cfg(not(feature = "native"))]
 impl SchnorrSig for Barretenberg {
     fn construct_signature(
         &self,

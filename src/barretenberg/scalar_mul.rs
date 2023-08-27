@@ -6,24 +6,6 @@ pub(crate) trait ScalarMul {
     fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error>;
 }
 
-#[cfg(feature = "native")]
-impl ScalarMul for Barretenberg {
-    fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error> {
-        use super::native::field_to_array;
-
-        let result_bytes = barretenberg_sys::schnorr::construct_public_key(&field_to_array(input)?);
-
-        let (pubkey_x_bytes, pubkey_y_bytes) = result_bytes.split_at(FIELD_BYTES);
-        assert!(pubkey_x_bytes.len() == FIELD_BYTES);
-        assert!(pubkey_y_bytes.len() == FIELD_BYTES);
-
-        let pubkey_x = FieldElement::from_be_bytes_reduce(pubkey_x_bytes);
-        let pubkey_y = FieldElement::from_be_bytes_reduce(pubkey_y_bytes);
-        Ok((pubkey_x, pubkey_y))
-    }
-}
-
-#[cfg(not(feature = "native"))]
 impl ScalarMul for Barretenberg {
     fn fixed_base(&self, input: &FieldElement) -> Result<(FieldElement, FieldElement), Error> {
         let lhs_ptr: usize = 0;

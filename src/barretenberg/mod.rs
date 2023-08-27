@@ -10,7 +10,6 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
-#[cfg(not(feature = "native"))]
 mod barretenberg_structures;
 pub(crate) mod pedersen;
 pub(crate) mod scalar_mul;
@@ -18,18 +17,6 @@ pub(crate) mod schnorr;
 
 use thiserror::Error;
 
-#[cfg(feature = "native")]
-#[derive(Debug, Error)]
-pub(super) enum FeatureError {
-    #[error("Could not slice field element")]
-    FieldElementSlice {
-        source: std::array::TryFromSliceError,
-    },
-    #[error("Expected a Vec of length {0} but it was {1}")]
-    FieldToArray(usize, usize),
-}
-
-#[cfg(not(feature = "native"))]
 #[derive(Debug, Error)]
 pub(super) enum FeatureError {
     #[error("Trying to call {name} resulted in an error")]
@@ -72,11 +59,10 @@ pub(crate) const FIELD_BYTES: usize = 32;
 
 #[derive(Debug)]
 pub struct Barretenberg {
-    #[cfg(not(feature = "native"))]
     store: std::cell::RefCell<wasmer::Store>,
-    #[cfg(not(feature = "native"))]
+
     memory: wasmer::Memory,
-    #[cfg(not(feature = "native"))]
+
     instance: wasmer::Instance,
 }
 
@@ -99,26 +85,6 @@ fn smoke() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(feature = "native")]
-mod native {
-    use super::{Barretenberg, Error, FeatureError};
-
-    impl Barretenberg {
-        pub(crate) fn new() -> Barretenberg {
-            Barretenberg {}
-        }
-    }
-
-    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; 32], Error> {
-        let v = f.to_be_bytes();
-        let result: [u8; 32] = v
-            .try_into()
-            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
-        Ok(result)
-    }
-}
-
-#[cfg(not(feature = "native"))]
 mod wasm {
     use std::cell::RefCell;
 
