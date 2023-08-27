@@ -3,7 +3,7 @@ name: Test
 on: [push, pull_request]
 
 jobs:
-  test_native:
+  test:
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -26,27 +26,3 @@ jobs:
       with:
         command: test
         args: --verbose
-
-  # test_wasm:
-  #   runs-on: ${{ matrix.os }}
-
-  #   strategy:
-  #     matrix:
-  #       os: [ubuntu-latest, macOS-latest]
-
-  #   steps:
-  #   - name: Checkout code
-  #     uses: actions/checkout@v2
-
-  #   - name: Set up Rust
-  #     uses: actions-rs/toolchain@v1
-  #     with:
-  #       profile: minimal
-  #       toolchain: 1.67.0
-  #       override: true
-
-  #   - name: Run tests
-  #     uses: actions-rs/cargo@v1
-  #     with:
-  #       command: test
-  #       args: --verbose --no-default-features --features wasm
