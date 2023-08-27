@@ -44,27 +44,34 @@ impl ProveCommand {
         if output.status.success() {
             Ok(())
         } else {
-            Err(CliShimError)
+            Err(CliShimError(String::from_utf8(output.stderr).unwrap()))
         }
     }
 }
 
 #[test]
 fn prove_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
     let path_to_1_mul_witness = "./src/witness.tr";
-    let path_to_crs = "./src/crs";
-    let path_to_proof = "./src/1_mul.proof";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory_path = temp_directory.path();
+
+    let path_to_crs = temp_directory_path.join("crs");
+    let path_to_proof = temp_directory_path.join("1_mul").with_extension("proof");
 
     let prove_command = ProveCommand {
         verbose: true,
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
         is_recursive: false,
         path_to_bytecode: path_to_1_mul.to_string(),
         path_to_witness: path_to_1_mul_witness.to_string(),
-        path_to_proof: path_to_proof.to_string(),
+        path_to_proof: path_to_proof.to_str().unwrap().to_string(),
     };
 
     let proof_created = prove_command.run();
     assert!(proof_created.is_ok());
+    drop(temp_directory);
 }

@@ -45,12 +45,18 @@ impl ProveAndVerifyCommand {
 
 #[test]
 fn prove_and_verify_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
     let path_to_1_mul_witness = "./src/witness.tr";
-    let path_to_crs = "./src/crs";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory_path = temp_directory.path();
+    let path_to_crs = temp_directory_path.join("crs");
+
     let prove_and_verify_command = ProveAndVerifyCommand {
         verbose: true,
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
         is_recursive: false,
         path_to_bytecode: path_to_1_mul.to_string(),
         path_to_witness: path_to_1_mul_witness.to_string(),
@@ -58,4 +64,5 @@ fn prove_and_verify_command() {
 
     let output = prove_and_verify_command.run();
     assert!(output);
+    drop(temp_directory);
 }

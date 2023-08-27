@@ -31,14 +31,20 @@ impl GatesCommand {
 
 #[test]
 fn gate_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
-    let path_to_crs = "./src/crs";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory_path = temp_directory.path();
+    let path_to_crs = temp_directory_path.join("crs");
 
     let gate_command = GatesCommand {
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
         path_to_bytecode: path_to_1_mul.to_string(),
     };
 
     let output = gate_command.run();
     assert_eq!(output, 2775);
+    drop(temp_directory);
 }

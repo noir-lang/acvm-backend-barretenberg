@@ -11,10 +11,11 @@ pub(crate) struct ContractCommand {
     pub(crate) verbose: bool,
     pub(crate) path_to_crs: String,
     pub(crate) path_to_vk: String,
+    pub(crate) path_to_contract: String,
 }
 
 impl ContractCommand {
-    pub(crate) fn run(self) -> Result<String, CliShimError> {
+    pub(crate) fn run(self) -> Result<(), CliShimError> {
         assert_binary_exists();
         let mut command = std::process::Command::new(get_binary_path());
 
@@ -25,7 +26,7 @@ impl ContractCommand {
             .arg("-k")
             .arg(self.path_to_vk)
             .arg("-o")
-            .arg("/dev/null");
+            .arg(self.path_to_contract);
 
         if self.verbose {
             command.arg("-v");
@@ -33,35 +34,42 @@ impl ContractCommand {
 
         let output = command.output().expect("Failed to execute command");
         if output.status.success() {
-            let contract_string = String::from_utf8_lossy(&output.stdout).into();
-            Ok(contract_string)
+            Ok(())
         } else {
-            Err(CliShimError)
+            Err(CliShimError(String::from_utf8(output.stderr).unwrap()))
         }
     }
 }
 
 #[test]
 fn contract_command() {
+    use tempfile::tempdir;
+
     let path_to_1_mul = "./src/1_mul.bytecode";
-    let path_to_vk_output = "./src/vk1";
-    let path_to_crs = "./src/crs";
+
+    let temp_directory = tempdir().expect("could not create a temporary directory");
+    let temp_directory_path = temp_directory.path();
+    let path_to_crs = temp_directory_path.join("crs");
+    let path_to_vk = temp_directory_path.join("vk");
+    let path_to_contract = temp_directory_path.join("contract");
 
     let write_vk_command = super::WriteVkCommand {
         verbose: true,
         path_to_bytecode: path_to_1_mul.to_string(),
-        path_to_vk_output: path_to_vk_output.to_string(),
+        path_to_vk_output: path_to_vk.to_str().unwrap().to_string(),
         is_recursive: false,
-        path_to_crs: path_to_crs.to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
     };
 
     assert!(write_vk_command.run().is_ok());
 
     let contract_command = ContractCommand {
         verbose: true,
-        path_to_vk: path_to_vk_output.to_string(),
-        path_to_crs: path_to_crs.to_string(),
+        path_to_vk: path_to_vk.to_str().unwrap().to_string(),
+        path_to_crs: path_to_crs.to_str().unwrap().to_string(),
+        path_to_contract: path_to_contract.to_str().unwrap().to_string(),
     };
 
     assert!(contract_command.run().is_ok());
+    drop(temp_directory);
 }
