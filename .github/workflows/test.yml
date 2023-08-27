@@ -54,7 +54,7 @@ jobs:
 
       - name: Run `nix flake check`
         run: |
-          nix flake check -L
+          nix flake check -L --option sandbox false
 
       - name: Export cache from nix store
         if: steps.nix-store-cache.outputs.cache-hit != 'true'
