@@ -16,65 +16,6 @@ pub(crate) trait Pedersen {
     ) -> Result<(FieldElement, FieldElement), Error>;
 }
 
-#[cfg(feature = "native")]
-impl Pedersen for Barretenberg {
-    fn compress_native(
-        &self,
-        left: &FieldElement,
-        right: &FieldElement,
-    ) -> Result<FieldElement, Error> {
-        use super::FeatureError;
-
-        let result_bytes = barretenberg_sys::pedersen::compress_native(
-            left.to_be_bytes()
-                .as_slice()
-                .try_into()
-                .map_err(|source| FeatureError::FieldElementSlice { source })?,
-            right
-                .to_be_bytes()
-                .as_slice()
-                .try_into()
-                .map_err(|source| FeatureError::FieldElementSlice { source })?,
-        );
-
-        Ok(FieldElement::from_be_bytes_reduce(&result_bytes))
-    }
-
-    #[allow(dead_code)]
-    fn compress_many(&self, inputs: Vec<FieldElement>) -> Result<FieldElement, Error> {
-        use super::native::field_to_array;
-
-        let mut inputs_buf = Vec::new();
-        for f in inputs {
-            inputs_buf.push(field_to_array(&f)?);
-        }
-        let result_bytes = barretenberg_sys::pedersen::compress_many(&inputs_buf);
-
-        Ok(FieldElement::from_be_bytes_reduce(&result_bytes))
-    }
-
-    fn encrypt(
-        &self,
-        inputs: Vec<FieldElement>,
-        hash_index: u32,
-    ) -> Result<(FieldElement, FieldElement), Error> {
-        use super::native::field_to_array;
-
-        let mut inputs_buf = Vec::new();
-        for f in inputs {
-            inputs_buf.push(field_to_array(&f)?);
-        }
-        let (point_x_bytes, point_y_bytes) =
-            barretenberg_sys::pedersen::encrypt(&inputs_buf, hash_index);
-
-        let point_x = FieldElement::from_be_bytes_reduce(&point_x_bytes);
-        let point_y = FieldElement::from_be_bytes_reduce(&point_y_bytes);
-
-        Ok((point_x, point_y))
-    }
-}
-
-#[cfg(not(feature = "native"))]
 impl Pedersen for Barretenberg {
     fn compress_native(
         &self,

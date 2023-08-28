@@ -10,7 +10,6 @@ compile_error!("feature \"native\" cannot be enabled for a \"wasm32\" target");
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 compile_error!("feature \"wasm\" cannot be enabled for a \"wasm32\" target");
 
-#[cfg(not(feature = "native"))]
 mod barretenberg_structures;
 pub(crate) mod pedersen;
 pub(crate) mod scalar_mul;
@@ -18,18 +17,6 @@ pub(crate) mod schnorr;
 
 use thiserror::Error;
 
-#[cfg(feature = "native")]
-#[derive(Debug, Error)]
-pub(super) enum FeatureError {
-    #[error("Could not slice field element")]
-    FieldElementSlice {
-        source: std::array::TryFromSliceError,
-    },
-    #[error("Expected a Vec of length {0} but it was {1}")]
-    FieldToArray(usize, usize),
-}
-
-#[cfg(not(feature = "native"))]
 #[derive(Debug, Error)]
 pub(super) enum FeatureError {
     #[error("Trying to call {name} resulted in an error")]
@@ -72,11 +59,10 @@ pub(crate) const FIELD_BYTES: usize = 32;
 
 #[derive(Debug)]
 pub struct Barretenberg {
-    #[cfg(not(feature = "native"))]
     store: std::cell::RefCell<wasmer::Store>,
-    #[cfg(not(feature = "native"))]
+
     memory: wasmer::Memory,
-    #[cfg(not(feature = "native"))]
+
     instance: wasmer::Instance,
 }
 
@@ -99,26 +85,6 @@ fn smoke() -> Result<(), Error> {
     Ok(())
 }
 
-#[cfg(feature = "native")]
-mod native {
-    use super::{Barretenberg, Error, FeatureError};
-
-    impl Barretenberg {
-        pub(crate) fn new() -> Barretenberg {
-            Barretenberg {}
-        }
-    }
-
-    pub(super) fn field_to_array(f: &acvm::FieldElement) -> Result<[u8; 32], Error> {
-        let v = f.to_be_bytes();
-        let result: [u8; 32] = v
-            .try_into()
-            .map_err(|v: Vec<u8>| FeatureError::FieldToArray(32, v.len()))?;
-        Ok(result)
-    }
-}
-
-#[cfg(not(feature = "native"))]
 mod wasm {
     use std::cell::RefCell;
 
@@ -140,7 +106,7 @@ mod wasm {
 
     /// Embed the Barretenberg WASM file
     #[derive(rust_embed::RustEmbed)]
-    #[folder = "$BARRETENBERG_BIN_DIR"]
+    #[folder = "src/barretenberg"]
     #[include = "barretenberg.wasm"]
     struct Wasm;
 
@@ -312,7 +278,7 @@ mod wasm {
     fn instance_load() -> (Instance, Memory, Store) {
         let mut store = Store::default();
 
-        let mem_type = MemoryType::new(23, None, false);
+        let mem_type = MemoryType::new(18, Some(65536), false);
         let memory = Memory::new(&mut store, mem_type).unwrap();
 
         let function_env = FunctionEnv::new(&mut store, memory.clone());
@@ -323,27 +289,15 @@ mod wasm {
                     &function_env,
                     logstr,
                 ),
-                "set_data" => Function::new_typed(&mut store, set_data),
-                "get_data" => Function::new_typed(&mut store, get_data),
-                "env_load_verifier_crs" => Function::new_typed(&mut store, env_load_verifier_crs),
-                "env_load_prover_crs" => Function::new_typed(&mut store, env_load_prover_crs),
                 "memory" => memory.clone(),
             },
             "wasi_snapshot_preview1" => {
-                "fd_read" => Function::new_typed(&mut store, fd_read),
-                "fd_close" => Function::new_typed(&mut store, fd_close),
                 "proc_exit" =>  Function::new_typed(&mut store, proc_exit),
-                "fd_fdstat_get" => Function::new_typed(&mut store, fd_fdstat_get),
                 "random_get" => Function::new_typed_with_env(
                     &mut store,
                     &function_env,
                     random_get
                 ),
-                "fd_seek" => Function::new_typed(&mut store, fd_seek),
-                "fd_write" => Function::new_typed(&mut store, fd_write),
-                "environ_sizes_get" => Function::new_typed(&mut store, environ_sizes_get),
-                "environ_get" => Function::new_typed(&mut store, environ_get),
-                "clock_time_get" => Function::new_typed(&mut store, clock_time_get),
             },
         };
 
@@ -391,55 +345,5 @@ mod wasm {
         }
     }
 
-    fn clock_time_get(_: i32, _: i64, _: i32) -> i32 {
-        unimplemented!("clock_time_get is not implemented")
-    }
-
-    fn proc_exit(_: i32) {
-        unimplemented!("proc_exit is not implemented")
-    }
-
-    fn fd_write(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_write is not implemented")
-    }
-
-    fn fd_seek(_: i32, _: i64, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_seek is not implemented")
-    }
-
-    fn fd_read(_: i32, _: i32, _: i32, _: i32) -> i32 {
-        unimplemented!("fd_read is not implemented")
-    }
-
-    fn fd_fdstat_get(_: i32, _: i32) -> i32 {
-        unimplemented!("fd_fdstat_get is not implemented")
-    }
-
-    fn fd_close(_: i32) -> i32 {
-        unimplemented!("fd_close is not implemented")
-    }
-
-    fn environ_sizes_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_sizes_get is not implemented")
-    }
-
-    fn environ_get(_: i32, _: i32) -> i32 {
-        unimplemented!("environ_get is not implemented")
-    }
-
-    fn set_data(_: i32, _: i32, _: i32) {
-        unimplemented!("set_data is not implemented")
-    }
-
-    fn get_data(_: i32, _: i32) -> i32 {
-        unimplemented!("get_data is not implemented")
-    }
-
-    fn env_load_verifier_crs() -> i32 {
-        unimplemented!("env_load_verifier_crs is not implemented")
-    }
-
-    fn env_load_prover_crs(_: i32) -> i32 {
-        unimplemented!("env_load_prover_crs is not implemented")
-    }
+    fn proc_exit(_: i32) {}
 }
