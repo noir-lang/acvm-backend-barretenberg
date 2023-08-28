@@ -1,5 +1,3 @@
-use std::env;
-
 use build_target::Os;
 
 // Useful for printing debugging messages during the build
