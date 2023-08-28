@@ -43,7 +43,7 @@ fn get_bb_download_url() -> String {
     let target_arch = env!("TARGET_ARCH");
 
     let archive_name = match target_os {
-        "linux" => "bb-ubuntu.tar.gz",
+        "linux" => "barretenberg-x86_64-linux-gnu.tar.gz",
         "macos" => match target_arch {
             "aarch64" => "barretenberg-aarch64-apple-darwin.tar.gz",
             "x86_64" => "barretenberg-x86_64-apple-darwin.tar.gz",
