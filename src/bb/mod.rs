@@ -35,17 +35,24 @@ const API_URL: &str = formatcp!(
 );
 
 fn get_bb_download_url() -> String {
-    match std::env::var("BB_BINARY_URL") {
-        Ok(path) => path,
-        Err(_) => {
-            let archive_name = match env!("TARGET_OS") {
-                "linux" => "bb-ubuntu.tar.gz",
-                "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
-                _ => panic!("Unsupported OS"),
-            };
-            format!("{API_URL}/{archive_name}")
-        }
+    if let Ok(path) = std::env::var("BB_BINARY_URL") {
+        return path;
     }
+
+    let target_os = env!("TARGET_OS");
+    let target_arch = env!("TARGET_ARCH");
+
+    let archive_name = match target_os {
+        "linux" => "bb-ubuntu.tar.gz",
+        "macos" => match target_arch {
+            "aarch64" => "barretenberg-aarch64-apple-darwin.tar.gz",
+            "x86_64" => "barretenberg-x86_64-apple-darwin.tar.gz",
+            arch => panic!("unsupported arch {arch}"),
+        },
+        os => panic!("Unsupported OS {os}"),
+    };
+
+    format!("{API_URL}/{archive_name}")
 }
 
 /// Returns the path to the binary that was set by the `NARGO_BINARIES_PATH` environment variable
