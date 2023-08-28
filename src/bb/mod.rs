@@ -84,7 +84,7 @@ fn download_bb_binary() {
     archive.unpack(&temp_directory).unwrap();
 
     let binary_path = match env!("TARGET_OS") {
-        "linux" => temp_directory.path().join("cpp/build/bin/bb"),
+        "linux" => temp_directory.path().join("bb"),
         "macos" => temp_directory.path().join("bb"),
         _ => panic!("Unsupported OS"),
     };
