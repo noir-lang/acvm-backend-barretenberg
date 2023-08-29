@@ -46,7 +46,7 @@ impl GatesCommand {
             output.stdout[7],
         ]);
 
-        return value as u32;
+        value as u32
     }
 }
 
