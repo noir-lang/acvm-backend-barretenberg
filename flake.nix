@@ -138,16 +138,16 @@
       # Conditionally download the binary based on whether it is linux or mac
       bb_binary = let
         platformSpecificUrl = if stdenv.hostPlatform.isLinux then
-          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/bb-ubuntu.tar.gz"
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/barretenberg-x86_64-linux-gnu.tar.gz"
         else if stdenv.hostPlatform.isDarwin then
-          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.3/barretenberg-x86_64-apple-darwin.tar.gz"
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/barretenberg-x86_64-apple-darwin.tar.gz"
         else
           throw "Unsupported platform";
 
         platformSpecificHash = if stdenv.hostPlatform.isLinux then
-          "sha256:0rcsjws87f4v28cw9734c10pg7c49apigf4lg3m0ji5vbhhmfnhr"
+          "sha256:1p15v6rvf9195047pfbw8dns3z6s54q4c9hgbxan72lhjjgjz800"
         else if stdenv.hostPlatform.isDarwin then
-          "sha256:0pnsd56z0vkai7m0advawfgcvq9jbnpqm7lk98n5flqj583x3w35"
+          "sha256:03d9rsmhvzaz7ni8ac9hf3adc2dw57nv6q406v4l49g1rd354dm0"
         else
           throw "Unsupported platform";
       in builtins.fetchurl {
