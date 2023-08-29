@@ -36,27 +36,16 @@
         rust-overlay.follows = "rust-overlay";
       };
     };
-
-    barretenberg = {
-      url = "github:AztecProtocol/barretenberg";
-      # All of these inputs (a.k.a. dependencies) need to align with inputs we
-      # use so they use the `inputs.*.follows` syntax to reference our inputs
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
-      };
-    };
   };
 
   outputs =
-    { self, nixpkgs, crane, flake-utils, rust-overlay, barretenberg, ... }:
+    { self, nixpkgs, crane, flake-utils, rust-overlay, ... }:
     flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs {
         inherit system;
         overlays = [
           rust-overlay.overlays.default
-          barretenberg.overlays.default
         ];
       };
 
@@ -138,7 +127,6 @@
 
         buildInputs = [
           pkgs.llvmPackages.openmp
-          pkgs.barretenberg
         ] ++ extraBuildInputs;
       };
       
