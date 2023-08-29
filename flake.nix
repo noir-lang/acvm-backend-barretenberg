@@ -75,6 +75,10 @@
         # Note: Setting this allows for consistent behavior across build and shells, but is mostly
         # hidden from the developer - i.e. when they see the command being run via `nix flake check`
         RUST_TEST_THREADS = "1";
+        BARRETENBERG_ARCHIVE = builtins.fetchurl {
+          url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.5/acvm_backend.wasm.tar.gz";
+          sha256 = "sha256:0z24yhvxc0dr13xj7y4xs9p42lzxwpazrmsrdpcgynfajkk6vqy4";
+        };
       };
 
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special

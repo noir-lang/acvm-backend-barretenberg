@@ -24,6 +24,12 @@ const FIELD_BYTES: usize = 32;
 #[derive(Debug, Default)]
 pub struct Barretenberg;
 
+impl Barretenberg {
+    pub fn new() -> Barretenberg {
+        Barretenberg
+    }
+}
+
 impl acvm::Backend for Barretenberg {}
 
 #[derive(Debug, thiserror::Error)]

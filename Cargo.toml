@@ -33,4 +33,4 @@ reqwest = { version = "0.11.16", default-features = false, features = [
 build-target = "0.4.0"
 
 [patch.crates-io]
-acvm = { git = "https://github.com/noir-lang/acvm", rev = "be7fafd9a1de639b3ad0ee18dd9c3e9c783459ab" }
+acvm = { git = "https://github.com/noir-lang/acvm", branch = "master" }
