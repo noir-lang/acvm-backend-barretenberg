@@ -34,7 +34,7 @@ jobs:
 
   test_mac:
     name: Test on macOS
-    runs-on: macOS-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         target: [x86_64-apple-darwin, aarch64-apple-darwin]
