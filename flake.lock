@@ -1,5 +1,29 @@
 {
   "nodes": {
+    "barretenberg": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1693320399,
+        "narHash": "sha256-P6xsi4OzfVBWQF/gHt4u2dMyKOPbCMoJ7n9URzMvkik=",
+        "owner": "AztecProtocol",
+        "repo": "barretenberg",
+        "rev": "051449fe181bf53e2cfebc15c6b9bd01cc44fc50",
+        "type": "github"
+      },
+      "original": {
+        "owner": "AztecProtocol",
+        "ref": "barretenberg-v0.4.6",
+        "repo": "barretenberg",
+        "type": "github"
+      }
+    },
     "crane": {
       "inputs": {
         "flake-compat": [
@@ -81,6 +105,7 @@
     },
     "root": {
       "inputs": {
+        "barretenberg": "barretenberg",
         "crane": "crane",
         "flake-compat": "flake-compat",
         "flake-utils": "flake-utils",
