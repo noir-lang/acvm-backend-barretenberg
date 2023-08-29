@@ -58,12 +58,6 @@
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
       sharedEnvironment = {
-        # Barretenberg fails if tests are run on multiple threads, so we set the test thread
-        # count to 1 throughout the entire project
-        #
-        # Note: Setting this allows for consistent behavior across build and shells, but is mostly
-        # hidden from the developer - i.e. when they see the command being run via `nix flake check`
-        RUST_TEST_THREADS = "1";
         BARRETENBERG_ARCHIVE = builtins.fetchurl {
           url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/acvm_backend.wasm.tar.gz";
           sha256 = "sha256:1xpycikqlvsjcryi3hkbc4mwmmdz7zshw6f76vyf1qssq53asyfx";
