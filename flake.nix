@@ -172,7 +172,7 @@
           # Conditionally patch the binary for Linux
           ${if stdenv.hostPlatform.isLinux then ''
 
-            cp extracted/cpp/build/bin/bb ./backend_binary
+            cp extracted/bb ./backend_binary
           
             echo "Patching bb binary for Linux"
             patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
