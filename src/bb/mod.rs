@@ -89,12 +89,7 @@ fn download_bb_binary() {
 
     let temp_directory = tempdir().expect("could not create a temporary directory");
     archive.unpack(&temp_directory).unwrap();
-
-    let binary_path = match env!("TARGET_OS") {
-        "linux" => temp_directory.path().join("bb"),
-        "macos" => temp_directory.path().join("bb"),
-        _ => panic!("Unsupported OS"),
-    };
+    let binary_path = temp_directory.path().join("bb");
 
     // Rename the binary to the desired name
     std::fs::copy(binary_path, get_binary_path()).unwrap();
