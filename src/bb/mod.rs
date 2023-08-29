@@ -22,7 +22,7 @@ pub(crate) struct CliShimError(String);
 
 const USERNAME: &str = "AztecProtocol";
 const REPO: &str = "barretenberg";
-const VERSION: &str = "0.4.2";
+const VERSION: &str = "0.4.5";
 const TAG: &str = formatcp!("barretenberg-v{}", VERSION);
 const DEST_FOLDER: &str = ".nargo/backends/acvm-backend-barretenberg";
 const BINARY_NAME: &str = "backend_binary";
@@ -35,17 +35,24 @@ const API_URL: &str = formatcp!(
 );
 
 fn get_bb_download_url() -> String {
-    match std::env::var("BB_BINARY_URL") {
-        Ok(path) => path,
-        Err(_) => {
-            let archive_name = match env!("TARGET_OS") {
-                "linux" => "bb-ubuntu.tar.gz",
-                "macos" => "barretenberg-x86_64-apple-darwin.tar.gz",
-                _ => panic!("Unsupported OS"),
-            };
-            format!("{API_URL}/{archive_name}")
-        }
+    if let Ok(path) = std::env::var("BB_BINARY_URL") {
+        return path;
     }
+
+    let target_os = env!("TARGET_OS");
+    let target_arch = env!("TARGET_ARCH");
+
+    let archive_name = match target_os {
+        "linux" => "barretenberg-x86_64-linux-gnu.tar.gz",
+        "macos" => match target_arch {
+            "aarch64" => "barretenberg-aarch64-apple-darwin.tar.gz",
+            "x86_64" => "barretenberg-x86_64-apple-darwin.tar.gz",
+            arch => panic!("unsupported arch {arch}"),
+        },
+        os => panic!("Unsupported OS {os}"),
+    };
+
+    format!("{API_URL}/{archive_name}")
 }
 
 /// Returns the path to the binary that was set by the `NARGO_BINARIES_PATH` environment variable
@@ -74,7 +81,7 @@ fn download_bb_binary() {
 
     // Download sources
     let compressed_file: Cursor<Vec<u8>> = download_binary_from_url(&get_bb_download_url())
-        .unwrap_or_else(|error| panic!("\n\nDownload error: {}\n\n", error));
+        .unwrap_or_else(|error| panic!("\n\nDownload error: {error}\n\n"));
 
     // Unpack the tarball
     let gz_decoder = GzDecoder::new(compressed_file);
@@ -82,12 +89,7 @@ fn download_bb_binary() {
 
     let temp_directory = tempdir().expect("could not create a temporary directory");
     archive.unpack(&temp_directory).unwrap();
-
-    let binary_path = match env!("TARGET_OS") {
-        "linux" => temp_directory.path().join("cpp/build/bin/bb"),
-        "macos" => temp_directory.path().join("bb"),
-        _ => panic!("Unsupported OS"),
-    };
+    let binary_path = temp_directory.path().join("bb");
 
     // Rename the binary to the desired name
     std::fs::copy(binary_path, get_binary_path()).unwrap();

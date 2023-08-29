@@ -60,7 +60,7 @@
         ];
       };
 
-      rustToolchain = pkgs.rust-bin.stable."1.66.0".default.override {
+      rustToolchain = pkgs.rust-bin.stable."1.67.0".default.override {
         # We include rust-src to ensure rust-analyzer works.
         # See https://discourse.nixos.org/t/rust-src-not-found-and-other-misadventures-of-developing-rust-on-nixos/11570/4
         extensions = [ "rust-src" ];
@@ -81,6 +81,7 @@
         };
       };
 
+      wasmFilter = path: _type: builtins.match ".*wasm$" path != null;
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
       # source filter to include .sol files in addition to usual rust/cargo source files.
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;
@@ -88,7 +89,7 @@
       bytecodeFilter = path: _type: builtins.match ".*bytecode$" path != null;
       witnessFilter = path: _type: builtins.match ".*tr$" path != null;
       sourceFilter = path: type:
-        (solidityFilter path type) || (bytecodeFilter path type) || (witnessFilter path type) || (craneLib.filterCargoSources path type);
+        (solidityFilter path type) || (bytecodeFilter path type)|| (wasmFilter path type) || (witnessFilter path type) || (craneLib.filterCargoSources path type);
 
       # As per https://discourse.nixos.org/t/gcc11stdenv-and-clang/17734/7 since it seems that aarch64-linux uses
       # gcc9 instead of gcc11 for the C++ stdlib, while all other targets we support provide the correct libstdc++

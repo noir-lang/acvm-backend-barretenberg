@@ -20,12 +20,33 @@ impl GatesCommand {
             .output()
             .expect("Failed to execute command");
 
+        if !output.status.success() {
+            panic!(
+                "gates command encountered an error: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
         // Note: barretenberg includes the newline, so that subsequent prints to stdout
         // are not on the same line as the gates output.
-        let number_gates_with_new_line: String = String::from_utf8_lossy(&output.stdout).into();
-        let number_of_gates = number_gates_with_new_line.trim().to_string();
 
-        number_of_gates.parse::<u32>().unwrap()
+        // Ensure we got the expected number of bytes
+        if output.stdout.len() != 8 {
+            panic!("Unexpected 8 bytes, received {}", output.stdout.len());
+        }
+
+        // Convert bytes to u64 in little-endian format
+        let value = u64::from_le_bytes([
+            output.stdout[0],
+            output.stdout[1],
+            output.stdout[2],
+            output.stdout[3],
+            output.stdout[4],
+            output.stdout[5],
+            output.stdout[6],
+            output.stdout[7],
+        ]);
+
+        value as u32
     }
 }
 
