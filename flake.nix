@@ -168,17 +168,14 @@
           echo "Extracting bb binary"
           mkdir extracted
           tar -xf ${bb_binary} -C extracted
+          cp extracted/bb ./backend_binary
 
           # Conditionally patch the binary for Linux
           ${if stdenv.hostPlatform.isLinux then ''
-
-            cp extracted/bb ./backend_binary
-          
             echo "Patching bb binary for Linux"
             patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
             patchelf --set-interpreter ${stdenv.cc.libc}/lib/ld-linux-x86-64.so.2 ./backend_binary
           '' else if stdenv.hostPlatform.isDarwin then ''
-            cp extracted/bb ./backend_binary
           '' else
             throw "Unsupported platform"
           }
