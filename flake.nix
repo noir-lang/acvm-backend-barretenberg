@@ -68,14 +68,7 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-      sharedEnvironment = {
-        # Barretenberg fails if tests are run on multiple threads, so we set the test thread
-        # count to 1 throughout the entire project
-        #
-        # Note: Setting this allows for consistent behavior across build and shells, but is mostly
-        # hidden from the developer - i.e. when they see the command being run via `nix flake check`
-        RUST_TEST_THREADS = "1";
-      };
+      sharedEnvironment = { };
 
       nativeEnvironment = sharedEnvironment // {
         # rust-bindgen needs to know the location of libclang
