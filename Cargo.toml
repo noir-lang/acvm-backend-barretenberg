@@ -13,7 +13,7 @@ license = "MIT OR Apache-2.0"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-acvm = { version = "0.22.0", features = ["bn254"] }
+acvm = { version = "0.23.0", features = ["bn254"] }
 thiserror = "1.0.21"
 base64 = "0.21.2"
 
@@ -29,16 +29,5 @@ reqwest = { version = "0.11.16", default-features = false, features = [
     "blocking",
 ] }
 
-
-# Wasm
-getrandom = { version = "0.2" }
-rust-embed = { version = "6.6.0", features = [
-    "debug-embed",
-    "interpolate-folder-path",
-    "include-exclude",
-] }
-wasmer = { version = "4.1.2", features = ["wasmer-compiler-singlepass"] }
-
 [build-dependencies]
 build-target = "0.4.0"
-pkg-config = "0.3"

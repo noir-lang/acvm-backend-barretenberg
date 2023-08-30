@@ -93,7 +93,7 @@ mod tests {
             return_values: PublicInputs::default(),
         };
 
-        let bb = Barretenberg::new();
+        let bb = Barretenberg;
 
         let common_reference_string = Vec::new();
         let verification_key = Vec::new();

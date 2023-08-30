@@ -8,9 +8,8 @@ use acvm::FieldElement;
 use acvm::{Language, ProofSystemCompiler};
 use tempfile::tempdir;
 
-use crate::barretenberg::FIELD_BYTES;
 use crate::bb::{GatesCommand, ProveCommand, VerifyCommand, WriteVkCommand};
-use crate::{BackendError, Barretenberg};
+use crate::{BackendError, Barretenberg, FIELD_BYTES};
 
 impl ProofSystemCompiler for Barretenberg {
     type Error = BackendError;
@@ -62,14 +61,6 @@ impl ProofSystemCompiler for Barretenberg {
                 | BlackBoxFunc::RecursiveAggregation => true,
             },
         }
-    }
-
-    fn preprocess(
-        &self,
-        _common_reference_string: &[u8],
-        _circuit: &Circuit,
-    ) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
-        unimplemented!("Key generation is now left to the backend.")
     }
 
     fn prove_with_pk(
