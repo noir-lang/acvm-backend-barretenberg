@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.12.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.11.0...v0.12.0) (2023-08-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* Call backend via precompiled binaries ([#239](https://github.com/noir-lang/acvm-backend-barretenberg/issues/239))
+
+### Features
+
+* Call backend via precompiled binaries ([#239](https://github.com/noir-lang/acvm-backend-barretenberg/issues/239)) ([f42b5ee](https://github.com/noir-lang/acvm-backend-barretenberg/commit/f42b5ee9a57ccf0b81b90485d2aca1316ad970ce))
+
 ## [0.11.0](https://github.com/noir-lang/acvm-backend-barretenberg/compare/v0.10.1...v0.11.0) (2023-08-18)
 
 
