@@ -4,8 +4,9 @@ version = 3
 
 [[package]]
 name = "acir"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dab15381940b2eb3ecca70e78adcfb547df5b49123b2872c2333b0ee965beae"
 dependencies = [
  "acir_field",
  "bincode",
@@ -17,8 +18,9 @@ dependencies = [
 
 [[package]]
 name = "acir_field"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16ae84a2d0f6e5087a499c56d41ca8227fd26abea01b527694c601b230b27111"
 dependencies = [
  "ark-bn254",
  "ark-ff",
@@ -30,13 +32,13 @@ dependencies = [
 
 [[package]]
 name = "acvm"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cc5bd62182c728ec5d3a080319765b0c86f294fc74f90fd6657008ae789d797"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",
  "acvm_stdlib",
- "async-trait",
  "brillig_vm",
  "indexmap",
  "num-bigint",
@@ -62,8 +64,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_blackbox_solver"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b79e031466b5075260257a61359eb9775c5ef92dce27621af1c36bfd0a6eb511"
 dependencies = [
  "acir",
  "blake2",
@@ -73,6 +76,7 @@ dependencies = [
  "k256",
  "p256",
  "pkg-config",
+ "reqwest",
  "rust-embed",
  "sha2",
  "sha3",
@@ -84,8 +88,9 @@ dependencies = [
 
 [[package]]
 name = "acvm_stdlib"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1389b884c07b5eb0c15e5f5395317de060bcf1a6a5f476893c4d65f50de5de1f"
 dependencies = [
  "acir",
 ]
@@ -260,17 +265,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
-name = "async-trait"
-version = "0.1.71"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a564d521dd56509c4c47480d00b80ee55f7e385ae48db5744c67ad50c92d2ebf"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.23",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -362,8 +356,9 @@ dependencies = [
 
 [[package]]
 name = "brillig"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd5fe44d05264a0d9a6d5c5dca8a6c976f3fcdfdfb0244d75e458bf13fcb8f21"
 dependencies = [
  "acir_field",
  "serde",
@@ -371,8 +366,9 @@ dependencies = [
 
 [[package]]
 name = "brillig_vm"
-version = "0.22.0"
-source = "git+https://github.com/noir-lang/acvm?branch=master#a1d4b71256dfbf1e883e770dd9c45479235aa860"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "733be2c7fea117e0b0be985b9b99c15aeca01fb342528fac9c3f70a7f844ec50"
 dependencies = [
  "acir",
  "acvm_blackbox_solver",

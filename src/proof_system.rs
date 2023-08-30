@@ -63,14 +63,6 @@ impl ProofSystemCompiler for Barretenberg {
         }
     }
 
-    fn preprocess(
-        &self,
-        _common_reference_string: &[u8],
-        _circuit: &Circuit,
-    ) -> Result<(Vec<u8>, Vec<u8>), Self::Error> {
-        unimplemented!("Key generation is now left to the backend.")
-    }
-
     fn prove_with_pk(
         &self,
         _common_reference_string: &[u8],
