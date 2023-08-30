@@ -68,12 +68,7 @@
 
       craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-      sharedEnvironment = {
-        BARRETENBERG_ARCHIVE = builtins.fetchurl {
-          url = "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/acvm_backend.wasm.tar.gz";
-          sha256 = "sha256:1xpycikqlvsjcryi3hkbc4mwmmdz7zshw6f76vyf1qssq53asyfx";
-        };
-      };
+      sharedEnvironment = { };
 
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
       # source filter to include .sol files in addition to usual rust/cargo source files.
