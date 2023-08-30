@@ -1,4 +1,4 @@
-use std::env;
+use build_target::{Arch, Os};
 
 // Useful for printing debugging messages during the build
 // macro_rules! p {
@@ -8,24 +8,25 @@ use std::env;
 // }
 
 fn main() -> Result<(), String> {
-    let native_backend = env::var("CARGO_FEATURE_NATIVE").is_ok();
+    // We need to inject which OS we're building for so that we can download the correct barretenberg binary.
+    let os = match build_target::target_os().unwrap() {
+        os @ (Os::Linux | Os::MacOs) => os,
+        Os::Windows => todo!("Windows is not currently supported"),
+        os_name => panic!("Unsupported OS {}", os_name),
+    };
 
-    if native_backend {
-        Ok(())
-    } else {
-        match env::var("BARRETENBERG_BIN_DIR") {
-            Ok(bindir) => {
-                println!("cargo:rustc-env=BARRETENBERG_BIN_DIR={bindir}");
-                Ok(())
-            }
-            Err(_) => {
-                if let Ok(bindir) = pkg_config::get_variable("barretenberg", "bindir") {
-                    println!("cargo:rustc-env=BARRETENBERG_BIN_DIR={bindir}");
-                    Ok(())
-                } else {
-                    Err("Unable to locate barretenberg.wasm - Please set the BARRETENBERG_BIN_DIR env var to the directory where it exists".into())
-                }
-            }
-        }
-    }
+    let arch = match build_target::target_arch().unwrap() {
+        arch @ (Arch::X86_64 | Arch::AARCH64) => arch,
+        arch_name => panic!("Unsupported Architecture {}", arch_name),
+    };
+
+    // Arm builds of linux are not supported
+    if let (Os::Linux, Arch::AARCH64) = (&os, &arch) {
+        panic!("ARM64 builds of linux are not supported")
+    };
+
+    println!("cargo:rustc-env=TARGET_OS={os}");
+    println!("cargo:rustc-env=TARGET_ARCH={arch}");
+
+    Ok(())
 }

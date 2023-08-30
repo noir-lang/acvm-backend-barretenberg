@@ -38,7 +38,7 @@
     };
 
     barretenberg = {
-      url = "github:AztecProtocol/barretenberg";
+      url = "github:AztecProtocol/barretenberg?ref=barretenberg-v0.4.6";
       # All of these inputs (a.k.a. dependencies) need to align with inputs we
       # use so they use the `inputs.*.follows` syntax to reference our inputs
       inputs = {
@@ -77,21 +77,14 @@
         RUST_TEST_THREADS = "1";
       };
 
-      nativeEnvironment = sharedEnvironment // {
-        # rust-bindgen needs to know the location of libclang
-        LIBCLANG_PATH = "${pkgs.llvmPackages.libclang.lib}/lib";
-      };
-
-      wasmEnvironment = sharedEnvironment // {
-        # We set the environment variable because barretenberg must be compiled in a special way for wasm
-        BARRETENBERG_BIN_DIR = "${pkgs.barretenberg-wasm}/bin";
-      };
-
       # We use `include_str!` macro to embed the solidity verifier template so we need to create a special
-      # source filter to include .sol files in addition to usual rust/cargo source files
+      # source filter to include .sol files in addition to usual rust/cargo source files.
       solidityFilter = path: _type: builtins.match ".*sol$" path != null;
+      # We use `.bytecode` and `.tr` files to test interactions with `bb` so we add a source filter to include these.
+      bytecodeFilter = path: _type: builtins.match ".*bytecode$" path != null;
+      witnessFilter = path: _type: builtins.match ".*tr$" path != null;
       sourceFilter = path: type:
-        (solidityFilter path type) || (craneLib.filterCargoSources path type);
+        (solidityFilter path type) || (bytecodeFilter path type)|| (witnessFilter path type) || (craneLib.filterCargoSources path type);
 
       # As per https://discourse.nixos.org/t/gcc11stdenv-and-clang/17734/7 since it seems that aarch64-linux uses
       # gcc9 instead of gcc11 for the C++ stdlib, while all other targets we support provide the correct libstdc++
@@ -105,6 +98,12 @@
         # Need libiconv and apple Security on Darwin. See https://github.com/ipetkov/crane/issues/156
         pkgs.libiconv
         pkgs.darwin.apple_sdk.frameworks.Security
+      ] ++ [
+        # Need to install various packages used by the `bb` binary.
+        pkgs.curl
+        stdenv.cc.cc.lib
+        pkgs.gcc.cc.lib
+        pkgs.gzip
       ];
 
       commonArgs = {
@@ -124,41 +123,65 @@
       };
 
       # Combine the environment and other configuration needed for crane to build with the native feature
-      nativeArgs = nativeEnvironment // commonArgs // {
+      nativeArgs = sharedEnvironment // commonArgs // {
         # Use our custom stdenv to build and test our Rust project
         inherit stdenv;
 
-        nativeBuildInputs = [
-          # This provides the pkg-config tool to find barretenberg & other native libraries
-          pkgs.pkg-config
-          # This provides the `lld` linker to cargo
-          pkgs.llvmPackages.bintools
+        nativeBuildInputs = pkgs.lib.optionals stdenv.isLinux [
+          # This is linux specific and used to patch the rpath and interpreter of the bb binary
+          pkgs.patchelf
         ];
 
         buildInputs = [
           pkgs.llvmPackages.openmp
-          pkgs.barretenberg
         ] ++ extraBuildInputs;
       };
+      
+      # Conditionally download the binary based on whether it is linux or mac
+      bb_binary = let
+        platformSpecificUrl = if stdenv.hostPlatform.isLinux then
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/barretenberg-x86_64-linux-gnu.tar.gz"
+        else if stdenv.hostPlatform.isDarwin then
+          "https://github.com/AztecProtocol/barretenberg/releases/download/barretenberg-v0.4.6/barretenberg-x86_64-apple-darwin.tar.gz"
+        else
+          throw "Unsupported platform";
 
-      # Combine the environment and other configuration needed for crane to build with the wasm feature
-      wasmArgs = wasmEnvironment // commonArgs // {
-        # We disable the default "native" feature and enable the "wasm" feature
-        cargoExtraArgs = "--no-default-features --features='wasm'";
-
-        buildInputs = [ ] ++ extraBuildInputs;
+        platformSpecificHash = if stdenv.hostPlatform.isLinux then
+          "sha256:1p15v6rvf9195047pfbw8dns3z6s54q4c9hgbxan72lhjjgjz800"
+        else if stdenv.hostPlatform.isDarwin then
+          "sha256:03d9rsmhvzaz7ni8ac9hf3adc2dw57nv6q406v4l49g1rd354dm0"
+        else
+          throw "Unsupported platform";
+      in builtins.fetchurl {
+        url = platformSpecificUrl;
+        sha256 = platformSpecificHash;
       };
+
 
       # The `port` is parameterized to support parallel test runs without colliding static servers
       networkTestArgs = port: {
-        # We provide `barretenberg-transcript00` from the overlay to the tests as a URL hosted via a static server
-        # This is necessary because the Nix sandbox has no network access and downloading during tests would fail
-        TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+        BB_BINARY_PATH = "./backend_binary";
 
-        # This copies the `barretenberg-transcript00` from the Nix store into this sandbox
-        # which avoids exposing the entire Nix store to the static server it starts
-        # The static server is moved to the background and killed after checks are completed
+        BB_BINARY_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf bb_binary}";
+
+        BARRETENBERG_TRANSCRIPT_URL = "http://0.0.0.0:${toString port}/${builtins.baseNameOf pkgs.barretenberg-transcript00}";
+
         preCheck = ''
+          echo "Extracting bb binary"
+          mkdir extracted
+          tar -xf ${bb_binary} -C extracted
+          cp extracted/bb ./backend_binary
+
+          # Conditionally patch the binary for Linux
+          ${if stdenv.hostPlatform.isLinux then ''
+            echo "Patching bb binary for Linux"
+            patchelf --set-rpath "${stdenv.cc.cc.lib}/lib:${pkgs.gcc.cc.lib}/lib" ./backend_binary
+            patchelf --set-interpreter ${stdenv.cc.libc}/lib/ld-linux-x86-64.so.2 ./backend_binary
+          '' else if stdenv.hostPlatform.isDarwin then ''
+          '' else
+            throw "Unsupported platform"
+          }
+
           cp ${pkgs.barretenberg-transcript00} .
           echo "Starting simple static server"
           ${pkgs.simple-http-server}/bin/simple-http-server --port ${toString port} --silent &
@@ -172,12 +195,8 @@
 
       # Build *just* the cargo dependencies, so we can reuse all of that work between runs
       native-cargo-artifacts = craneLib.buildDepsOnly nativeArgs;
-      wasm-cargo-artifacts = craneLib.buildDepsOnly wasmArgs;
-
+     
       acvm-backend-barretenberg-native = craneLib.buildPackage (nativeArgs // {
-        cargoArtifacts = native-cargo-artifacts;
-      });
-      acvm-backend-barretenberg-wasm = craneLib.buildPackage (wasmArgs // {
         cargoArtifacts = native-cargo-artifacts;
       });
     in
@@ -201,45 +220,26 @@
           # It's unclear why doCheck needs to be enabled for tests to run but not clippy
           doCheck = true;
         });
-
-        cargo-clippy-wasm = craneLib.cargoClippy (wasmArgs // {
-          # Crane appends "clippy"
-          pname = "wasm";
-
-          cargoArtifacts = wasm-cargo-artifacts;
-
-          cargoClippyExtraArgs = "--all-targets -- -D warnings";
-        });
-
-        cargo-test-wasm = craneLib.cargoTest (wasmArgs // (networkTestArgs 8001) // {
-          # Crane appends "test"
-          pname = "wasm";
-
-          cargoArtifacts = wasm-cargo-artifacts;
-
-          # It's unclear why doCheck needs to be enabled for tests to run but not clippy
-          doCheck = true;
-        });
       };
 
       packages = {
         inherit acvm-backend-barretenberg-native;
-        inherit acvm-backend-barretenberg-wasm;
 
         default = acvm-backend-barretenberg-native;
 
         # We expose the `*-cargo-artifacts` derivations so we can cache our cargo dependencies in CI
         inherit native-cargo-artifacts;
-        inherit wasm-cargo-artifacts;
       };
 
       # Setup the environment to match the stdenv from `nix build` & `nix flake check`, and
       # combine it with the environment settings, the inputs from our checks derivations,
       # and extra tooling via `nativeBuildInputs`
-      devShells.default = pkgs.mkShell.override { inherit stdenv; } (nativeEnvironment // wasmEnvironment // {
+      devShells.default = pkgs.mkShell.override { inherit stdenv; } (sharedEnvironment // {
         inputsFrom = builtins.attrValues checks;
 
         nativeBuildInputs = with pkgs; [
+          curl
+          gzip
           which
           starship
           git
