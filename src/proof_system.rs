@@ -63,12 +63,10 @@ impl ProofSystemCompiler for Barretenberg {
         }
     }
 
-    fn prove_with_pk(
+    fn prove(
         &self,
-        _common_reference_string: &[u8],
         circuit: &Circuit,
         witness_values: WitnessMap,
-        _proving_key: &[u8],
         is_recursive: bool,
     ) -> Result<Vec<u8>, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
@@ -117,13 +115,11 @@ impl ProofSystemCompiler for Barretenberg {
         Ok(proof)
     }
 
-    fn verify_with_vk(
+    fn verify(
         &self,
-        _common_reference_string: &[u8],
         proof: &[u8],
         public_inputs: WitnessMap,
         circuit: &Circuit,
-        _verification_key: &[u8],
         is_recursive: bool,
     ) -> Result<bool, Self::Error> {
         let temp_directory = tempdir().expect("could not create a temporary directory");
@@ -184,7 +180,6 @@ impl ProofSystemCompiler for Barretenberg {
 
     fn vk_as_fields(
         &self,
-        _common_reference_string: &[u8],
         _verification_key: &[u8],
     ) -> Result<(Vec<FieldElement>, FieldElement), Self::Error> {
         panic!("vk_as_fields not supported in this backend");
